@@ -32,31 +32,46 @@ export default function DashboardSidebar() {
   };
 
   return (
-    <aside
-      className={`border-r border-white/[0.08] bg-[#0b0d13] flex flex-col justify-between overflow-y-auto hidden md:flex shrink-0 transition-all duration-300 ease-in-out ${
-        sidebarOpen ? 'w-56 p-3.5 opacity-100' : 'w-0 p-0 border-r-0 opacity-0 pointer-events-none'
-      }`}
-    >
-      <div className="space-y-4">
-        {/* Top Brand & Toggle Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-          <Link href="/" className="flex items-center gap-2 overflow-hidden group">
-            <div className="size-7 rounded-lg flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform shrink-0">
-              <img src="/logo.png" alt="Lemas Logo" className="size-6 object-contain drop-shadow" />
-            </div>
-            <span className="font-bold text-sm tracking-tight text-white truncate">
-              {t.brand}
-            </span>
-          </Link>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 md:hidden animate-fade-in"
+        />
+      )}
 
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 hover:text-white hover:border-emerald-500/40 hover:bg-white/[0.08] transition-all shrink-0 ml-1"
-            title={t.collapseSidebar}
-          >
-            <PanelLeftClose className="size-4 text-slate-300 hover:text-emerald-400 transition-colors" />
-          </button>
-        </div>
+      <aside
+        className={`border-r border-white/[0.08] bg-[#0b0d13] flex flex-col justify-between overflow-y-auto shrink-0 transition-all duration-300 ease-in-out z-50 ${
+          sidebarOpen
+            ? 'fixed md:relative inset-y-0 left-0 w-64 md:w-56 p-3.5 opacity-100 shadow-2xl md:shadow-none translate-x-0'
+            : 'fixed md:relative -translate-x-full md:translate-x-0 md:w-0 p-0 border-r-0 opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="space-y-4">
+          {/* Top Brand & Toggle Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <Link
+              href="/"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-2 overflow-hidden group"
+            >
+              <div className="size-7 rounded-lg flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform shrink-0">
+                <img src="/logo.png" alt="Lemas Logo" className="size-6 object-contain drop-shadow" />
+              </div>
+              <span className="font-bold text-sm tracking-tight text-white truncate">
+                {t.brand}
+              </span>
+            </Link>
+
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 hover:text-white hover:border-emerald-500/40 hover:bg-white/[0.08] transition-all shrink-0 ml-1 cursor-pointer"
+              title={t.collapseSidebar}
+            >
+              <PanelLeftClose className="size-4 text-slate-300 hover:text-emerald-400 transition-colors" />
+            </button>
+          </div>
 
         {/* WORKSPACE */}
         <div>
@@ -223,5 +238,6 @@ export default function DashboardSidebar() {
         </Link>
       </div>
     </aside>
+    </>
   );
 }

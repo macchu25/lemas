@@ -12,10 +12,20 @@ const GOOGLE_CLIENT_ID =
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('demo@lemas.ai');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('lemas_remembered_email');
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+    }
+  }, []);
 
   const handleOAuthFallback = async (provider: 'google' | 'github', customEmail?: string, customName?: string, avatar?: string) => {
     setLoading(true);
@@ -91,10 +101,16 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
+      if (rememberMe) {
+        localStorage.setItem('lemas_remembered_email', email);
+      } else {
+        localStorage.removeItem('lemas_remembered_email');
+      }
+
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -237,12 +253,29 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between text-xs py-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-white/70 hover:text-white transition-colors">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="size-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/40 focus:ring-offset-0 transition-colors accent-emerald-500 cursor-pointer"
+                />
+                <span>Ghi nhớ đăng nhập</span>
+              </label>
+
+              <Link href="/contact" className="text-white/40 hover:text-cyan-300 transition-colors text-[11px]">
+                Quên mật khẩu?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 text-white text-xs sm:text-sm font-semibold hover:opacity-95 disabled:opacity-50 transition-all shadow-md shadow-cyan-500/25"
+              className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 text-white text-xs sm:text-sm font-semibold hover:opacity-95 disabled:opacity-50 transition-all shadow-md shadow-cyan-500/25 cursor-pointer"
             >
-              <span>{loading ? 'Signing In...' : 'Continue with email'}</span>
+              <span>{loading ? 'Đang đăng nhập...' : 'Đăng nhập với Email'}</span>
               <ArrowRight className="size-4" />
             </button>
           </form>
