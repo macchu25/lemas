@@ -142,7 +142,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://t.me/nornai"
+                  href="https://t.me/lemas_ai"
                   target="_blank"
                   rel="noreferrer"
                   className="text-[var(--color-fg-muted)] hover:text-cyan-400 transition-colors flex items-center gap-1"
@@ -153,7 +153,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-xs text-[var(--color-fg-subtle)]">
-                  Available in EN & VI
+                  Available in EN, VI & ZH
                 </span>
               </li>
             </ul>
@@ -161,7 +161,7 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--color-fg-subtle)]">
-          <p>© {new Date().getFullYear()} Norn.AI — Next-Gen AI Gateway. Powered by Golang & Next.js.</p>
+          <p>© {new Date().getFullYear()} Lemas.AI — Bản quyền thuộc về MacchuStudio. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/contact" className="hover:text-[var(--color-fg)]">
               Privacy Policy

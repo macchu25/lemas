@@ -58,7 +58,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<'vi' | 'en' | 'zh'>('vi');
 
   useEffect(() => {
-    const savedLang = (localStorage.getItem('lemas_lang') || localStorage.getItem('norn_lang')) as 'vi' | 'en' | 'zh';
+    const savedLang = localStorage.getItem('lemas_lang') as 'vi' | 'en' | 'zh';
     if (savedLang && ['vi', 'en', 'zh'].includes(savedLang)) {
       setLang(savedLang);
     }
@@ -68,7 +68,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     const nextLang = lang === 'vi' ? 'en' : lang === 'en' ? 'zh' : 'vi';
     setLang(nextLang);
     localStorage.setItem('lemas_lang', nextLang);
-    localStorage.setItem('norn_lang', nextLang);
     window.dispatchEvent(new Event('languageChange'));
   };
 

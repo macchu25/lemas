@@ -48,7 +48,7 @@ export default function DocsPage() {
                 Gateway Base URL
               </span>
               <div className="font-mono text-xs font-semibold text-cyan-300">
-                http://localhost:8080/v1 (or https://api.lemas.ai/v1)
+                https://lemas-api-production.up.railway.app/v1 (or https://api.lemas.io.vn/v1)
               </div>
             </div>
             <div className="p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--bg-elevated)] space-y-1">
@@ -72,7 +72,7 @@ export default function DocsPage() {
               onClick={() =>
                 handleCopy(
                   'openai-node',
-                  `import OpenAI from "openai";\n\nconst lemas = new OpenAI({\n  baseURL: "http://localhost:8080/v1",\n  apiKey: process.env.LEMAS_API_KEY,\n});\n\nconst res = await lemas.chat.completions.create({\n  model: "deepseek/deepseek-r1",\n  messages: [{ role: "user", content: "Hello Lemas.AI!" }],\n});`
+                  `import OpenAI from "openai";\n\nconst lemas = new OpenAI({\n  baseURL: "https://lemas-api-production.up.railway.app/v1",\n  apiKey: process.env.LEMAS_API_KEY,\n});\n\nconst res = await lemas.chat.completions.create({\n  model: "deepseek/deepseek-r1",\n  messages: [{ role: "user", content: "Hello Lemas.AI!" }],\n});`
                 )
               }
               className="flex items-center gap-1 text-xs text-cyan-400 hover:text-white"
@@ -86,8 +86,8 @@ export default function DocsPage() {
 {`import OpenAI from "openai";
 
 const lemas = new OpenAI({
-  baseURL: "http://localhost:8080/v1", // or https://api.lemas.ai/v1
-  apiKey: process.env.LEMAS_API_KEY,   // e.g. lemas-live-...
+  baseURL: "https://lemas-api-production.up.railway.app/v1", // or https://api.lemas.io.vn/v1
+  apiKey: process.env.LEMAS_API_KEY,
 });
 
 const response = await lemas.chat.completions.create({
@@ -112,7 +112,7 @@ console.log(response.choices[0].message.content);`}
               onClick={() =>
                 handleCopy(
                   'anthropic-sdk',
-                  `import Anthropic from "@anthropic-ai/sdk";\n\nconst lemas = new Anthropic({\n  baseURL: "http://localhost:8080/v1",\n  apiKey: process.env.LEMAS_API_KEY,\n});`
+                  `import Anthropic from "@anthropic-ai/sdk";\n\nconst lemas = new Anthropic({\n  baseURL: "https://lemas-api-production.up.railway.app/v1",\n  apiKey: process.env.LEMAS_API_KEY,\n});`
                 )
               }
               className="flex items-center gap-1 text-xs text-cyan-400 hover:text-white"
@@ -126,7 +126,7 @@ console.log(response.choices[0].message.content);`}
 {`import Anthropic from "@anthropic-ai/sdk";
 
 const lemas = new Anthropic({
-  baseURL: "http://localhost:8080/v1",
+  baseURL: "https://lemas-api-production.up.railway.app/v1",
   apiKey: process.env.LEMAS_API_KEY,
 });
 

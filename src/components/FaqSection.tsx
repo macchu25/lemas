@@ -5,8 +5,8 @@ import { ChevronDown, HelpCircle } from 'lucide-react';
 
 const faqs = [
   {
-    q: 'What is Norn.AI and how does it work?',
-    a: 'Norn.AI is a unified AI Gateway and token optimization router designed for autonomous agents and developers. By connecting to Norn.AI once, you get instant access to DeepSeek, Claude 3.7, GPT-4o, Gemini 2.0, and 200+ frontier models through standard OpenAI or Anthropic SDK endpoints.',
+    q: 'What is Lemas.AI and how does it work?',
+    a: 'Lemas.AI is a unified AI Gateway and token optimization router designed for autonomous agents and developers. By connecting to Lemas.AI once, you get instant access to DeepSeek, Claude 3.7, GPT-4o, Gemini 2.0, and 200+ frontier models through standard OpenAI or Anthropic SDK endpoints.',
   },
   {
     q: 'Is there really a free tier?',
@@ -14,18 +14,18 @@ const faqs = [
   },
   {
     q: 'Are you 100% compatible with existing OpenAI & Anthropic SDKs?',
-    a: 'Yes, fully drop-in compatible. Simply change your baseURL to http://localhost:8080/v1 (or https://api.norn.ai/v1) and pass your Norn.AI API key. No rewrites or library changes are needed.',
+    a: 'Yes, fully drop-in compatible. Simply change your baseURL to https://lemas-api-production.up.railway.app/v1 (or https://api.lemas.io.vn/v1) and pass your Lemas.AI API key. No rewrites or library changes are needed.',
   },
   {
-    q: 'How does Norn.AI offer 50–70% better pricing?',
+    q: 'How does Lemas.AI offer 50–70% better pricing?',
     a: 'We purchase token pools at enterprise volume rates and route through our ultra-low latency edge nodes. We pass the majority of those volume savings directly to you.',
   },
   {
     q: 'How does multi-provider fallback work?',
-    a: 'If any model provider experiences outages or rate limit spikes, Norn.AI automatically routes your agent requests to healthy replica pools without breaking your execution stream.',
+    a: 'If any model provider experiences outages or rate limit spikes, Lemas.AI automatically routes your agent requests to healthy replica pools without breaking your execution stream.',
   },
   {
-    q: 'Can I use Norn.AI for commercial production workflows?',
+    q: 'Can I use Lemas.AI for commercial production workflows?',
     a: 'Yes. All plans support commercial agent workloads with an enterprise 99.9% uptime SLA.',
   },
 ];
@@ -49,7 +49,7 @@ export default function FaqSection() {
             Frequently Asked Questions
           </h2>
           <p className="mt-3 text-base text-[var(--color-fg-muted)]">
-            Everything you need to know about Norn.AI Gateway, token pricing, and SDK setups.
+            Everything you need to know about Lemas.AI Gateway, token pricing, and SDK setups.
           </p>
         </div>
 

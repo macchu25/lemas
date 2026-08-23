@@ -29,12 +29,12 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const savedLang = (localStorage.getItem('lemas_lang') || localStorage.getItem('norn_lang')) as 'vi' | 'en' | 'zh';
+    const savedLang = localStorage.getItem('lemas_lang') as 'vi' | 'en' | 'zh';
     if (savedLang && (savedLang === 'vi' || savedLang === 'en' || savedLang === 'zh')) {
       setLang(savedLang);
     }
 
-    const savedTheme = localStorage.getItem('norn_theme');
+    const savedTheme = localStorage.getItem('lemas_theme');
     if (savedTheme === 'light') {
       setIsDark(false);
       document.documentElement.classList.add('light');
@@ -47,14 +47,13 @@ export default function Navbar() {
     const nextLang = lang === 'vi' ? 'en' : lang === 'en' ? 'zh' : 'vi';
     setLang(nextLang);
     localStorage.setItem('lemas_lang', nextLang);
-    localStorage.setItem('norn_lang', nextLang);
     window.dispatchEvent(new Event('languageChange'));
   };
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
     setIsDark(!isDark);
-    localStorage.setItem('norn_theme', newTheme);
+    localStorage.setItem('lemas_theme', newTheme);
     if (newTheme === 'light') {
       document.documentElement.classList.add('light');
     } else {

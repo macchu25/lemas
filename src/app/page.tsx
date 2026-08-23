@@ -161,7 +161,7 @@ export default function HomePage() {
       {/* Model Catalog Section */}
       <ModelCatalog />
 
-      {/* Why Norn.AI Features Grid */}
+      {/* Why Lemas.AI Features Grid */}
       <section className="py-24 border-t border-[var(--color-border)] relative">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">

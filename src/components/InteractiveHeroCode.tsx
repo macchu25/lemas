@@ -11,7 +11,7 @@ const codeSnippets: Record<string, { label: string; file: string; lang: string; 
     code: `import OpenAI from "openai";
 
 const lemas = new OpenAI({
-  baseURL: "http://localhost:8080/v1", // or https://api.lemas.ai/v1
+  baseURL: "https://lemas-api-production.up.railway.app/v1", // or https://api.lemas.io.vn/v1
   apiKey: process.env.LEMAS_API_KEY,
 });
 
@@ -29,7 +29,7 @@ console.log(res.choices[0].message.content);`,
     code: `import Anthropic from "@anthropic-ai/sdk";
 
 const lemas = new Anthropic({
-  baseURL: "http://localhost:8080/v1", // or https://api.lemas.ai/v1
+  baseURL: "https://lemas-api-production.up.railway.app/v1", // or https://api.lemas.io.vn/v1
   apiKey: process.env.LEMAS_API_KEY,
 });
 
@@ -47,7 +47,7 @@ const msg = await lemas.messages.create({
 import os
 
 client = OpenAI(
-    base_url="http://localhost:8080/v1",
+    base_url="https://lemas-api-production.up.railway.app/v1",
     api_key=os.environ.get("LEMAS_API_KEY")
 )
 
@@ -62,12 +62,12 @@ print(response.choices[0].message.content)`,
     label: 'cURL',
     file: 'request.sh',
     lang: 'bash',
-    code: `curl http://localhost:8080/v1/chat/completions \\
+    code: `curl https://lemas-api-production.up.railway.app/v1/chat/completions \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $NORN_API_KEY" \\
+  -H "Authorization: Bearer $LEMAS_API_KEY" \\
   -d '{
     "model": "deepseek/deepseek-r1",
-    "messages": [{"role": "user", "content": "Ping Norn.AI Gateway"}]
+    "messages": [{"role": "user", "content": "Ping Lemas.AI Gateway"}]
   }'`,
   },
 };

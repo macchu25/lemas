@@ -142,7 +142,7 @@ export default function PricingCalculator() {
               Interactive ROI Calculator
             </span>
             <h3 className="text-2xl font-bold text-[var(--color-fg)] mt-1">
-              Estimate your monthly token savings with Norn.AI
+              Estimate your monthly token savings with Lemas.AI
             </h3>
             <p className="text-xs text-[var(--color-fg-muted)] mt-1">
               Slide to select your team or agent fleet monthly token throughput.
