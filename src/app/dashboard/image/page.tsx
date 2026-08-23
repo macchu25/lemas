@@ -106,6 +106,14 @@ export default function ImageStudioPage() {
     setError(null);
 
     try {
+      // Auto-trigger Google/Puter login if not already logged in
+      if (!puterUser && typeof window !== 'undefined' && window.puter?.auth && !window.puter.auth.isSignedIn()) {
+        try {
+          const u = await signInPuter();
+          if (u) setPuterUser(u);
+        } catch {}
+      }
+
       let combinedPrompt = prompt.trim();
       if (customStyleText.trim()) {
         combinedPrompt += `, art style: ${customStyleText.trim()}`;
