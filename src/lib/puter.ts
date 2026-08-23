@@ -203,17 +203,8 @@ export async function generateImage(
     ].filter(Boolean))
   );
 
-  // 1. Try Puter.js AI txt2img pipeline
-  if (typeof window !== 'undefined' && (await waitForPuter(8000))) {
-    // If user is not yet logged into Puter, prompt Google / Puter login seamlessly
-    if (window.puter?.auth && !window.puter.auth.isSignedIn()) {
-      try {
-        await window.puter.auth.signIn();
-      } catch (authErr) {
-        console.warn('[Puter Auth] User skipped or closed Puter login popup:', authErr);
-      }
-    }
-
+  // 1. Try Puter.js AI txt2img pipeline silently (no popup)
+  if (typeof window !== 'undefined' && (await waitForPuter(4000))) {
     const txt2img = window.puter?.ai?.txt2img;
     if (txt2img) {
       for (const model of candidateModels) {

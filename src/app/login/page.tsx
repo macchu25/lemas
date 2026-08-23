@@ -46,17 +46,6 @@ export default function LoginPage() {
         throw new Error(data.error || `Failed to login with ${provider}`);
       }
       setStoredToken(data.token);
-      // Await 1-time Puter session on login
-      if (typeof window !== 'undefined' && (window as any).puter?.auth && !(window as any).puter.auth.isSignedIn()) {
-        try {
-          await Promise.race([
-            (window as any).puter.auth.signIn(),
-            new Promise((resolve) => setTimeout(resolve, 8000))
-          ]);
-        } catch (e) {
-          console.warn('Puter sign in completed or skipped:', e);
-        }
-      }
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'OAuth error');

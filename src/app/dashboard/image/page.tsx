@@ -106,14 +106,6 @@ export default function ImageStudioPage() {
     setError(null);
 
     try {
-      // Auto-trigger Google/Puter login if not already logged in
-      if (!puterUser && typeof window !== 'undefined' && window.puter?.auth && !window.puter.auth.isSignedIn()) {
-        try {
-          const u = await signInPuter();
-          if (u) setPuterUser(u);
-        } catch {}
-      }
-
       let combinedPrompt = prompt.trim();
       if (customStyleText.trim()) {
         combinedPrompt += `, art style: ${customStyleText.trim()}`;
@@ -191,32 +183,9 @@ export default function ImageStudioPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {puterUser ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-300">
-                <ShieldCheck className="size-3.5 text-emerald-400" />
-                <span className="font-semibold">Puter: @{puterUser.username || puterUser.email || 'Connected'}</span>
-                <button
-                  onClick={handlePuterSignOut}
-                  title="Đăng xuất Puter"
-                  className="ml-1 text-[10px] text-slate-400 hover:text-red-400 cursor-pointer underline"
-                >
-                  Thoát
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handlePuterSignIn}
-                disabled={signingInPuter}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-300 hover:bg-cyan-500/20 transition-colors cursor-pointer"
-              >
-                <Zap className="size-3.5 text-cyan-400" />
-                <span>{signingInPuter ? (t.puterOpening || 'Đang mở Puter...') : (t.puterConnectBtn || 'Liên kết Puter (Mở rộng Quota)')}</span>
-              </button>
-            )}
-
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#0e111a] text-xs text-slate-300">
-              <div className={`size-2 rounded-full ${puterReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse' : 'bg-cyan-400 animate-ping'}`} />
-              <span className="font-mono font-medium">{puterReady ? (t.puterConnected || 'Puter.js Connected') : (t.routerActive || 'Auto-Routing Active')}</span>
+              <div className="size-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
+              <span className="font-mono font-medium">{t.puterConnected || 'Puter.js & FLUX AI Sẵn Sàng'}</span>
             </div>
           </div>
         </div>
