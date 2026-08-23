@@ -81,6 +81,7 @@ export default function DashboardSidebar() {
           <div className="space-y-1">
             <Link
               href="/dashboard"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -92,6 +93,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard"
+              prefetch={true}
               className="flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[0.04]"
             >
               <div className="flex items-center gap-2.5">
@@ -113,6 +115,7 @@ export default function DashboardSidebar() {
           <div className="space-y-1">
             <Link
               href="/dashboard/chat"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/chat')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -124,6 +127,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard/image"
+              prefetch={true}
               className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/image')
                   ? 'bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30'
@@ -140,6 +144,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard/models"
+              prefetch={true}
               className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/models')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -156,6 +161,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard/keys"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/keys')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -167,6 +173,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard/analytics"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/analytics')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -178,6 +185,7 @@ export default function DashboardSidebar() {
             </Link>
             <Link
               href="/dashboard/logs"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/logs')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -198,6 +206,7 @@ export default function DashboardSidebar() {
           <div className="space-y-1">
             <Link
               href="/dashboard/billing"
+              prefetch={true}
               className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/billing')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
@@ -218,6 +227,7 @@ export default function DashboardSidebar() {
           <div className="space-y-1">
             <Link
               href="/dashboard/affiliate"
+              prefetch={true}
               className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/affiliate')
                   ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25'
