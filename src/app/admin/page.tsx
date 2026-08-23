@@ -24,6 +24,7 @@ import {
   ChevronRight,
   ExternalLink,
 } from 'lucide-react';
+import { API_BASE } from '@/lib/api';
 
 interface AdminUser {
   id: string;
@@ -71,8 +72,8 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [resOverview, resUsers] = await Promise.all([
-        fetch('http://localhost:8080/api/admin/overview').then((r) => r.json()),
-        fetch('http://localhost:8080/api/admin/users').then((r) => r.json()),
+        fetch(`${API_BASE}/api/admin/overview`).then((r) => r.json()),
+        fetch(`${API_BASE}/api/admin/users`).then((r) => r.json()),
       ]);
       setOverview(resOverview);
       setUsers(Array.isArray(resUsers) ? resUsers : []);
@@ -88,7 +89,7 @@ export default function AdminPage() {
     if (!selectedUser) return;
     setAdjusting(true);
     try {
-      const res = await fetch('http://localhost:8080/api/admin/users/adjust', {
+      const res = await fetch(`${API_BASE}/api/admin/users/adjust`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
