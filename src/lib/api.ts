@@ -226,11 +226,12 @@ export async function revokeApiKey(id: string): Promise<boolean> {
 
 // Test completions endpoint directly
 export async function testChatCompletion(apiKey: string, model: string, userMessage: string) {
+  const token = apiKey || getStoredToken() || '';
   const res = await fetch(`${API_BASE}/v1/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       model,
