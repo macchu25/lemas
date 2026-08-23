@@ -163,10 +163,10 @@ export default function Footer() {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--color-fg-subtle)]">
           <p>© {new Date().getFullYear()} Lemas.AI — Bản quyền thuộc về MacchuStudio. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <Link href="/contact" className="hover:text-[var(--color-fg)]">
+            <Link href="/privacy" className="hover:text-[var(--color-fg)]">
               Privacy Policy
             </Link>
-            <Link href="/contact" className="hover:text-[var(--color-fg)]">
+            <Link href="/terms" className="hover:text-[var(--color-fg)]">
               Terms of Service
             </Link>
             <Link href="/status" className="hover:text-[var(--color-fg)]">
