@@ -148,18 +148,22 @@ export async function submitContact(name: string, email: string, subject: string
 // Auth & Dashboard helpers
 export function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('xkiro_auth_token');
+  return localStorage.getItem('lemas_auth_token') || localStorage.getItem('xkiro_auth_token');
 }
 
 export function setStoredToken(token: string) {
   if (typeof window !== 'undefined') {
+    localStorage.setItem('lemas_auth_token', token);
     localStorage.setItem('xkiro_auth_token', token);
+    document.cookie = `lemas_auth_token=${token}; path=/; max-age=2592000; SameSite=Lax`;
   }
 }
 
 export function removeStoredToken() {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('lemas_auth_token');
     localStorage.removeItem('xkiro_auth_token');
+    document.cookie = 'lemas_auth_token=; path=/; max-age=0';
   }
 }
 

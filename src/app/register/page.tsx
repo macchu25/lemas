@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, User, ArrowRight } from 'lucide-react';
-import { setStoredToken, API_BASE } from '@/lib/api';
+import { setStoredToken, getStoredToken, API_BASE } from '@/lib/api';
 
 const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -17,6 +17,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && getStoredToken()) {
+      window.location.href = '/dashboard';
+    }
+  }, []);
 
   const handleOAuthFallback = async (provider: 'google' | 'github', customEmail?: string, customName?: string, avatar?: string) => {
     setLoading(true);
@@ -37,10 +43,9 @@ export default function RegisterPage() {
         throw new Error(data.error || `Failed to register with ${provider}`);
       }
       setStoredToken(data.token);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'OAuth error');
-    } finally {
       setLoading(false);
     }
   };
@@ -102,10 +107,9 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Failed to create account');
       }
       setStoredToken(data.token);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'Registration error');
-    } finally {
       setLoading(false);
     }
   };

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, ArrowRight } from 'lucide-react';
-import { setStoredToken, API_BASE } from '@/lib/api';
+import { setStoredToken, getStoredToken, API_BASE } from '@/lib/api';
 
 const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -20,6 +20,11 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
+      const token = getStoredToken();
+      if (token) {
+        window.location.href = '/dashboard';
+        return;
+      }
       const savedEmail = localStorage.getItem('lemas_remembered_email');
       if (savedEmail) {
         setEmail(savedEmail);
@@ -46,10 +51,9 @@ export default function LoginPage() {
         throw new Error(data.error || `Failed to login with ${provider}`);
       }
       setStoredToken(data.token);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'OAuth error');
-    } finally {
       setLoading(false);
     }
   };
@@ -117,10 +121,9 @@ export default function LoginPage() {
         throw new Error(data.error || 'Failed to login');
       }
       setStoredToken(data.token);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'Login error');
-    } finally {
       setLoading(false);
     }
   };
