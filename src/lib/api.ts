@@ -174,7 +174,12 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        removeStoredToken();
+      }
+      return null;
+    }
     return await res.json();
   } catch {
     return null;

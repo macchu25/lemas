@@ -73,23 +73,31 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshData = async () => {
-    const [u, k, m, p, a] = await Promise.all([
-      getCurrentUser(),
-      getApiKeys(),
-      getModels(),
-      getPricingTiers(),
-      getUserAnalytics(),
-    ]);
-    if (!u) {
-      router.push('/login');
-      return;
+    try {
+      const u = await getCurrentUser();
+      if (!u) {
+        removeStoredToken();
+        window.location.href = '/login';
+        return;
+      }
+      setUser(u);
+
+      const [k, m, p, a] = await Promise.all([
+        getApiKeys().catch(() => []),
+        getModels().catch(() => []),
+        getPricingTiers().catch(() => []),
+        getUserAnalytics().catch(() => null),
+      ]);
+
+      setKeys(k || []);
+      setModels(m || []);
+      setTiers(p || []);
+      setAnalytics(a || null);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setLoading(false);
     }
-    setUser(u);
-    setKeys(k);
-    setModels(m);
-    setTiers(p);
-    setAnalytics(a);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -98,7 +106,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     removeStoredToken();
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const handleTopup = async (amountUSD: number): Promise<boolean> => {

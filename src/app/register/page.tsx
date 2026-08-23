@@ -18,12 +18,6 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && getStoredToken()) {
-      window.location.href = '/dashboard';
-    }
-  }, []);
-
   const handleOAuthFallback = async (provider: 'google' | 'github', customEmail?: string, customName?: string, avatar?: string) => {
     setLoading(true);
     setError('');

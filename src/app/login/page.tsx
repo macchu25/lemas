@@ -20,11 +20,6 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const token = getStoredToken();
-      if (token) {
-        window.location.href = '/dashboard';
-        return;
-      }
       const savedEmail = localStorage.getItem('lemas_remembered_email');
       if (savedEmail) {
         setEmail(savedEmail);
