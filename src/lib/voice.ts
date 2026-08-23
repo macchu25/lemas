@@ -59,7 +59,8 @@ export function speakGoogleVoice(
     const chunkText = chunks[currentChunk];
     currentChunk++;
 
-    const audioUrl = `http://localhost:8080/api/tts?lang=${encodeURIComponent(lang)}&text=${encodeURIComponent(chunkText)}`;
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const audioUrl = `${API_BASE}/api/tts?lang=${encodeURIComponent(lang)}&text=${encodeURIComponent(chunkText)}`;
     const audio = new Audio(audioUrl);
     activeAudio = audio;
 
