@@ -115,7 +115,7 @@ export const translations = {
       chatGreetingSub: 'Select a model and start chatting — or pick a prompt below.',
       waitingLemas: 'Waiting for Lemas...',
       chatInputPlaceholder: 'Message (Shift+Enter for newline)...',
-      disclaimer: 'AI may make mistakes. Verify important information.',
+      disclaimer: 'Lemas.AI may make mistakes. Verify important information.',
       prompts: [
         'Explain how Lemas.AI routes AI requests across providers',
         'Write a Python script to call the Lemas.AI API',
@@ -335,7 +335,7 @@ export const translations = {
       chatGreetingSub: 'Chọn mô hình và bắt đầu chat — hoặc chọn một gợi ý bên dưới.',
       waitingLemas: 'Đợi Lemas 1 chút nha...',
       chatInputPlaceholder: 'Nhắn tin (Shift+Enter xuống dòng)...',
-      disclaimer: 'DeepSeek V4 Flash — AI có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.',
+      disclaimer: 'Lemas.AI có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.',
       prompts: [
         'Giải thích cơ chế xoay tua và định tuyến AI của Lemas.AI',
         'Viết mã Python kết nối với API Lemas.AI chuẩn OpenAI SDK',
