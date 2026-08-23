@@ -43,7 +43,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
   };
 
   return (
-    <div className="p-6 sm:p-8 rounded-3xl border border-white/[0.08] bg-[#0e111a] space-y-6 w-full">
+    <div className="p-3.5 sm:p-8 rounded-3xl border border-white/[0.08] bg-[#0e111a] space-y-6 w-full max-w-full overflow-hidden">
       <div className="space-y-1">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <Zap className="size-4 text-emerald-400" />

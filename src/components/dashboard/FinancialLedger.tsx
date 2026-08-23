@@ -21,9 +21,9 @@ export default function FinancialLedger({ showTopupQuickButton = true }: Financi
   return (
     <div className="space-y-6 w-full">
       {/* 4 Stat Metrics Cards (100% Real Database Ledger) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* 1. Số dư ví */}
-        <div className="p-5 rounded-2xl border border-emerald-500/25 bg-gradient-to-b from-emerald-500/[0.08] to-[#0e111a] space-y-2 relative overflow-hidden">
+        <div className="p-4 sm:p-5 rounded-2xl border border-emerald-500/25 bg-gradient-to-b from-emerald-500/[0.08] to-[#0e111a] space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between text-xs text-emerald-400">
             <span className="font-semibold">{t.statBalance}</span>
             <Wallet className="size-4 text-emerald-400" />
