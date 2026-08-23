@@ -107,22 +107,18 @@ export default function AdminPage() {
     }
   }, []);
 
+  const getAdminHeaders = () => {
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('lemas_admin_token') || '' : '';
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminLoading(true);
     setAdminError('');
-
-    // Check credentials locally or through backend endpoint
-    if (
-      (adminUsername === 'admin.lemas' || adminUsername === 'admin@lemas.ai') &&
-      adminPassword === 'mactieulem'
-    ) {
-      sessionStorage.setItem('lemas_admin_auth', 'true');
-      setIsAdminAuth(true);
-      setAdminLoading(false);
-      loadAdminData();
-      return;
-    }
 
     try {
       const res = await fetch(`${API_BASE}/api/admin/login`, {
@@ -131,15 +127,16 @@ export default function AdminPage() {
         body: JSON.stringify({ username: adminUsername, password: adminPassword }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && data.success && data.token) {
         sessionStorage.setItem('lemas_admin_auth', 'true');
+        sessionStorage.setItem('lemas_admin_token', data.token);
         setIsAdminAuth(true);
         loadAdminData();
       } else {
         setAdminError(data.error || 'Tài khoản hoặc mật khẩu quản trị không chính xác!');
       }
     } catch {
-      setAdminError('Tài khoản hoặc mật khẩu quản trị không chính xác!');
+      setAdminError('Lỗi kết nối tới máy chủ quản trị!');
     } finally {
       setAdminLoading(false);
     }
@@ -147,6 +144,7 @@ export default function AdminPage() {
 
   const handleAdminLogout = () => {
     sessionStorage.removeItem('lemas_admin_auth');
+    sessionStorage.removeItem('lemas_admin_token');
     setIsAdminAuth(false);
     setAdminUsername('');
     setAdminPassword('');
@@ -156,9 +154,21 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [resOverview, resUsers, resGifts] = await Promise.all([
-        fetch(`${API_BASE}/api/admin/overview`).then((r) => r.json()),
-        fetch(`${API_BASE}/api/admin/users`).then((r) => r.json()),
-        fetch(`${API_BASE}/api/admin/giftcodes`).then((r) => r.json()).catch(() => []),
+        fetch(`${API_BASE}/api/admin/overview`, { headers: getAdminHeaders() }).then((r) => {
+          if (r.status === 401 || r.status === 403) {
+            handleAdminLogout();
+            return null;
+          }
+          return r.json();
+        }),
+        fetch(`${API_BASE}/api/admin/users`, { headers: getAdminHeaders() }).then((r) => {
+          if (r.status === 401 || r.status === 403) return [];
+          return r.json();
+        }),
+        fetch(`${API_BASE}/api/admin/giftcodes`, { headers: getAdminHeaders() }).then((r) => {
+          if (r.status === 401 || r.status === 403) return [];
+          return r.json();
+        }).catch(() => []),
       ]);
       setOverview(resOverview);
       setUsers(Array.isArray(resUsers) ? resUsers : []);
@@ -177,7 +187,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/giftcodes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           code: newGiftCode.trim(),
           tokens: Number(newGiftTokens),
@@ -204,7 +214,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/giftcodes/delete`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
@@ -225,11 +235,11 @@ export default function AdminPage() {
     try {
       const res = await fetch(`${API_BASE}/api/admin/users/adjust`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           user_id: selectedUser.id,
-          adjust_balance: adjustAmount,
-          adjust_tokens: adjustTokens,
+          balance_delta: Number(adjustAmount),
+          tokens_delta: Number(adjustTokens),
           plan: adjustPlan || selectedUser.plan,
         }),
       });
