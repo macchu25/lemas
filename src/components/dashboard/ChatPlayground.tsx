@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   Sparkles,
   Bot,
@@ -13,6 +14,9 @@ import {
   VolumeX,
   Square,
   Play,
+  Wallet,
+  Zap,
+  ArrowRight,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import { testChatCompletion } from '@/lib/api';
@@ -20,7 +24,7 @@ import { speakGoogleVoice, stopSpeaking } from '@/lib/voice';
 import MarkdownRenderer from './MarkdownRenderer';
 
 export default function ChatPlayground() {
-  const { keys, lang, t, refreshData } = useDashboard();
+  const { user, keys, lang, t, refreshData } = useDashboard();
   const [chatModel, setChatModel] = useState('lemas-1.0');
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [chatInput, setChatInput] = useState('');
@@ -436,7 +440,31 @@ export default function ChatPlayground() {
 
         {/* Bottom Floating Chat Input Bar */}
         <div className="p-3 sm:p-5 bg-gradient-to-t from-[#08090d] via-[#08090d]/95 to-transparent shrink-0">
-          <div className="w-full space-y-2">
+          <div className="w-full space-y-2.5">
+            {Boolean(
+              user &&
+              (user.daily_tokens_used || 0) >= (user.daily_tokens_limit || 1000) &&
+              (user.gift_tokens || 0) <= 0 &&
+              (user.balance || 0) <= 0
+            ) && (
+              <div className="p-3.5 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-transparent flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg animate-in fade-in">
+                <div className="flex items-center gap-2 text-xs text-amber-300">
+                  <Zap className="size-4 text-amber-400 shrink-0 animate-pulse" />
+                  <span>
+                    Bạn đã sử dụng hết <strong>1,000 tokens miễn phí</strong> hôm nay. Hãy nâng cấp gói hoặc nạp tiền để tiếp tục trò chuyện!
+                  </span>
+                </div>
+                <Link
+                  href="/dashboard/billing"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-emerald-400 text-black text-xs font-bold hover:opacity-90 transition-all shrink-0 shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Wallet className="size-3.5" />
+                  <span>Nâng cấp / Nạp tiền ngay</span>
+                  <ArrowRight className="size-3" />
+                </Link>
+              </div>
+            )}
+
             <form
               onSubmit={handleSendChat}
               className="relative rounded-2xl border border-white/[0.12] bg-[#0e111a] p-3.5 shadow-2xl focus-within:border-cyan-500/40 transition-colors"
