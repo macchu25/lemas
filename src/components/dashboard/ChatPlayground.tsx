@@ -296,8 +296,8 @@ export default function ChatPlayground() {
                 </p>
               </div>
 
-              {/* 6 Suggestion Grid Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full text-left pt-2">
+              {/* 6 Suggestion Grid Cards (Hidden on mobile) */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full text-left pt-2">
                 {t.prompts.map((promptText, idx) => (
                   <button
                     key={idx}
