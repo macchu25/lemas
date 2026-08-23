@@ -25,6 +25,8 @@ import {
   ExternalLink,
   Lock,
   LogOut,
+  Gift,
+  Trash,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -37,9 +39,23 @@ interface AdminUser {
   balance: number;
   tokens_alloc: number;
   tokens_used: number;
+  daily_tokens_used?: number;
+  daily_tokens_limit?: number;
+  gift_tokens?: number;
   cost_usd: number;
   total_requests: number;
   active_keys: number;
+  created_at: string;
+}
+
+interface AdminGiftcode {
+  id: string;
+  code: string;
+  tokens: number;
+  max_uses: number;
+  used_count: number;
+  used_by: string[];
+  status: string;
   created_at: string;
 }
 
@@ -63,8 +79,15 @@ export default function AdminPage() {
 
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [giftcodes, setGiftcodes] = useState<AdminGiftcode[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // New Giftcode Form State
+  const [newGiftCode, setNewGiftCode] = useState('');
+  const [newGiftTokens, setNewGiftTokens] = useState(10000);
+  const [newGiftMaxUses, setNewGiftMaxUses] = useState(10);
+  const [giftCreating, setGiftCreating] = useState(false);
 
   // Adjust modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -131,16 +154,62 @@ export default function AdminPage() {
   const loadAdminData = async () => {
     setLoading(true);
     try {
-      const [resOverview, resUsers] = await Promise.all([
+      const [resOverview, resUsers, resGifts] = await Promise.all([
         fetch(`${API_BASE}/api/admin/overview`).then((r) => r.json()),
         fetch(`${API_BASE}/api/admin/users`).then((r) => r.json()),
+        fetch(`${API_BASE}/api/admin/giftcodes`).then((r) => r.json()).catch(() => []),
       ]);
       setOverview(resOverview);
       setUsers(Array.isArray(resUsers) ? resUsers : []);
+      setGiftcodes(Array.isArray(resGifts) ? resGifts : []);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateGiftcode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGiftCode.trim()) return;
+    setGiftCreating(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/giftcodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: newGiftCode.trim(),
+          tokens: Number(newGiftTokens),
+          max_uses: Number(newGiftMaxUses),
+        }),
+      });
+      if (res.ok) {
+        setNewGiftCode('');
+        await loadAdminData();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Lỗi tạo Giftcode');
+      }
+    } catch {
+      alert('Lỗi kết nối tạo Giftcode');
+    } finally {
+      setGiftCreating(false);
+    }
+  };
+
+  const handleDeleteGiftcode = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa mã Giftcode này?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/giftcodes/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setGiftcodes(giftcodes.filter((g) => g.id !== id));
+      }
+    } catch {
+      alert('Lỗi xóa Giftcode');
     }
   };
 
@@ -500,26 +569,32 @@ export default function AdminPage() {
                       ${u.balance.toFixed(2)}
                     </td>
 
-                    {/* Tokens Used */}
+                    {/* Tokens Used (Daily + Gift) */}
                     <td className="py-4">
                       <div className="space-y-1 max-w-[160px]">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-purple-300 font-mono">
-                            {u.tokens_used.toLocaleString()}
+                          <span className="font-bold text-cyan-300 font-mono">
+                            {(u.daily_tokens_used || 0).toLocaleString()}
                           </span>
-                          <span className="text-slate-500 font-mono text-[10px]">
-                            / {(u.tokens_alloc || 1000000).toLocaleString()}
+                          <span className="text-slate-400 font-mono text-[10px]">
+                            / {(u.daily_tokens_limit || 1000).toLocaleString()} (Ngày)
                           </span>
                         </div>
                         {/* Progress Bar */}
                         <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                           <div
                             style={{
-                              width: `${Math.min(100, (u.tokens_used / (u.tokens_alloc || 1000000)) * 100)}%`,
+                              width: `${Math.min(100, (((u.daily_tokens_used || 0) / (u.daily_tokens_limit || 1000)) * 100))}%`,
                             }}
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-500"
+                            className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-500"
                           />
                         </div>
+                        {Boolean(u.gift_tokens && u.gift_tokens > 0) && (
+                          <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 mt-0.5">
+                            <Gift className="size-2.5" />
+                            <span>+{(u.gift_tokens || 0).toLocaleString()} Gift</span>
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -551,7 +626,7 @@ export default function AdminPage() {
                           setAdjustTokens(1000000);
                           setAdjustPlan(u.plan);
                         }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 transition-colors cursor-pointer"
                       >
                         <Edit className="size-3.5" />
                         <span>Cộng / Sửa</span>
@@ -559,6 +634,149 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Giftcode Management Section */}
+      <div className="p-6 sm:p-8 rounded-3xl border border-purple-500/20 bg-[#0a0d18] space-y-6 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Gift className="size-5 text-purple-400" />
+              Quản Lý Mã Giftcode & Token Quà Tặng
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Tạo mã quà tặng kèm số lượng lượt nhập. Khi người dùng nhập hết số lượng, mã sẽ tự động khóa. Token từ Giftcode không bị reset theo ngày!
+            </p>
+          </div>
+          <span className="px-3 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold font-mono self-start sm:self-auto">
+            {giftcodes.length} mã trong hệ thống
+          </span>
+        </div>
+
+        {/* Create Giftcode Form */}
+        <form
+          onSubmit={handleCreateGiftcode}
+          className="p-5 rounded-2xl border border-white/10 bg-[#0e1222] flex flex-col md:flex-row gap-3 items-end"
+        >
+          <div className="flex-1 space-y-1.5 w-full">
+            <label className="text-xs font-semibold text-slate-300">
+              Mã Giftcode (Code)
+            </label>
+            <input
+              type="text"
+              required
+              value={newGiftCode}
+              onChange={(e) => setNewGiftCode(e.target.value)}
+              placeholder="VD: LEMASVIP, CHAOMUNG2026..."
+              className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#141829] text-xs font-mono uppercase text-white placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+            />
+          </div>
+
+          <div className="w-full md:w-44 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">
+              Số Token Tặng (Vĩnh viễn)
+            </label>
+            <input
+              type="number"
+              required
+              step="1000"
+              value={newGiftTokens}
+              onChange={(e) => setNewGiftTokens(parseInt(e.target.value) || 0)}
+              className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#141829] text-xs font-mono text-purple-300 font-bold focus:border-purple-400 focus:outline-none"
+            />
+          </div>
+
+          <div className="w-full md:w-36 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300">
+              Số Lượng Nhập (Max)
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              value={newGiftMaxUses}
+              onChange={(e) => setNewGiftMaxUses(parseInt(e.target.value) || 1)}
+              className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#141829] text-xs font-mono text-white focus:border-purple-400 focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={giftCreating || !newGiftCode.trim()}
+            className="w-full md:w-auto h-10 px-5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-40 shadow-lg shadow-purple-950/40 cursor-pointer"
+          >
+            <Gift className="size-4" />
+            <span>{giftCreating ? 'Đang tạo...' : '+ Tạo Mã Giftcode'}</span>
+          </button>
+        </form>
+
+        {/* Giftcodes Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider">
+                <th className="pb-3 font-semibold">Mã Giftcode</th>
+                <th className="pb-3 font-semibold">Số Token Thưởng</th>
+                <th className="pb-3 font-semibold">Đã Nhận / Giới Hạn</th>
+                <th className="pb-3 font-semibold">Trạng Thái</th>
+                <th className="pb-3 font-semibold">Ngày Tạo</th>
+                <th className="pb-3 font-semibold text-right">Xóa</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {giftcodes.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
+                    Chưa có mã Giftcode nào được tạo. Hãy tạo mã đầu tiên bên trên.
+                  </td>
+                </tr>
+              ) : (
+                giftcodes.map((g) => {
+                  const isExhausted = g.status === 'exhausted' || (g.max_uses > 0 && g.used_count >= g.max_uses);
+                  return (
+                    <tr key={g.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5">
+                        <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 font-mono font-bold text-xs uppercase">
+                          {g.code}
+                        </span>
+                      </td>
+                      <td className="py-3.5 font-mono font-bold text-white text-sm">
+                        +{(g.tokens || 0).toLocaleString()} tokens
+                      </td>
+                      <td className="py-3.5 font-mono">
+                        <span className="font-bold text-cyan-300">{g.used_count || 0}</span>
+                        <span className="text-slate-500"> / {g.max_uses || 0} lượt</span>
+                      </td>
+                      <td className="py-3.5">
+                        {isExhausted ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Đã Hết Lượt (Đóng)
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Đang Hoạt Động
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 text-slate-400 font-mono text-[11px]">
+                        {new Date(g.created_at).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="py-3.5 text-right">
+                        <button
+                          onClick={() => handleDeleteGiftcode(g.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Xóa mã Giftcode"
+                        >
+                          <Trash className="size-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

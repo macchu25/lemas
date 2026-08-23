@@ -7,6 +7,7 @@ import {
   Wallet,
   LogOut,
   Search,
+  Gift,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 
@@ -61,6 +62,18 @@ export default function DashboardHeader() {
             +
           </span>
         </Link>
+
+        {/* Permanent Gift Tokens Badge */}
+        {Boolean(user?.gift_tokens && user.gift_tokens > 0) && (
+          <Link
+            href="/dashboard/billing"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-xs font-mono font-bold text-purple-300 hover:bg-purple-500/25 transition-all"
+            title="Lượng Token quà tặng vĩnh viễn (Không bị reset theo ngày)"
+          >
+            <Gift className="size-3.5 text-purple-400" />
+            <span>+{(user?.gift_tokens || 0).toLocaleString()} Gift</span>
+          </Link>
+        )}
 
         {/* Daily Token Limit Pill (1000 tokens/day) */}
         <div

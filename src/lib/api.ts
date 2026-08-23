@@ -73,6 +73,7 @@ export interface UserProfile {
   plan: string;
   daily_tokens_used?: number;
   daily_tokens_limit?: number;
+  gift_tokens?: number;
 }
 
 // Fetch all models
@@ -314,4 +315,24 @@ export async function topupUserBalance(amountUSD: number): Promise<{ success: bo
     return null;
   }
 }
+
+export async function redeemGiftcode(code: string): Promise<{ success: boolean; message?: string; error?: string; tokens_gift?: number; gift_tokens?: number }> {
+  const token = getStoredToken();
+  if (!token) return { success: false, error: 'Chưa đăng nhập' };
+  try {
+    const res = await fetch(`${API_BASE}/api/user/giftcode/redeem`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    return data;
+  } catch {
+    return { success: false, error: 'Lỗi kết nối tới máy chủ' };
+  }
+}
+
 
