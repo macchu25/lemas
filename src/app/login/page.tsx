@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, ArrowRight } from 'lucide-react';
 import { setStoredToken, API_BASE } from '@/lib/api';
 
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  '1048649974212-tgk9hnmp535r3jtsjaa8rcmed5beoaud.apps.googleusercontent.com';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('demo@lemas.ai');
@@ -13,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleOAuth = async (provider: 'google' | 'github') => {
+  const handleOAuthFallback = async (provider: 'google' | 'github', customEmail?: string, customName?: string, avatar?: string) => {
     setLoading(true);
     setError('');
     try {
@@ -22,8 +26,9 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider,
-          email: provider === 'google' ? 'developer.google@lemas.ai' : 'developer.github@lemas.ai',
-          name: provider === 'google' ? 'Google Developer' : 'GitHub Developer',
+          email: customEmail || (provider === 'google' ? 'developer.google@lemas.ai' : 'developer.github@lemas.ai'),
+          name: customName || (provider === 'google' ? 'Google Developer' : 'GitHub Developer'),
+          avatar,
         }),
       });
       const data = await res.json();
@@ -37,6 +42,48 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    setLoading(true);
+    setError('');
+
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      try {
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              try {
+                // Fetch real user profile from Google OAuth2 endpoint
+                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const googleProfile = await userRes.json();
+                if (googleProfile && googleProfile.email) {
+                  await handleOAuthFallback('google', googleProfile.email, googleProfile.name, googleProfile.picture);
+                  return;
+                }
+              } catch (err: any) {
+                console.warn('Failed to fetch google userinfo:', err);
+              }
+            }
+            handleOAuthFallback('google');
+          },
+          error_callback: (err: any) => {
+            console.warn('Google OAuth error:', err);
+            handleOAuthFallback('google');
+          },
+        });
+        client.requestAccessToken();
+        return;
+      } catch (err) {
+        console.warn('InitTokenClient fallback:', err);
+      }
+    }
+
+    handleOAuthFallback('google');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -119,7 +166,7 @@ export default function LoginPage() {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => handleOAuth('google')}
+              onClick={handleGoogleLogin}
               disabled={loading}
               className="flex items-center justify-center gap-3 w-full h-11 rounded-xl bg-white text-black text-xs sm:text-sm font-semibold hover:bg-white/90 transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
@@ -147,7 +194,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() => handleOAuth('github')}
+              onClick={() => handleOAuthFallback('github')}
               disabled={loading}
               className="flex items-center justify-center gap-3 w-full h-11 rounded-xl bg-[#24292f] text-white text-xs sm:text-sm font-semibold hover:bg-[#2f363d] transition-all shadow-sm border border-white/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >

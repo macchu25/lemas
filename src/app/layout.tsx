@@ -35,6 +35,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" href="/logo.png?v=2" />
         <link rel="shortcut icon" type="image/png" href="/logo.png?v=2" />
         <link rel="apple-touch-icon" href="/logo.png?v=2" />
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className="min-h-screen flex flex-col antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
         <Navbar />
