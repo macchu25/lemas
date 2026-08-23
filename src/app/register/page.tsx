@@ -37,6 +37,12 @@ export default function RegisterPage() {
         throw new Error(data.error || `Failed to register with ${provider}`);
       }
       setStoredToken(data.token);
+      // Initialize 1-time Puter session on first registration
+      if (typeof window !== 'undefined' && (window as any).puter?.auth && !(window as any).puter.auth.isSignedIn()) {
+        try {
+          (window as any).puter.auth.signIn().catch(() => {});
+        } catch {}
+      }
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'OAuth error');
