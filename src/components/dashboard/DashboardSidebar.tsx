@@ -132,7 +132,7 @@ export default function DashboardSidebar() {
             >
               <div className="flex items-center gap-2.5">
                 <Sparkles className="size-4 text-cyan-400" />
-                <span>Tạo Ảnh AI (Image Studio)</span>
+                <span>{t.aiImage || 'Tạo Ảnh AI'}</span>
               </div>
               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">
                 Puter.js
