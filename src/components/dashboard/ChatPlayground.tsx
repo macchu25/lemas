@@ -26,8 +26,8 @@ export default function ChatPlayground() {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
 
-  // Voice States
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  // Voice States (Default: OFF / Tắt)
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const [isSpeakingIndex, setIsSpeakingIndex] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
