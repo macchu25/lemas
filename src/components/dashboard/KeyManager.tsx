@@ -9,6 +9,8 @@ import {
   Eye,
   EyeOff,
   Trash2,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import { createApiKey, revokeApiKey } from '@/lib/api';
@@ -23,14 +25,7 @@ export default function KeyManager() {
 
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newKeyName) return;
-    setCreatingKey(true);
-    const created = await createApiKey(newKeyName, newKeyLimit);
-    if (created) {
-      setKeys([...keys, created]);
-      setNewKeyName('');
-    }
-    setCreatingKey(false);
+    alert('Chức năng tạo API Key mới hiện đang tạm khóa. Vui lòng sử dụng API Key mặc định được cấp sẵn trong tài khoản của bạn.');
   };
 
   const handleRevokeKey = async (id: string) => {
@@ -60,43 +55,56 @@ export default function KeyManager() {
         </div>
       </div>
 
-      {/* Create Key Form */}
+      {/* Lock Notice Banner */}
+      <div className="p-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 flex items-start gap-3 text-xs text-amber-300">
+        <Lock className="size-4.5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="font-bold text-white">Chức năng tạo API Key mới đang tạm khóa</p>
+          <p className="text-slate-300">
+            Nhằm đảm bảo hạn ngạch và chất lượng kết nối Gateway, hệ thống hiện đang tạm ngừng tạo thêm Key mới. Quý khách vui lòng sao chép và sử dụng API Key mặc định đã được cấp sẵn trong danh sách bên dưới.
+          </p>
+        </div>
+      </div>
+
+      {/* Create Key Form (Locked) */}
       <form
         onSubmit={handleCreateKey}
-        className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e111a] flex flex-col sm:flex-row gap-3 items-end"
+        className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e111a] flex flex-col sm:flex-row gap-3 items-end opacity-60"
       >
         <div className="flex-1 space-y-1.5 w-full">
-          <label className="text-xs font-semibold text-slate-300">
+          <label className="text-xs font-semibold text-slate-400">
             {t.keyNamePlaceholder}
           </label>
           <input
             type="text"
+            disabled
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
-            placeholder="Agent-Production-Node-01"
-            className="w-full h-10 px-3.5 rounded-xl border border-white/[0.08] bg-[#0a0c12] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40"
+            placeholder="🔒 Tạo Key đang tạm khóa"
+            className="w-full h-10 px-3.5 rounded-xl border border-white/[0.08] bg-[#0a0c12] text-xs text-slate-400 placeholder-slate-500 cursor-not-allowed"
           />
         </div>
 
         <div className="w-full sm:w-40 space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">
+          <label className="text-xs font-semibold text-slate-400">
             {t.spendLimit}
           </label>
           <input
             type="number"
+            disabled
             value={newKeyLimit}
             onChange={(e) => setNewKeyLimit(Number(e.target.value))}
-            className="w-full h-10 px-3.5 rounded-xl border border-white/[0.08] bg-[#0a0c12] text-xs text-white focus:outline-none focus:border-cyan-500/40"
+            className="w-full h-10 px-3.5 rounded-xl border border-white/[0.08] bg-[#0a0c12] text-xs text-slate-400 cursor-not-allowed"
           />
         </div>
 
         <button
           type="submit"
-          disabled={creatingKey || !newKeyName}
-          className="w-full sm:w-auto h-10 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-40 shadow-lg shadow-emerald-950/40"
+          disabled
+          className="w-full sm:w-auto h-10 px-5 rounded-xl bg-slate-800 text-slate-400 border border-white/10 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-not-allowed"
         >
-          <Plus className="size-4" />
-          <span>{creatingKey ? 'Creating...' : t.createKeyBtn}</span>
+          <Lock className="size-3.5" />
+          <span>Tạo Key (Đang Khóa)</span>
         </button>
       </form>
 
