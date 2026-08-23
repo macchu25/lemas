@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   PanelLeft,
   Wallet,
@@ -17,7 +18,6 @@ export default function DashboardHeader() {
     t,
     sidebarOpen,
     setSidebarOpen,
-    setTopupModalOpen,
     handleLogout,
   } = useDashboard();
 
@@ -49,18 +49,18 @@ export default function DashboardHeader() {
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        {/* Balance Pill */}
-        <button
-          onClick={() => setTopupModalOpen(true)}
+        {/* Balance Pill -> Links directly to /dashboard/billing */}
+        <Link
+          href="/dashboard/billing"
           className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
-          title="Nạp tiền qua SePay VietQR"
+          title="Nạp tiền qua SePay VietQR (Chuyển đến trang Quản lý Nạp tiền)"
         >
           <Wallet className="size-3.5" />
           <span>${(user?.balance || 0).toFixed(2)}</span>
           <span className="size-4 rounded-full bg-emerald-500 text-black flex items-center justify-center text-[11px] font-bold ml-0.5">
             +
           </span>
-        </button>
+        </Link>
 
         {/* Daily Token Limit Pill (1000 tokens/day) */}
         <div

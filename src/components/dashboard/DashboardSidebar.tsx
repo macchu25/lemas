@@ -227,13 +227,13 @@ export default function DashboardSidebar() {
         <p className="text-[11px] text-slate-400 leading-snug">
           {t.upgradeProSub}
         </p>
-        <button
-          onClick={() => setTopupModalOpen(true)}
+        <Link
+          href="/dashboard/billing"
           className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black text-[11px] font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1 shadow-lg shadow-emerald-950/40"
         >
           <span>{t.topupBtn}</span>
           <ArrowRight className="size-3" />
-        </button>
+        </Link>
       </div>
     </aside>
   );
