@@ -1,14 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  PanelLeft,
   Menu,
   Wallet,
   LogOut,
   Search,
   Gift,
+  ChevronDown,
+  CreditCard,
+  LifeBuoy,
+  Settings,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 
@@ -23,8 +26,28 @@ export default function DashboardHeader() {
     handleLogout,
   } = useDashboard();
 
+  const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Developer';
+  const displayEmail = user?.email || 'user@lemas.ai';
+  const initial = (user?.name || user?.email || 'L').slice(0, 1).toUpperCase();
+
   return (
-    <header className="h-14 border-b border-white/[0.08] bg-[#0b0d13] flex items-center justify-between px-2.5 sm:px-6 shrink-0 max-w-full overflow-hidden">
+    <header className="h-14 border-b border-white/[0.08] bg-[#0b0d13] flex items-center justify-between px-2.5 sm:px-6 shrink-0 max-w-full relative z-30">
       {/* Left controls */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {!sidebarOpen && (
@@ -92,7 +115,7 @@ export default function DashboardHeader() {
           <span>{t.apiOnline}</span>
         </div>
 
-        {/* Trilingual Switcher (Flag Logo Only) & Profile */}
+        {/* Language Switcher */}
         <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 border-l border-white/[0.08] shrink-0">
           <button
             onClick={toggleLanguage}
@@ -102,22 +125,99 @@ export default function DashboardHeader() {
             <span>{lang === 'vi' ? '🇻🇳' : lang === 'en' ? '🇺🇸' : '🇨🇳'}</span>
           </button>
 
-          <div className="flex items-center gap-1.5 bg-white/[0.04] p-1 sm:px-2.5 sm:py-1 rounded-lg border border-white/[0.08] shrink-0">
-            <span className="size-5 sm:size-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-black text-[9px] sm:text-[10px] font-extrabold flex items-center justify-center shrink-0">
-              {(user?.name || user?.email || 'L').slice(0, 1).toUpperCase()}
-            </span>
-            <span className="text-xs font-semibold text-white max-w-[80px] sm:max-w-[120px] truncate hidden xs:inline-block">
-              {user?.name || user?.email}
-            </span>
-          </div>
+          {/* User Profile Dropdown Toggle */}
+          <div className="relative shrink-0" ref={dropdownRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] p-1 sm:px-2.5 sm:py-1 rounded-xl border border-white/[0.08] hover:border-emerald-500/40 transition-all cursor-pointer group"
+              title="Tài khoản cá nhân"
+            >
+              <span className="size-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-black text-[10px] font-extrabold flex items-center justify-center shrink-0 shadow-xs">
+                {initial}
+              </span>
+              <div className="text-left hidden xs:block max-w-[120px]">
+                <div className="text-xs font-semibold text-white truncate leading-tight">
+                  {displayName}
+                </div>
+                <div className="text-[10px] text-slate-400 truncate leading-tight">
+                  {displayEmail}
+                </div>
+              </div>
+              <ChevronDown className={`size-3 text-slate-400 group-hover:text-white transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-          <button
-            onClick={handleLogout}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/[0.04] transition-colors cursor-pointer shrink-0"
-            title={t.logout}
-          >
-            <LogOut className="size-3.5 sm:size-4" />
-          </button>
+            {/* Dropdown Popup Menu */}
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-white/10 bg-[#0d101a]/95 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.9)] p-3 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                {/* User Info Header */}
+                <div className="px-1.5 py-1">
+                  <div className="text-sm font-bold text-white truncate">{displayName}</div>
+                  <div className="text-xs text-slate-400 truncate">{displayEmail}</div>
+                </div>
+
+                {/* Balance Box */}
+                <Link
+                  href="/dashboard/billing"
+                  onClick={() => setProfileOpen(false)}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                    <Wallet className="size-4 text-emerald-400" />
+                    <span>Balance</span>
+                  </div>
+                  <span className="text-xs font-bold font-mono text-emerald-400">
+                    ${(user?.balance || 0).toFixed(2)}
+                  </span>
+                </Link>
+
+                <div className="h-px bg-white/[0.08] -mx-1" />
+
+                {/* Nav Links */}
+                <div className="space-y-1">
+                  <Link
+                    href="/dashboard/billing"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                  >
+                    <CreditCard className="size-4 text-slate-400" />
+                    <span>Top up & Billing</span>
+                  </Link>
+
+                  <Link
+                    href="/contact"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                  >
+                    <LifeBuoy className="size-4 text-slate-400" />
+                    <span>Contact & Support</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/keys"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                  >
+                    <Settings className="size-4 text-slate-400" />
+                    <span>Settings</span>
+                  </Link>
+                </div>
+
+                <div className="h-px bg-white/[0.08] -mx-1" />
+
+                {/* Sign out */}
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all cursor-pointer"
+                >
+                  <LogOut className="size-4 text-rose-400" />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
