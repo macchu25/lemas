@@ -132,7 +132,12 @@ export default function ChatPlayground() {
     setChatMessages(newHistory);
     setChatSending(true);
 
-    const activeKey = keys.find((k) => k.status === 'active')?.key || 'lemas-live-demo-key-88888888';
+    const activeKey = keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
+    if (!activeKey) {
+      alert('Không tìm thấy API Key hợp lệ trong tài khoản của bạn.');
+      setChatSending(false);
+      return;
+    }
     try {
       const res = await testChatCompletion(activeKey, chatModel, userMsg);
       const assistantText =
@@ -304,8 +309,12 @@ export default function ChatPlayground() {
                       setChatMessages(newHistory);
                       setChatSending(true);
                       const activeKey =
-                        keys.find((k) => k.status === 'active')?.key ||
-                        'lemas-live-demo-key-88888888';
+                        keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
+                      if (!activeKey) {
+                        alert('Không tìm thấy API Key hợp lệ trong tài khoản của bạn.');
+                        setChatSending(false);
+                        return;
+                      }
                       try {
                         const res = await testChatCompletion(activeKey, chatModel, promptText);
                         const assistantText =

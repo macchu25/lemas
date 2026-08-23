@@ -56,7 +56,7 @@ export default function DocsPage() {
                 API Key Pattern
               </span>
               <div className="font-mono text-xs font-semibold text-indigo-300">
-                lemas-live-demo-key-88888888
+                lemas_sk_live_xxxxxxxxxxxxxxxxxxxxxxxx
               </div>
             </div>
           </div>
