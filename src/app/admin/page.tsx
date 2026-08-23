@@ -184,15 +184,16 @@ export default function AdminPage() {
           max_uses: Number(newGiftMaxUses),
         }),
       });
+      const data = await res.json();
       if (res.ok) {
         setNewGiftCode('');
         await loadAdminData();
+        alert(`✅ Đã tạo thành công mã Giftcode: ${data.code} (+${(data.tokens || 0).toLocaleString()} tokens, tối đa ${data.max_uses || 1} lượt nhập)`);
       } else {
-        const errData = await res.json();
-        alert(errData.error || 'Lỗi tạo Giftcode');
+        alert(data.error || 'Lỗi tạo Giftcode');
       }
-    } catch {
-      alert('Lỗi kết nối tạo Giftcode');
+    } catch (err: any) {
+      alert(`⚠️ Lỗi kết nối máy chủ khi tạo Giftcode: ${err?.message || 'Vui lòng thử lại'}`);
     } finally {
       setGiftCreating(false);
     }
@@ -208,9 +209,12 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setGiftcodes(giftcodes.filter((g) => g.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Lỗi xóa Giftcode');
       }
     } catch {
-      alert('Lỗi xóa Giftcode');
+      alert('Lỗi kết nối khi xóa Giftcode');
     }
   };
 
