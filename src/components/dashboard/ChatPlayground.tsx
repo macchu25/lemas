@@ -135,10 +135,12 @@ export default function ChatPlayground() {
     const activeKey = keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
     try {
       const res = await testChatCompletion(activeKey, chatModel, userMsg);
-      const assistantText =
-        res.choices && res.choices[0]
-          ? res.choices[0].message.content
-          : 'Đã nhận phản hồi từ Lemas.AI Gateway.';
+      let assistantText = 'Đã nhận phản hồi từ Lemas.AI Gateway.';
+      if (res && res.choices && res.choices[0] && res.choices[0].message) {
+        assistantText = res.choices[0].message.content;
+      } else if (res && res.error) {
+        assistantText = typeof res.error === 'object' ? (res.error.message || JSON.stringify(res.error)) : String(res.error);
+      }
 
       const updated = [...newHistory, { role: 'assistant' as const, content: assistantText }];
       setChatMessages(updated);
@@ -307,10 +309,12 @@ export default function ChatPlayground() {
                         keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
                       try {
                         const res = await testChatCompletion(activeKey, chatModel, promptText);
-                        const assistantText =
-                          res.choices && res.choices[0]
-                            ? res.choices[0].message.content
-                            : 'Đã nhận yêu cầu.';
+                        let assistantText = 'Đã nhận yêu cầu.';
+                        if (res && res.choices && res.choices[0] && res.choices[0].message) {
+                          assistantText = res.choices[0].message.content;
+                        } else if (res && res.error) {
+                          assistantText = typeof res.error === 'object' ? (res.error.message || JSON.stringify(res.error)) : String(res.error);
+                        }
                         const updated = [
                           ...newHistory,
                           { role: 'assistant' as const, content: assistantText },
