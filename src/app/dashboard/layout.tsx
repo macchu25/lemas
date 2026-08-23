@@ -4,7 +4,6 @@ import React from 'react';
 import { DashboardProvider, useDashboard } from '@/components/dashboard/DashboardContext';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import MobileBottomNav from '@/components/dashboard/MobileBottomNav';
 import TopupModal from '@/components/dashboard/TopupModal';
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -23,7 +22,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-[100dvh] w-full overflow-hidden bg-[#08090d] text-[#f8fafc] flex">
-      {/* Left Sidebar (Desktop) */}
+      {/* Left Sidebar (Desktop & Mobile Drawer) */}
       <DashboardSidebar />
 
       {/* Main Right Shell */}
@@ -31,13 +30,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <DashboardHeader />
 
-        {/* Dynamic Route Content (with bottom padding on mobile for fixed navbar) */}
-        <main className="flex-1 overflow-hidden flex flex-col p-2 sm:p-3.5 pb-20 md:pb-3.5 h-full w-full">
+        {/* Dynamic Route Content */}
+        <main className="flex-1 overflow-hidden flex flex-col p-2 sm:p-3.5 h-full w-full">
           {children}
         </main>
-
-        {/* Fixed Bottom Navigation for Mobile */}
-        <MobileBottomNav />
       </div>
 
       {/* Standalone SePay Topup Modal */}

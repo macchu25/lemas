@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import {
   PanelLeft,
+  Menu,
   Wallet,
   LogOut,
   Search,
@@ -32,6 +33,7 @@ export default function DashboardHeader() {
             className="p-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-300 hover:text-white hover:border-emerald-500/40 hover:bg-white/[0.08] transition-all flex items-center gap-1.5 cursor-pointer"
             title="Mở menu điều khiển"
           >
+            <Menu className="size-4 text-emerald-400" />
             <img src="/logo.png" alt="Lemas Logo" className="size-5 object-contain" />
             <span className="text-xs font-semibold text-white hidden sm:inline">{t.brand}</span>
           </button>
