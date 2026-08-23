@@ -1,8 +1,12 @@
-// Puter.js AI Image Generator & Multi-Tier AI Image Pipeline for Lemas.AI
-
 declare global {
   interface Window {
     puter?: {
+      auth?: {
+        isSignedIn: () => boolean;
+        signIn: () => Promise<any>;
+        signOut: () => Promise<void>;
+        getUser: () => Promise<{ id?: string; username?: string; email?: string } | null>;
+      };
       ai?: {
         txt2img: (
           promptOrOptions: string | { prompt: string; ratio?: { w: number; h: number }; quality?: string; model?: string },
@@ -12,6 +16,56 @@ declare global {
       };
     };
   }
+}
+
+export interface PuterUser {
+  id?: string;
+  username?: string;
+  email?: string;
+}
+
+export async function isPuterSignedIn(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  if (await waitForPuter(4000)) {
+    return !!window.puter?.auth?.isSignedIn?.();
+  }
+  return false;
+}
+
+export async function getPuterUser(): Promise<PuterUser | null> {
+  if (typeof window === 'undefined') return null;
+  if (await waitForPuter(4000)) {
+    try {
+      if (window.puter?.auth?.isSignedIn?.()) {
+        return await window.puter.auth.getUser();
+      }
+    } catch {}
+  }
+  return null;
+}
+
+export async function signInPuter(): Promise<PuterUser | null> {
+  if (typeof window === 'undefined') return null;
+  if (await waitForPuter(4000)) {
+    try {
+      if (window.puter?.auth?.signIn) {
+        await window.puter.auth.signIn();
+        return await getPuterUser();
+      }
+    } catch (err) {
+      console.warn('[Puter Auth] Sign in cancelled or failed:', err);
+    }
+  }
+  return null;
+}
+
+export async function signOutPuter(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    if (window.puter?.auth?.signOut) {
+      await window.puter.auth.signOut();
+    }
+  } catch {}
 }
 
 export type AspectRatio = '16:9' | '1:1' | '9:16' | '4:3' | '3:2';

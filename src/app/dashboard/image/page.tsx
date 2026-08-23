@@ -28,6 +28,9 @@ import {
   AspectRatio,
   GeneratedImageResult,
   waitForPuter,
+  getPuterUser,
+  signInPuter,
+  signOutPuter,
 } from '@/lib/puter';
 
 export default function ImageStudioPage() {
@@ -44,12 +47,22 @@ export default function ImageStudioPage() {
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [puterUser, setPuterUser] = useState<any>(null);
+  const [signingInPuter, setSigningInPuter] = useState(false);
 
-  // Check Puter.js readiness
+  // Check Puter.js readiness & active account
   useEffect(() => {
     let mounted = true;
-    waitForPuter(6000).then((ready) => {
-      if (mounted) setPuterReady(ready);
+    waitForPuter(6000).then(async (ready) => {
+      if (mounted) {
+        setPuterReady(ready);
+        if (ready) {
+          try {
+            const u = await getPuterUser();
+            if (mounted && u) setPuterUser(u);
+          } catch {}
+        }
+      }
     });
 
     // Load stored history if any
@@ -64,6 +77,23 @@ export default function ImageStudioPage() {
       mounted = false;
     };
   }, []);
+
+  const handlePuterSignIn = async () => {
+    setSigningInPuter(true);
+    try {
+      const u = await signInPuter();
+      if (u) setPuterUser(u);
+    } catch (err) {
+      console.warn('Puter signin error:', err);
+    } finally {
+      setSigningInPuter(false);
+    }
+  };
+
+  const handlePuterSignOut = async () => {
+    await signOutPuter();
+    setPuterUser(null);
+  };
 
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -143,7 +173,30 @@ export default function ImageStudioPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {puterUser ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-300">
+              <ShieldCheck className="size-3.5 text-emerald-400" />
+              <span className="font-semibold">Puter: @{puterUser.username || puterUser.email || 'Connected'}</span>
+              <button
+                onClick={handlePuterSignOut}
+                title="Đăng xuất Puter"
+                className="ml-1 text-[10px] text-slate-400 hover:text-red-400 cursor-pointer underline"
+              >
+                Thoát
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handlePuterSignIn}
+              disabled={signingInPuter}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-xs text-cyan-300 hover:bg-cyan-500/20 transition-colors cursor-pointer"
+            >
+              <Zap className="size-3.5 text-cyan-400" />
+              <span>{signingInPuter ? 'Đang mở Puter...' : 'Liên kết Puter (Mở rộng Quota)'}</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#0b0d14] text-xs text-slate-300">
             <div className={`size-2 rounded-full ${puterReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse' : 'bg-cyan-400 animate-ping'}`} />
             <span className="font-mono font-medium">{puterReady ? 'Puter.js Connected' : 'Auto-Routing Active'}</span>
