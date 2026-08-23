@@ -484,12 +484,12 @@ export default function ImageStudioPage() {
               {/* Metadata Pill */}
               {currentImage && (
                 <div className="space-y-2 pt-1 text-xs">
-                  <p className="text-slate-300 line-clamp-2 italic font-serif bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05]">
+                  <p className="text-slate-200 line-clamp-2 font-sans font-medium bg-white/[0.03] p-3 rounded-xl border border-white/[0.08] text-xs leading-relaxed">
                     &ldquo;{currentImage.prompt}&rdquo;
                   </p>
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Mô hình: <strong className="text-slate-200">{currentImage.model}</strong></span>
-                    <span>Tỉ lệ: <strong className="text-slate-200">{currentImage.ratio}</strong></span>
+                    <span>{t.modelGen || 'Mô hình'}: <strong className="text-cyan-300 font-mono font-semibold">{currentImage.model}</strong></span>
+                    <span>{t.aspectRatio || 'Tỉ lệ'}: <strong className="text-slate-200 font-mono font-semibold">{currentImage.ratio}</strong></span>
                   </div>
                 </div>
               )}
