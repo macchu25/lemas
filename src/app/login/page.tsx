@@ -290,15 +290,15 @@ export default function LoginPage() {
 
           {/* Disclaimer */}
           <p className="text-[10px] text-center text-white/30 leading-relaxed mt-4">
-            By continuing with Google, Apple, or Email, you agree to our{' '}
-            <Link href="/contact" className="text-white/50 hover:underline">
+            Bằng việc tiếp tục với Google, GitHub hoặc Email, bạn đồng ý với{' '}
+            <Link href="/terms" className="text-white/50 hover:underline">
               Terms of Service
             </Link>{' '}
-            and acknowledge that you have read our{' '}
-            <Link href="/contact" className="text-white/50 hover:underline">
+            và{' '}
+            <Link href="/privacy" className="text-white/50 hover:underline">
               Privacy Policy
-            </Link>
-            .
+            </Link>{' '}
+            của Lemas.AI.
           </p>
         </div>
       </div>

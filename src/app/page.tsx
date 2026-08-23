@@ -217,8 +217,7 @@ export default function HomePage() {
                 Ready to cut your LLM token expenses by up to 70%?
               </h2>
               <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">
-                Start with 500,000 free tokens today. Plug Lemas.AI into your existing codebase in
-                seconds.
+                Trải nghiệm ngay 20+ mô hình AI miễn phí với 1,000 tokens/ngày. Tích hợp Lemas.AI vào ứng dụng của bạn chỉ trong vài phút.
               </p>
               <div className="flex flex-wrap justify-center gap-3 pt-2">
                 <Link
@@ -226,7 +225,7 @@ export default function HomePage() {
                   className="inline-flex items-center gap-2 h-12 px-7 rounded-2xl bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 text-white text-sm font-semibold hover:opacity-95 shadow-lg shadow-cyan-500/25 transition-all"
                 >
                   <Sparkles className="size-4" />
-                  <span>Start Free with 500K Tokens</span>
+                  <span>Trải Nghiệm Miễn Phí</span>
                 </Link>
                 <Link
                   href="/docs"
