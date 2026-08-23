@@ -2,12 +2,12 @@ import type { NextConfig } from "next";
 
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://va.vercel-scripts.com https://js.puter.com https://*.puter.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  img-src 'self' blob: data: https://*.googleusercontent.com https://avatars.githubusercontent.com https://img.vietqr.io https://api.vietqr.io https://qr.sepay.vn;
+  img-src 'self' blob: data: https://*.googleusercontent.com https://avatars.githubusercontent.com https://img.vietqr.io https://api.vietqr.io https://qr.sepay.vn https://*.puter.com https://image.pollinations.ai https://*.pollinations.ai;
   font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https://lemas-api-production.up.railway.app https://api.lemas.io.vn https://accounts.google.com https://api.github.com https://api.vietqr.io https://qr.sepay.vn https://va.vercel-scripts.com http://localhost:8080 ws: wss:;
-  frame-src 'self' https://accounts.google.com;
+  connect-src 'self' https://lemas-api-production.up.railway.app https://api.lemas.io.vn https://accounts.google.com https://api.github.com https://api.vietqr.io https://qr.sepay.vn https://va.vercel-scripts.com https://js.puter.com https://*.puter.com https://api.puter.com https://image.pollinations.ai http://localhost:8080 ws: wss:;
+  frame-src 'self' https://accounts.google.com https://*.puter.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self';

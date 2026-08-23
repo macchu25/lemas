@@ -120,7 +120,23 @@ export default function DashboardSidebar() {
               }`}
             >
               <MessageSquare className="size-4" />
-              <span>{t.aiChat}</span>
+              <span>{t.aiChat || 'AI Chat'}</span>
+            </Link>
+            <Link
+              href="/dashboard/image"
+              className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                isLinkActive('/dashboard/image')
+                  ? 'bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="size-4 text-cyan-400" />
+                <span>Tạo Ảnh AI (Image Studio)</span>
+              </div>
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">
+                Puter.js
+              </span>
             </Link>
             <Link
               href="/dashboard/models"

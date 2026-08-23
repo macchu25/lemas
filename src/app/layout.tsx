@@ -58,6 +58,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <script src="https://accounts.google.com/gsi/client" async defer></script>
+        <script src="https://js.puter.com/v2/" async defer></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `
