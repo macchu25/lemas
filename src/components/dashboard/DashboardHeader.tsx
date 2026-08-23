@@ -62,6 +62,15 @@ export default function DashboardHeader() {
           </span>
         </button>
 
+        {/* Daily Token Limit Pill (1000 tokens/day) */}
+        <div
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-xs font-mono font-bold text-cyan-300"
+          title="Hạn mức sử dụng Token trong ngày hôm nay (Tối đa 1,000 tokens/ngày)"
+        >
+          <span className="size-1.5 rounded-full bg-cyan-400" />
+          <span>{user?.daily_tokens_used || 0}/{user?.daily_tokens_limit || 1000} tokens/ngày</span>
+        </div>
+
         {/* API Online Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-400">
           <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />

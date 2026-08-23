@@ -71,6 +71,8 @@ export interface UserProfile {
   balance: number;
   tokens: number;
   plan: string;
+  daily_tokens_used?: number;
+  daily_tokens_limit?: number;
 }
 
 // Fetch all models
