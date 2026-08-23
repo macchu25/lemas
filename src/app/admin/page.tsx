@@ -23,6 +23,8 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
+  Lock,
+  LogOut,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -52,6 +54,13 @@ interface AdminOverview {
 }
 
 export default function AdminPage() {
+  // Admin Authentication State
+  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,8 +74,59 @@ export default function AdminPage() {
   const [adjusting, setAdjusting] = useState(false);
 
   useEffect(() => {
-    loadAdminData();
+    const isAuth = sessionStorage.getItem('lemas_admin_auth');
+    if (isAuth === 'true') {
+      setIsAdminAuth(true);
+      loadAdminData();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoading(true);
+    setAdminError('');
+
+    // Check credentials locally or through backend endpoint
+    if (
+      (adminUsername === 'admin.lemas' || adminUsername === 'admin@lemas.ai') &&
+      adminPassword === 'mactieulem'
+    ) {
+      sessionStorage.setItem('lemas_admin_auth', 'true');
+      setIsAdminAuth(true);
+      setAdminLoading(false);
+      loadAdminData();
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: adminUsername, password: adminPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sessionStorage.setItem('lemas_admin_auth', 'true');
+        setIsAdminAuth(true);
+        loadAdminData();
+      } else {
+        setAdminError(data.error || 'Tài khoản hoặc mật khẩu quản trị không chính xác!');
+      }
+    } catch {
+      setAdminError('Tài khoản hoặc mật khẩu quản trị không chính xác!');
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const handleAdminLogout = () => {
+    sessionStorage.removeItem('lemas_admin_auth');
+    setIsAdminAuth(false);
+    setAdminUsername('');
+    setAdminPassword('');
+  };
 
   const loadAdminData = async () => {
     setLoading(true);
@@ -117,6 +177,88 @@ export default function AdminPage() {
       u.id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // If not authenticated, render Cyber Security Admin Gate
+  if (!isAdminAuth) {
+    return (
+      <div className="min-h-screen bg-[#05070e] flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-gradient from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-md p-8 rounded-3xl border border-white/15 bg-[#090c15]/95 backdrop-blur-2xl shadow-[0_20px_70px_rgba(0,0,0,0.9)] space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-500 text-black shadow-lg shadow-emerald-500/20 mb-2">
+              <ShieldAlert className="size-7" />
+            </div>
+            <h1 className="text-2xl font-black text-white tracking-wide">
+              Lemas<span className="text-emerald-400">.AI</span> Admin Portal
+            </h1>
+            <p className="text-xs text-slate-400">
+              Vui lòng xác thực tài khoản quản trị viên tối cao để truy cập hệ thống
+            </p>
+          </div>
+
+          {adminError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 text-center font-medium">
+              {adminError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+                Tài khoản quản trị
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
+                  placeholder="admin.lemas"
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-white/5 text-xs text-white placeholder-white/30 focus:border-emerald-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+                Mật khẩu cấp cao
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="••••••••••"
+                  className="w-full h-11 px-4 rounded-xl border border-white/10 bg-white/5 text-xs text-white placeholder-white/30 focus:border-emerald-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={adminLoading}
+              className="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-black font-bold text-xs hover:opacity-90 transition-all shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Lock className="size-3.5" />
+              <span>{adminLoading ? 'Đang xác thực...' : 'Mở Khóa Quản Trị Hệ Thống'}</span>
+            </button>
+          </form>
+
+          <div className="pt-2 text-center">
+            <Link
+              href="/"
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              ← Quay lại trang chủ Lemas.AI
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#06080f] text-[#f1f5f9] p-4 sm:p-8 space-y-8">
       {/* Top Bar */}
@@ -155,6 +297,15 @@ export default function AdminPage() {
             <span>Vào User Dashboard</span>
             <ArrowUpRight className="size-3.5" />
           </Link>
+
+          <button
+            onClick={handleAdminLogout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+            title="Đăng xuất và khóa quyền Admin"
+          >
+            <LogOut className="size-3.5" />
+            <span>Khóa Admin</span>
+          </button>
         </div>
       </div>
 

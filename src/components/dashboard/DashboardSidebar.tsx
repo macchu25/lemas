@@ -201,19 +201,6 @@ export default function DashboardSidebar() {
                 15%
               </span>
             </Link>
-
-            <Link
-              href="/admin"
-              className="flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-            >
-              <div className="flex items-center gap-2.5">
-                <ShieldAlert className="size-4" />
-                <span>{t.adminPortal}</span>
-              </div>
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/30 text-emerald-200">
-                Host
-              </span>
-            </Link>
           </div>
         </div>
       </div>
