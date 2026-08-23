@@ -1,26 +1,115 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-base: #08090d;
+  --bg-card: #0c0e14;
+  --bg-card-hover: #12151e;
+  --bg-elevated: #161924;
+  --color-primary: #10b981; /* Radiant Emerald / Mint */
+  --color-primary-hover: #059669;
+  --color-primary-active: #047857;
+  --color-primary-soft: rgba(16, 185, 129, 0.12);
+  --color-accent-emerald: #10b981;
+  --color-accent-mint: #34d399;
+  --color-accent-indigo: #6366f1;
+  --color-accent-violet: #8b5cf6;
+  --color-fg: #f8fafc;
+  --color-fg-muted: #94a3b8;
+  --color-fg-subtle: #64748b;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(16, 185, 129, 0.35);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+  --gradient-brand: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #6366f1 100%);
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, rgba(99, 102, 241, 0.08) 40%, transparent 70%);
+  --hero-grid-color: rgba(255, 255, 255, 0.03);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.light {
+  --bg-base: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-elevated: #e2e8f0;
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-active: #065f46;
+  --color-primary-soft: rgba(5, 150, 105, 0.1);
+  --color-accent-emerald: #059669;
+  --color-accent-mint: #10b981;
+  --color-accent-indigo: #4f46e5;
+  --color-fg: #0f172a;
+  --color-fg-muted: #475569;
+  --color-fg-subtle: #94a3b8;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(5, 150, 105, 0.3);
+  --color-border-strong: rgba(0, 0, 0, 0.15);
+  --hero-grid-color: rgba(0, 0, 0, 0.03);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--color-fg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Aurora Grid Background */
+.aurora-hero-grid {
+  background-image: 
+    linear-gradient(var(--hero-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hero-grid-color) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 85% 55% at 50% 0%, #000 0%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 55% at 50% 0%, #000 0%, transparent 80%);
+}
+
+.aurora-glow {
+  background: var(--gradient-glow);
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(9, 12, 23, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-panel:hover {
+  border-color: var(--color-border-hover);
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.35);
+}
+
+.glow-indigo {
+  box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.35);
+}
+
+/* Cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: cursor-blink 1.05s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
