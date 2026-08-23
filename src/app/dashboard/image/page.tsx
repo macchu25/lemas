@@ -32,10 +32,11 @@ import {
   signInPuter,
   signOutPuter,
 } from '@/lib/puter';
+import { fetchImageQuota, consumeImageQuota, ImageQuotaData } from '@/lib/api';
 import { useDashboard } from '@/components/dashboard/DashboardContext';
 
 export default function ImageStudioPage() {
-  const { t } = useDashboard();
+  const { t, setTopupModalOpen } = useDashboard();
   const [prompt, setPrompt] = useState('');
   const [customStyleText, setCustomStyleText] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
@@ -50,22 +51,24 @@ export default function ImageStudioPage() {
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [puterUser, setPuterUser] = useState<any>(null);
-  const [signingInPuter, setSigningInPuter] = useState(false);
+  const [quota, setQuota] = useState<ImageQuotaData>({
+    plan: 'free',
+    daily_used: 0,
+    daily_limit: 5,
+    remaining: 5,
+    is_unlimited: false,
+    allowed: true,
+  });
 
-  // Check Puter.js readiness & active account
+  // Check Puter.js readiness & active account & daily quota
   useEffect(() => {
     let mounted = true;
-    waitForPuter(6000).then(async (ready) => {
-      if (mounted) {
-        setPuterReady(ready);
-        if (ready) {
-          try {
-            const u = await getPuterUser();
-            if (mounted && u) setPuterUser(u);
-          } catch {}
-        }
-      }
+    waitForPuter(6000).then((ready) => {
+      if (mounted) setPuterReady(ready);
+    });
+
+    fetchImageQuota().then((q) => {
+      if (mounted && q) setQuota(q);
     });
 
     // Load stored history if any
@@ -81,31 +84,31 @@ export default function ImageStudioPage() {
     };
   }, []);
 
-  const handlePuterSignIn = async () => {
-    setSigningInPuter(true);
-    try {
-      const u = await signInPuter();
-      if (u) setPuterUser(u);
-    } catch (err) {
-      console.warn('Puter signin error:', err);
-    } finally {
-      setSigningInPuter(false);
-    }
-  };
-
-  const handlePuterSignOut = async () => {
-    await signOutPuter();
-    setPuterUser(null);
-  };
-
   const handleGenerate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt.trim() || loading) return;
+
+    // Check daily quota for Free plan users
+    if (!quota.is_unlimited && quota.remaining <= 0) {
+      setError(`Bạn đã dùng hết hạn mức ${quota.daily_limit} lượt tạo ảnh miễn phí hôm nay. Hãy nâng cấp lên gói Lemas Pro để tạo ảnh không giới hạn!`);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
+      // Consume 1 image quota atomically
+      const consumeRes = await consumeImageQuota();
+      if (!consumeRes.success) {
+        setError(consumeRes.error || `Bạn đã dùng hết hạn mức ${quota.daily_limit} lượt tạo ảnh miễn phí hôm nay.`);
+        setLoading(false);
+        return;
+      }
+      if (consumeRes.quota) {
+        setQuota(consumeRes.quota);
+      }
+
       let combinedPrompt = prompt.trim();
       if (customStyleText.trim()) {
         combinedPrompt += `, art style: ${customStyleText.trim()}`;
@@ -183,6 +186,22 @@ export default function ImageStudioPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Live Daily Image Quota Pill */}
+            <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-semibold ${
+              quota.is_unlimited
+                ? 'border-purple-500/30 bg-purple-500/10 text-purple-300'
+                : quota.remaining > 0
+                ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300'
+                : 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+            }`}>
+              <Sparkles className="size-3.5 shrink-0" />
+              <span>
+                {quota.is_unlimited
+                  ? 'Hạn mức: Không giới hạn (Lemas Pro)'
+                  : `Hạn mức: ${quota.daily_used}/${quota.daily_limit} ảnh hôm nay (${quota.remaining} lượt còn lại)`}
+              </span>
+            </div>
+
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#0e111a] text-xs text-slate-300">
               <div className="size-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
               <span className="font-mono font-medium">{t.puterConnected || 'Puter.js & FLUX AI Sẵn Sàng'}</span>
@@ -194,6 +213,28 @@ export default function ImageStudioPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Form Controls (7 cols) */}
           <div className="lg:col-span-7 space-y-5">
+            {/* Quota Exhausted Banner */}
+            {!quota.is_unlimited && quota.remaining <= 0 && (
+              <div className="p-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 space-y-2 text-xs text-amber-200 shadow-xl animate-fade-in">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Info className="size-4 text-amber-400 shrink-0" />
+                    <span>Đã dùng hết {quota.daily_limit}/{quota.daily_limit} lượt tạo ảnh miễn phí trong ngày hôm nay</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTopupModalOpen(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs hover:opacity-90 transition-all cursor-pointer shrink-0"
+                  >
+                    Nâng Cấp Gói Pro Ngay
+                  </button>
+                </div>
+                <p className="text-[11px] text-amber-300/80">
+                  Hạn mức 5 ảnh miễn phí sẽ được tự động làm mới vào 00:00 ngày mai. Bạn có thể nâng cấp gói Lemas Pro để tạo ảnh không giới hạn!
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleGenerate} className="p-5 sm:p-6 rounded-3xl border border-white/[0.08] bg-[#0e111a] space-y-5 shadow-2xl">
               {/* Prompt Input */}
               <div className="space-y-2">

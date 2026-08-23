@@ -350,4 +350,53 @@ export async function redeemGiftcode(code: string): Promise<{ success: boolean; 
   }
 }
 
+export interface ImageQuotaData {
+  plan: string;
+  daily_used: number;
+  daily_limit: number;
+  remaining: number;
+  is_unlimited: boolean;
+  allowed: boolean;
+  error?: string;
+}
+
+export async function fetchImageQuota(): Promise<ImageQuotaData> {
+  const token = getStoredToken();
+  if (!token) {
+    return { plan: 'free', daily_used: 0, daily_limit: 5, remaining: 5, is_unlimited: false, allowed: true };
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/user/image/quota`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      return { plan: 'free', daily_used: 0, daily_limit: 5, remaining: 5, is_unlimited: false, allowed: true };
+    }
+    return await res.json();
+  } catch {
+    return { plan: 'free', daily_used: 0, daily_limit: 5, remaining: 5, is_unlimited: false, allowed: true };
+  }
+}
+
+export async function consumeImageQuota(): Promise<{ success: boolean; quota?: ImageQuotaData; error?: string }> {
+  const token = getStoredToken();
+  if (!token) return { success: true };
+  try {
+    const res = await fetch(`${API_BASE}/api/user/image/consume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok || data.allowed === false) {
+      return { success: false, error: data.error || 'Đã hết lượt tạo ảnh hôm nay' };
+    }
+    return { success: true, quota: data };
+  } catch {
+    return { success: true };
+  }
+}
+
 
