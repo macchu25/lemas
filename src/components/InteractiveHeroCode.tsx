@@ -11,7 +11,7 @@ const codeSnippets: Record<string, { label: string; file: string; lang: string; 
     code: `import OpenAI from "openai";
 
 const lemas = new OpenAI({
-  baseURL: "https://lemas-api-production.up.railway.app/v1", // or https://api.lemas.io.vn/v1
+  baseURL: "https://api.lemas.io.vn/v1",
   apiKey: process.env.LEMAS_API_KEY,
 });
 
@@ -29,7 +29,7 @@ console.log(res.choices[0].message.content);`,
     code: `import Anthropic from "@anthropic-ai/sdk";
 
 const lemas = new Anthropic({
-  baseURL: "https://lemas-api-production.up.railway.app/v1", // or https://api.lemas.io.vn/v1
+  baseURL: "https://api.lemas.io.vn/v1",
   apiKey: process.env.LEMAS_API_KEY,
 });
 
@@ -47,7 +47,7 @@ const msg = await lemas.messages.create({
 import os
 
 client = OpenAI(
-    base_url="https://lemas-api-production.up.railway.app/v1",
+    base_url="https://api.lemas.io.vn/v1",
     api_key=os.environ.get("LEMAS_API_KEY")
 )
 
@@ -62,7 +62,7 @@ print(response.choices[0].message.content)`,
     label: 'cURL',
     file: 'request.sh',
     lang: 'bash',
-    code: `curl https://lemas-api-production.up.railway.app/v1/chat/completions \\
+    code: `curl https://api.lemas.io.vn/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $LEMAS_API_KEY" \\
   -d '{

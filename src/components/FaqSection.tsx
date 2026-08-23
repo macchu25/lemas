@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     q: 'Are you 100% compatible with existing OpenAI & Anthropic SDKs?',
-    a: 'Yes, fully drop-in compatible. Simply change your baseURL to https://lemas-api-production.up.railway.app/v1 (or https://api.lemas.io.vn/v1) and pass your Lemas.AI API key. No rewrites or library changes are needed.',
+    a: 'Yes, fully drop-in compatible. Simply change your baseURL to https://api.lemas.io.vn/v1 and pass your Lemas.AI API key. No rewrites or library changes are needed.',
   },
   {
     q: 'How does Lemas.AI offer 50–70% better pricing?',
