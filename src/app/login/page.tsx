@@ -27,7 +27,7 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleOAuthFallback = async (provider: 'google' | 'github', customEmail?: string, customName?: string, avatar?: string) => {
+  const handleOAuthLogin = async (provider: 'google' | 'github', token?: string, credential?: string) => {
     setLoading(true);
     setError('');
     try {
@@ -36,19 +36,18 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider,
-          email: customEmail || (provider === 'google' ? 'developer.google@lemas.ai' : 'developer.github@lemas.ai'),
-          name: customName || (provider === 'google' ? 'Google Developer' : 'GitHub Developer'),
-          avatar,
+          token,
+          credential,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || `Failed to login with ${provider}`);
+        throw new Error(data.error || `Xác thực ${provider} không thành công`);
       }
       setStoredToken(data.token);
       window.location.href = '/dashboard';
     } catch (err: any) {
-      setError(err.message || 'OAuth error');
+      setError(err.message || 'Lỗi xác thực OAuth');
       setLoading(false);
     }
   };
@@ -64,35 +63,29 @@ export default function LoginPage() {
           scope: 'email profile openid',
           callback: async (tokenResponse: any) => {
             if (tokenResponse && tokenResponse.access_token) {
-              try {
-                // Fetch real user profile from Google OAuth2 endpoint
-                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                });
-                const googleProfile = await userRes.json();
-                if (googleProfile && googleProfile.email) {
-                  await handleOAuthFallback('google', googleProfile.email, googleProfile.name, googleProfile.picture);
-                  return;
-                }
-              } catch (err: any) {
-                console.warn('Failed to fetch google userinfo:', err);
-              }
+              await handleOAuthLogin('google', tokenResponse.access_token);
+              return;
             }
-            handleOAuthFallback('google');
+            setError('Không nhận được mã xác thực từ Google.');
+            setLoading(false);
           },
           error_callback: (err: any) => {
             console.warn('Google OAuth error:', err);
-            handleOAuthFallback('google');
+            setError('Đăng nhập Google bị hủy hoặc gặp sự cố.');
+            setLoading(false);
           },
         });
         client.requestAccessToken();
         return;
       } catch (err) {
-        console.warn('InitTokenClient fallback:', err);
+        console.warn('InitTokenClient error:', err);
+        setError('Không thể khởi tạo Google Sign-in trên trình duyệt.');
+        setLoading(false);
       }
+    } else {
+      setError('Google Sign-In SDK chưa sẵn sàng. Vui lòng tải lại trang.');
+      setLoading(false);
     }
-
-    handleOAuthFallback('google');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -208,7 +201,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() => handleOAuthFallback('github')}
+              onClick={() => setError('Đăng nhập bằng GitHub hiện đang được bảo trì. Vui lòng đăng nhập bằng Google hoặc Email/Mật khẩu.')}
               disabled={loading}
               className="flex items-center justify-center gap-3 w-full h-11 rounded-xl bg-[#24292f] text-white text-xs sm:text-sm font-semibold hover:bg-[#2f363d] transition-all shadow-sm border border-white/10 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
