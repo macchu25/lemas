@@ -56,8 +56,14 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
-      try {
+    if (typeof window === 'undefined' || !(window as any).google?.accounts) {
+      setError('Google Sign-In SDK chưa sẵn sàng. Vui lòng tải lại trang.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if ((window as any).google.accounts.oauth2) {
         const client = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: 'email profile openid',
@@ -66,24 +72,52 @@ export default function LoginPage() {
               await handleOAuthLogin('google', tokenResponse.access_token);
               return;
             }
+            if (tokenResponse && tokenResponse.error) {
+              console.warn('Google Token response error:', tokenResponse);
+              setError(`Lỗi đăng nhập Google: ${tokenResponse.error_description || tokenResponse.error}`);
+              setLoading(false);
+              return;
+            }
             setError('Không nhận được mã xác thực từ Google.');
             setLoading(false);
           },
           error_callback: (err: any) => {
             console.warn('Google OAuth error:', err);
+            // Fallback to Google ID Token initialize & prompt
+            if ((window as any).google?.accounts?.id) {
+              try {
+                (window as any).google.accounts.id.initialize({
+                  client_id: GOOGLE_CLIENT_ID,
+                  callback: async (res: any) => {
+                    if (res && res.credential) {
+                      await handleOAuthLogin('google', undefined, res.credential);
+                      return;
+                    }
+                    setError('Đăng nhập Google bị hủy hoặc gặp sự cố.');
+                    setLoading(false);
+                  },
+                });
+                (window as any).google.accounts.id.prompt((notification: any) => {
+                  if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    setError('Cửa sổ đăng nhập Google bị chặn. Vui lòng thử lại.');
+                    setLoading(false);
+                  }
+                });
+                return;
+              } catch (idErr) {
+                console.warn('ID Prompt fallback error:', idErr);
+              }
+            }
             setError('Đăng nhập Google bị hủy hoặc gặp sự cố.');
             setLoading(false);
           },
         });
         client.requestAccessToken();
         return;
-      } catch (err) {
-        console.warn('InitTokenClient error:', err);
-        setError('Không thể khởi tạo Google Sign-in trên trình duyệt.');
-        setLoading(false);
       }
-    } else {
-      setError('Google Sign-In SDK chưa sẵn sàng. Vui lòng tải lại trang.');
+    } catch (err: any) {
+      console.warn('InitTokenClient error:', err);
+      setError('Lỗi khi mở cửa sổ đăng nhập Google.');
       setLoading(false);
     }
   };
