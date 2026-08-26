@@ -18,6 +18,20 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check if returning from Google OAuth redirect (#access_token=...)
+      if (window.location.hash.includes('access_token')) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = params.get('access_token');
+        if (accessToken) {
+          window.history.replaceState(null, '', window.location.pathname);
+          handleOAuthLogin('google', accessToken);
+        }
+      }
+    }
+  }, []);
+
   const handleOAuthLogin = async (provider: 'google' | 'github', token?: string, credential?: string) => {
     setLoading(true);
     setError('');
@@ -43,18 +57,24 @@ export default function RegisterPage() {
     }
   };
 
+  const redirectToGoogleOAuth = () => {
+    const redirectUri = window.location.origin + '/login';
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+      GOOGLE_CLIENT_ID
+    )}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=token&scope=email%20profile%20openid&prompt=select_account`;
+    window.location.href = oauthUrl;
+  };
+
   const handleGoogleLogin = () => {
     setLoading(true);
     setError('');
 
-    if (typeof window === 'undefined' || !(window as any).google?.accounts) {
-      setError('Google Sign-In SDK chưa sẵn sàng. Vui lòng tải lại trang.');
-      setLoading(false);
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     try {
-      if ((window as any).google.accounts.oauth2) {
+      if ((window as any).google?.accounts?.oauth2) {
         const client = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: 'email profile openid',
@@ -63,54 +83,22 @@ export default function RegisterPage() {
               await handleOAuthLogin('google', tokenResponse.access_token);
               return;
             }
-            if (tokenResponse && tokenResponse.error) {
-              console.warn('Google Token response error:', tokenResponse);
-              setError(`Lỗi đăng ký Google: ${tokenResponse.error_description || tokenResponse.error}`);
-              setLoading(false);
-              return;
-            }
-            setError('Không nhận được mã xác thực từ Google.');
-            setLoading(false);
+            redirectToGoogleOAuth();
           },
-          error_callback: (err: any) => {
-            console.warn('Google OAuth error:', err);
-            // Fallback to Google ID Token initialize & prompt
-            if ((window as any).google?.accounts?.id) {
-              try {
-                (window as any).google.accounts.id.initialize({
-                  client_id: GOOGLE_CLIENT_ID,
-                  callback: async (res: any) => {
-                    if (res && res.credential) {
-                      await handleOAuthLogin('google', undefined, res.credential);
-                      return;
-                    }
-                    setError('Đăng ký Google bị hủy hoặc gặp sự cố.');
-                    setLoading(false);
-                  },
-                });
-                (window as any).google.accounts.id.prompt((notification: any) => {
-                  if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    setError('Cửa sổ đăng ký Google bị chặn. Vui lòng thử lại.');
-                    setLoading(false);
-                  }
-                });
-                return;
-              } catch (idErr) {
-                console.warn('ID Prompt fallback error:', idErr);
-              }
-            }
-            setError('Đăng ký Google bị hủy hoặc gặp sự cố.');
-            setLoading(false);
+          error_callback: () => {
+            // If popup is blocked or encountered cross-origin issue, seamlessly redirect
+            redirectToGoogleOAuth();
           },
         });
         client.requestAccessToken();
         return;
       }
-    } catch (err: any) {
-      console.warn('InitTokenClient error:', err);
-      setError('Lỗi khi mở cửa sổ đăng ký Google.');
-      setLoading(false);
+    } catch {
+      redirectToGoogleOAuth();
+      return;
     }
+
+    redirectToGoogleOAuth();
   };
 
   const handleRegister = async (e: React.FormEvent) => {
