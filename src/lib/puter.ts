@@ -135,10 +135,6 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return blobToDataURL(file).then((value) => value.split(',')[1] || '');
-}
-
 async function puterImageResultToURL(result: HTMLImageElement | HTMLCanvasElement | Blob | string | { src?: string; url?: string }): Promise<string> {
   if (typeof result === 'string') return result;
   if (result instanceof Blob) return blobToDataURL(result);
@@ -153,14 +149,13 @@ export async function generatePuterArtQR(file: File, prompt: string): Promise<st
   if (!(await waitForPuter(8000)) || !window.puter?.ai?.txt2img) {
     throw new Error('Puter.js chưa sẵn sàng. Hãy tải lại trang và thử lại.');
   }
-  const inputImage = await fileToBase64(file);
-  const result = await window.puter.ai.txt2img({
-    prompt,
+  const inputImage = await blobToDataURL(file);
+  const result = await window.puter.ai.txt2img(prompt, {
+    provider: 'openai-image-generation',
     model: 'gpt-image-1.5',
     ratio: { w: 1, h: 1 },
     quality: 'high',
     input_image: inputImage,
-    input_image_mime_type: file.type,
   });
   return puterImageResultToURL(result);
 }

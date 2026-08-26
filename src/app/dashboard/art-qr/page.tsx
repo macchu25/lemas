@@ -104,15 +104,14 @@ export default function ArtQrPage() {
       for (let pass = 1; pass <= 2 && accepted.length < 4; pass++) {
         setAttempt(pass);
         const count = 4 - accepted.length;
-        const candidates = await Promise.all(Array.from({ length: count }, async () => {
-          const art = await generatePuterArtQR(file, `${preset.prompt} Create a unique variation while retaining the exact QR geometry.`);
-          return blendAndValidate(art, preview, expected, pass === 1 ? 0.58 : 0.7);
-        }));
-        for (const candidate of candidates) {
+        for (let index = 0; index < count; index++) {
+          const art = await generatePuterArtQR(file, `${preset.prompt} Create unique variation ${pass}-${index + 1} while retaining the exact QR geometry.`);
+          const candidate = await blendAndValidate(art, preview, expected, pass === 1 ? 0.58 : 0.7);
           if (candidate.scannable) accepted.push(candidate);
           else failed++;
+          setResults([...accepted]);
+          setRejected(failed);
         }
-        setResults([...accepted]); setRejected(failed);
       }
       if (!accepted.length) throw new Error('Puter.js đã tạo ảnh nhưng chưa có mẫu nào quét đúng. Hãy dùng QR gốc rõ nét hơn hoặc thử phong cách khác.');
     } catch (err) {
