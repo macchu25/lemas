@@ -99,12 +99,22 @@ export async function getModels(query = '', provider = '', freeOnly = false): Pr
   }
 }
 
+async function safeJson<T>(res: Response, fallback: T): Promise<T> {
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) return fallback;
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 // Fetch pricing tiers
 export async function getPricingTiers(): Promise<PricingTier[]> {
   try {
     const res = await fetch(`${API_BASE}/api/pricing`);
-    if (!res.ok) throw new Error('Failed to fetch pricing');
-    return await res.json();
+    if (!res.ok) return [];
+    return await safeJson<PricingTier[]>(res, []);
   } catch (err) {
     console.error('getPricingTiers error:', err);
     return [];
@@ -115,8 +125,8 @@ export async function getPricingTiers(): Promise<PricingTier[]> {
 export async function getDeals(): Promise<Deal[]> {
   try {
     const res = await fetch(`${API_BASE}/api/deals`);
-    if (!res.ok) throw new Error('Failed to fetch deals');
-    return await res.json();
+    if (!res.ok) return [];
+    return await safeJson<Deal[]>(res, []);
   } catch (err) {
     console.error('getDeals error:', err);
     return [];
@@ -125,29 +135,34 @@ export async function getDeals(): Promise<Deal[]> {
 
 // Fetch Status
 export async function getStatus(): Promise<StatusResponse> {
+  const fallbackStatus: StatusResponse = {
+    system_status: 'All Systems Operational',
+    uptime_sla: '99.99%',
+    average_ping: '28ms',
+    regions: [],
+    last_updated: new Date().toISOString(),
+  };
   try {
     const res = await fetch(`${API_BASE}/api/status`);
-    if (!res.ok) throw new Error('Failed to fetch status');
-    return await res.json();
+    if (!res.ok) return fallbackStatus;
+    return await safeJson<StatusResponse>(res, fallbackStatus);
   } catch (err) {
-    return {
-      system_status: 'All Systems Operational',
-      uptime_sla: '99.99%',
-      average_ping: '28ms',
-      regions: [],
-      last_updated: new Date().toISOString(),
-    };
+    return fallbackStatus;
   }
 }
 
 // Submit contact form
-export async function submitContact(name: string, email: string, subject: string, message: string) {
-  const res = await fetch(`${API_BASE}/api/contact`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, subject, message }),
-  });
-  return await res.json();
+export async function submitContact(name: string, email: string, subject: string, message: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, subject, message }),
+    });
+    return await safeJson<{ success: boolean; message?: string; error?: string }>(res, { success: res.ok });
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Lỗi gửi tin nhắn' };
+  }
 }
 
 // Auth & Dashboard helpers
@@ -185,7 +200,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       }
       return null;
     }
-    return await res.json();
+    return await safeJson<UserProfile | null>(res, null);
   } catch {
     return null;
   }
@@ -199,7 +214,7 @@ export async function getApiKeys(): Promise<ApiKeyItem[]> {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return [];
-    return await res.json();
+    return await safeJson<ApiKeyItem[]>(res, []);
   } catch {
     return [];
   }
@@ -218,7 +233,7 @@ export async function createApiKey(name: string, spendLimit: number): Promise<Ap
       body: JSON.stringify({ name, spend_limit: spendLimit }),
     });
     if (!res.ok) return null;
-    return await res.json();
+    return await safeJson<ApiKeyItem | null>(res, null);
   } catch {
     return null;
   }
@@ -241,18 +256,27 @@ export async function revokeApiKey(id: string): Promise<boolean> {
 // Test completions endpoint directly
 export async function testChatCompletion(apiKey: string, model: string, userMessage: string) {
   const token = apiKey || getStoredToken() || '';
-  const res = await fetch(`${API_BASE}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  });
-  return await res.json();
+  try {
+    const res = await fetch(`${API_BASE}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: userMessage }],
+      }),
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: text || `HTTP ${res.status}` };
+    }
+  } catch (err: any) {
+    return { error: err.message || 'Lỗi kết nối tới máy chủ' };
+  }
 }
 
 export interface TopupRecord {
