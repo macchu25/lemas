@@ -3,16 +3,16 @@ declare global {
     puter?: {
       auth?: {
         isSignedIn: () => boolean;
-        signIn: () => Promise<any>;
+        signIn: () => Promise<unknown>;
         signOut: () => Promise<void>;
         getUser: () => Promise<{ id?: string; username?: string; email?: string } | null>;
       };
       ai?: {
         txt2img: (
-          promptOrOptions: string | { prompt: string; ratio?: { w: number; h: number }; quality?: string; model?: string },
+          promptOrOptions: string | { prompt: string; ratio?: { w: number; h: number }; quality?: string; model?: string; input_image?: string; input_image_mime_type?: string },
           options?: Record<string, unknown>,
         ) => Promise<HTMLImageElement | HTMLCanvasElement | Blob | string | { src?: string; url?: string }>;
-        chat?: (prompt: string, options?: Record<string, unknown>) => Promise<any>;
+        chat?: (prompt: string, options?: Record<string, unknown>) => Promise<unknown>;
       };
     };
   }
@@ -135,6 +135,36 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return blobToDataURL(file).then((value) => value.split(',')[1] || '');
+}
+
+async function puterImageResultToURL(result: HTMLImageElement | HTMLCanvasElement | Blob | string | { src?: string; url?: string }): Promise<string> {
+  if (typeof result === 'string') return result;
+  if (result instanceof Blob) return blobToDataURL(result);
+  if (result instanceof HTMLCanvasElement) return result.toDataURL('image/png');
+  if (result instanceof HTMLImageElement) return result.src;
+  if (result?.src) return result.src;
+  if (result?.url) return result.url;
+  throw new Error('Puter.js không trả về ảnh hợp lệ');
+}
+
+export async function generatePuterArtQR(file: File, prompt: string): Promise<string> {
+  if (!(await waitForPuter(8000)) || !window.puter?.ai?.txt2img) {
+    throw new Error('Puter.js chưa sẵn sàng. Hãy tải lại trang và thử lại.');
+  }
+  const inputImage = await fileToBase64(file);
+  const result = await window.puter.ai.txt2img({
+    prompt,
+    model: 'gpt-image-1.5',
+    ratio: { w: 1, h: 1 },
+    quality: 'high',
+    input_image: inputImage,
+    input_image_mime_type: file.type,
+  });
+  return puterImageResultToURL(result);
+}
+
 function validateImageLoad(url: string, timeoutMs = 25000): Promise<boolean> {
   return new Promise((resolve) => {
     let resolved = false;
@@ -225,7 +255,7 @@ export async function generateImage(
             };
           }
           if (res && typeof res === 'object') {
-            const anyRes = res as any;
+            const anyRes = res as { src?: string; url?: string };
             if (anyRes.src && typeof anyRes.src === 'string' && anyRes.src.length > 20) {
               return {
                 url: anyRes.src,
