@@ -93,7 +93,7 @@ export async function getModels(query = '', provider = '', freeOnly = false): Pr
     if (!res.ok) throw new Error('Failed to fetch models');
     const data = await res.json();
     return data.data || [];
-  } catch (err) {
+  } catch {
     console.error('getModels error:', err);
     return [];
   }
@@ -160,8 +160,8 @@ export async function submitContact(name: string, email: string, subject: string
       body: JSON.stringify({ name, email, subject, message }),
     });
     return await safeJson<{ success: boolean; message?: string; error?: string }>(res, { success: res.ok });
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Lỗi gửi tin nhắn' };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Lỗi gửi tin nhắn' };
   }
 }
 
@@ -274,8 +274,8 @@ export async function testChatCompletion(apiKey: string, model: string, userMess
     } catch {
       return { error: text || `HTTP ${res.status}` };
     }
-  } catch (err: any) {
-    return { error: err.message || 'Lỗi kết nối tới máy chủ' };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : 'Lỗi kết nối tới máy chủ' };
   }
 }
 
@@ -423,3 +423,40 @@ export async function consumeImageQuota(): Promise<{ success: boolean; quota?: I
   }
 }
 
+export type ArtQRStyle = 'starry-night' | 'cyberpunk' | 'watercolor';
+
+export interface ArtQRJob {
+  job_id: string;
+  status: 'queued' | 'generating' | 'validating' | 'completed' | 'failed';
+  decoded_content?: string;
+  attempt?: number;
+  max_attempts?: number;
+  images?: { url: string; scannable: boolean }[];
+  rejected_count?: number;
+  error?: string;
+}
+
+export async function createArtQRJob(file: File, style: ArtQRStyle): Promise<ArtQRJob> {
+  const token = getStoredToken();
+  if (!token) throw new Error('Vui lòng đăng nhập để sử dụng Art QR');
+  const form = new FormData();
+  form.append('qr', file);
+  form.append('style', style);
+  const response = await fetch(`${API_BASE}/api/user/art-qr/jobs`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Không thể tạo Art QR job');
+  return data;
+}
+
+export async function fetchArtQRJob(jobID: string): Promise<ArtQRJob> {
+  const token = getStoredToken();
+  if (!token) throw new Error('Phiên đăng nhập đã hết hạn');
+  const response = await fetch(`${API_BASE}/api/user/art-qr/status?id=${encodeURIComponent(jobID)}`, {
+    headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Không thể đọc trạng thái Art QR');
+  return data;
+}

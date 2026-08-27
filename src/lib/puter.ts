@@ -135,48 +135,6 @@ function blobToDataURL(blob: Blob): Promise<string> {
   });
 }
 
-async function puterImageResultToURL(result: HTMLImageElement | HTMLCanvasElement | Blob | string | { src?: string; url?: string }): Promise<string> {
-  if (typeof result === 'string') return result;
-  if (result instanceof Blob) return blobToDataURL(result);
-  if (result instanceof HTMLCanvasElement) return result.toDataURL('image/png');
-  if (result instanceof HTMLImageElement) return result.src;
-  if (result?.src) return result.src;
-  if (result?.url) return result.url;
-  throw new Error('Puter.js không trả về ảnh hợp lệ');
-}
-
-export async function generatePuterArtQR(file: File, prompt: string): Promise<string> {
-  // 1. Try Puter.js AI txt2img
-  try {
-    const isReady = await waitForPuter(4000);
-    if (isReady && window.puter?.ai?.txt2img) {
-      const inputImage = await blobToDataURL(file);
-      const result = await window.puter.ai.txt2img(prompt, {
-        provider: 'openai-image-generation',
-        model: 'gpt-image-1.5',
-        ratio: { w: 1, h: 1 },
-        quality: 'high',
-        input_image: inputImage,
-      });
-      return await puterImageResultToURL(result);
-    }
-  } catch (puterErr) {
-    console.warn('[ArtQR] Puter.js image generation failed, falling back to FLUX Edge:', puterErr);
-  }
-
-  // 2. High-speed FLUX Edge fallback
-  const seed = Math.floor(Math.random() * 10000000);
-  const encodedPrompt = encodeURIComponent(prompt.slice(0, 1500));
-  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
-
-  const isValid = await validateImageLoad(fallbackUrl, 25000);
-  if (isValid) {
-    return fallbackUrl;
-  }
-
-  throw new Error('Không thể khởi tạo nền nghệ thuật cho QR. Vui lòng kiểm tra lại kết nối và thử lại!');
-}
-
 function validateImageLoad(url: string, timeoutMs = 25000): Promise<boolean> {
   return new Promise((resolve) => {
     let resolved = false;
