@@ -1,9 +1,6 @@
-export const API_BASE =
-  typeof window !== 'undefined' &&
-  window.location.hostname !== 'localhost' &&
-  window.location.hostname !== '127.0.0.1'
-    ? 'https://lemas-api-production.up.railway.app'
-    : process.env.NEXT_PUBLIC_API_URL || 'https://lemas-api-production.up.railway.app';
+export const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.lemas.io.vn'
+).replace(/\/$/, '');
 
 export interface ModelItem {
   id: string;
@@ -93,7 +90,7 @@ export async function getModels(query = '', provider = '', freeOnly = false): Pr
     if (!res.ok) throw new Error('Failed to fetch models');
     const data = await res.json();
     return data.data || [];
-  } catch {
+  } catch (err) {
     console.error('getModels error:', err);
     return [];
   }
