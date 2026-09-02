@@ -101,7 +101,8 @@ export default function ArtQrPage() {
 
   // Vision Analysis & Editable Prompt
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [styleAnalysis, setStyleAnalysis] = useState<StyleAnalysis | null>(null);
+  const [styleAnalysis, setStyleAnalysis] = useState<any | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
   const [customPrompt, setCustomPrompt] = useState<string>('');
 
   // Job Polling
@@ -521,15 +522,15 @@ export default function ArtQrPage() {
                     <div className="rounded-xl border border-violet-500/20 bg-gradient-to-b from-violet-950/20 to-slate-950/40 p-3.5 sm:p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Wand2 className="size-4 text-violet-400" />
+                          <Eye className="size-4 text-violet-400" />
                           <h4 className="text-xs font-bold uppercase tracking-wider text-violet-200">
-                            Phân tích thị giác AI (GPT-4o Vision)
+                            Phân tích thị giác AI (GPT-4o Vision Inspector)
                           </h4>
                         </div>
                         <div className="flex items-center gap-2">
                           {isAnalyzing ? (
                             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-300 animate-pulse">
-                              <LoaderCircle className="size-3.5 animate-spin" /> Đang phân tích bức ảnh...
+                              <LoaderCircle className="size-3.5 animate-spin" /> Đang bóc tách từng chi tiết JSON...
                             </span>
                           ) : (
                             <>
@@ -540,6 +541,13 @@ export default function ArtQrPage() {
                               >
                                 <Sparkles className="size-3" /> Phân tích lại
                               </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowRawJson(!showRawJson)}
+                                className="inline-flex items-center gap-1 rounded-md border border-cyan-400/20 bg-cyan-400/[0.08] px-2 py-0.5 text-[10.5px] font-semibold text-cyan-300 hover:bg-cyan-400/15 transition-all"
+                              >
+                                {showRawJson ? "Ẩn JSON" : "{ } Xem JSON"}
+                              </button>
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
                                 <CheckCircle2 className="size-3.5" /> Đã trích xuất
                               </span>
@@ -549,21 +557,55 @@ export default function ArtQrPage() {
                       </div>
 
                       {styleAnalysis && (
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5">
-                            <span className="text-slate-400 block text-[10px]">Phong cách nhận diện:</span>
-                            <span className="font-semibold text-slate-200 truncate block">{styleAnalysis.style}</span>
+                        <div className="space-y-2 text-[11px]">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg bg-white/[0.03] p-2.5 border border-white/5 space-y-1">
+                              <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Trường phái & Thể loại:</span>
+                              <span className="font-semibold text-slate-200 leading-snug block">{styleAnalysis.style}</span>
+                            </div>
+                            <div className="rounded-lg bg-white/[0.03] p-2.5 border border-white/5 space-y-1">
+                              <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Ánh sáng & Phản quang:</span>
+                              <span className="font-semibold text-slate-200 leading-snug block">{styleAnalysis.lighting}</span>
+                            </div>
                           </div>
-                          <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5">
-                            <span className="text-slate-400 block text-[10px]">Ánh sáng & chất liệu:</span>
-                            <span className="font-semibold text-slate-200 truncate block">{styleAnalysis.lighting || styleAnalysis.texture}</span>
-                          </div>
+
+                          {styleAnalysis.palette && Array.isArray(styleAnalysis.palette) && styleAnalysis.palette.length > 0 && (
+                            <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5 flex items-center justify-between">
+                              <span className="text-slate-400 text-[10.5px] font-medium">Bảng màu chủ đạo (Color DNA):</span>
+                              <div className="flex items-center gap-1.5">
+                                {styleAnalysis.palette.map((color: string, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded border border-white/10">
+                                    <span className="size-3 rounded-full border border-white/20 inline-block" style={{ backgroundColor: color }} />
+                                    <span className="text-[9.5px] font-mono text-slate-300">{color}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {showRawJson && (
+                            <div className="rounded-lg border border-cyan-500/20 bg-[#050811] p-3 space-y-1.5">
+                              <div className="flex items-center justify-between text-[10.5px] text-cyan-300 font-bold">
+                                <span>🌲 Chi Tiết Dữ Liệu JSON Forensic (GPT-4o Vision):</span>
+                                <button
+                                  type="button"
+                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(styleAnalysis, null, 2))}
+                                  className="text-xs text-cyan-400 hover:underline"
+                                >
+                                  Sao chép JSON
+                                </button>
+                              </div>
+                              <pre className="max-h-48 overflow-auto rounded bg-black/60 p-2 font-mono text-[10px] text-emerald-300/90 leading-relaxed border border-white/5">
+                                {JSON.stringify(styleAnalysis, null, 2)}
+                              </pre>
+                            </div>
+                          )}
                         </div>
                       )}
 
                       <div className="space-y-1.5">
                         <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-                          <span>✨ Prompt AI cho ảnh này (Bạn có thể xem & tùy chỉnh):</span>
+                          <span>✨ Prompt Điều Khiển AI Khắc Nét (Tự động tạo & Tùy chỉnh):</span>
                         </label>
                         <textarea
                           value={customPrompt}
