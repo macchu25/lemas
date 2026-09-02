@@ -598,34 +598,60 @@ export default function ArtQrPage() {
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3.5 py-2.5 text-xs text-emerald-200">
                     <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
                     <span>
-                      <strong>Đã tạo thành công {results.length} mẫu Art QR</strong>. Hãy mở camera điện thoại hoặc Zalo quét thử trực tiếp!
+                      <strong>Tác phẩm Art QR đã hoàn thiện & xác thực 100%</strong>. Hãy mở camera điện thoại hoặc Zalo quét thử trực tiếp!
                     </span>
                   </div>
 
-                  <div className="grid gap-3.5 grid-cols-2">
-                    {results.map((item, i) => (
-                      <article key={i} className="group overflow-hidden rounded-xl border border-white/[0.08] bg-[#090c12]">
-                        <div className="relative aspect-square">
-                          <img src={item.url} alt={`Art QR ${i + 1}`} className="h-full w-full object-cover" />
-                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-[#07130e]/90 px-2 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md">
-                            <ShieldCheck className="size-3" /> QR Verified
-                          </span>
+                  {results.length === 1 ? (
+                    <article className="group overflow-hidden rounded-2xl border border-emerald-400/30 bg-[#090c12] shadow-2xl shadow-emerald-950/30">
+                      <div className="relative aspect-square w-full">
+                        <img src={results[0].url} alt="Masterpiece Art QR" className="h-full w-full object-cover" />
+                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-xl bg-[#07130e]/95 px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg backdrop-blur-md border border-emerald-400/30">
+                          <ShieldCheck className="size-4 text-emerald-400" /> QR Verified (100% Scannable)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between bg-[#0d1017] p-4 border-t border-white/[0.08]">
+                        <div>
+                          <p className="text-xs font-bold text-slate-200">Tác phẩm Art QR Chất Lượng Cao</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Độ phân giải 1024x1024 · Sẵn sàng chia sẻ & in ấn</p>
                         </div>
-                        <div className="flex items-center justify-between bg-[#0d1017] px-3 py-2">
-                          <span className="text-[11px] font-medium text-slate-400">Mẫu #{i + 1}</span>
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            download={`lemas-art-qr-${i + 1}.png`}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
-                          >
-                            <Download className="size-3.5" /> Tải về
-                          </a>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                        <a
+                          href={results[0].url}
+                          target="_blank"
+                          rel="noreferrer"
+                          download="lemas-art-qr-masterpiece.png"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 px-4 py-2 text-xs font-bold text-[#05110d] shadow-md shadow-emerald-500/10 hover:opacity-95 transition-all"
+                        >
+                          <Download className="size-4" /> Tải về ảnh gốc
+                        </a>
+                      </div>
+                    </article>
+                  ) : (
+                    <div className="grid gap-3.5 grid-cols-2">
+                      {results.map((item, i) => (
+                        <article key={i} className="group overflow-hidden rounded-xl border border-white/[0.08] bg-[#090c12]">
+                          <div className="relative aspect-square">
+                            <img src={item.url} alt={`Art QR ${i + 1}`} className="h-full w-full object-cover" />
+                            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-[#07130e]/90 px-2 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md">
+                              <ShieldCheck className="size-3" /> QR Verified
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between bg-[#0d1017] px-3 py-2">
+                            <span className="text-[11px] font-medium text-slate-400">Mẫu #{i + 1}</span>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={`lemas-art-qr-${i + 1}.png`}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                            >
+                              <Download className="size-3.5" /> Tải về
+                            </a>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
 
                   {!isWorking && (
                     <button
@@ -633,7 +659,7 @@ export default function ArtQrPage() {
                       onClick={handleGenerate}
                       className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-slate-200 hover:bg-white/[0.08] transition-colors"
                     >
-                      <RefreshCw className="size-3.5" /> Tạo thêm 4 mẫu khác
+                      <RefreshCw className="size-3.5" /> Tạo lại mẫu khác
                     </button>
                   )}
                 </div>
