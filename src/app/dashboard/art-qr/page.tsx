@@ -571,6 +571,7 @@ export default function ArtQrPage() {
                           placeholder={isAnalyzing ? "Đang tạo câu lệnh từ ảnh..." : "Mô tả chi tiết phong cách bạn muốn AI hòa trộn..."}
                           rows={3}
                           className="w-full rounded-lg border border-white/10 bg-[#07090e] p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-400/40 leading-relaxed resize-none"
+                        />
                       </div>
                     </div>
                   )}
