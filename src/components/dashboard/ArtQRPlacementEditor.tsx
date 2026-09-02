@@ -131,9 +131,18 @@ export default function ArtQRPlacementEditor({
     };
   }, [isDragging, isResizing, handlePointerMove, handlePointerEnd]);
 
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+
   useEffect(() => {
     setImgError(false);
   }, [imageUrl]);
+
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (naturalWidth && naturalHeight) {
+      setAspectRatio(naturalWidth / naturalHeight);
+    }
+  };
 
   const leftPercent = placement.x * 100;
   const topPercent = placement.y * 100;
@@ -167,7 +176,8 @@ export default function ArtQRPlacementEditor({
       {/* Editor Canvas Area */}
       <div
         ref={containerRef}
-        className="relative aspect-square w-full select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
+        style={{ aspectRatio: aspectRatio ? `${aspectRatio}` : '1 / 1', maxHeight: '560px' }}
+        className="relative mx-auto w-full select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
       >
         {/* Background Artwork Preview */}
         {!imgError && imageUrl ? (
@@ -175,8 +185,9 @@ export default function ArtQRPlacementEditor({
             key={imageUrl}
             src={imageUrl}
             alt="Style reference preview"
+            onLoad={handleImageLoad}
             onError={() => setImgError(true)}
-            className="pointer-events-none h-full w-full object-cover"
+            className="pointer-events-none h-full w-full object-contain"
           />
         ) : (
           <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-950 p-6 text-center">
