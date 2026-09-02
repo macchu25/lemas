@@ -131,6 +131,10 @@ export default function ArtQRPlacementEditor({
     };
   }, [isDragging, isResizing, handlePointerMove, handlePointerEnd]);
 
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
+
   const leftPercent = placement.x * 100;
   const topPercent = placement.y * 100;
   const sizePercent = placement.size * 100;
@@ -163,15 +167,16 @@ export default function ArtQRPlacementEditor({
       {/* Editor Canvas Area */}
       <div
         ref={containerRef}
-        className="relative aspect-square w-full select-none overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#07090e] via-[#0b101c] to-[#121826] shadow-inner"
+        className="relative aspect-square w-full select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
       >
         {/* Background Artwork Preview */}
         {!imgError && imageUrl ? (
           <img
+            key={imageUrl}
             src={imageUrl}
             alt="Style reference preview"
             onError={() => setImgError(true)}
-            className="pointer-events-none h-full w-full object-cover opacity-80"
+            className="pointer-events-none h-full w-full object-cover"
           />
         ) : (
           <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-950 p-6 text-center">
@@ -181,8 +186,8 @@ export default function ArtQRPlacementEditor({
           </div>
         )}
 
-        {/* Ambient Overlay to emphasize active QR region */}
-        <div className="pointer-events-none absolute inset-0 bg-black/30" />
+        {/* Subtle Ambient Vignette to emphasize active QR region */}
+        <div className="pointer-events-none absolute inset-0 bg-black/20" />
 
         {/* Draggable & Resizable QR Placement Region */}
         <div
