@@ -1,88 +1,562 @@
 'use client';
 
 import React, { ChangeEvent, DragEvent, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Download, ImageUp, LoaderCircle, QrCode, RefreshCw, ScanLine, ShieldCheck, Sparkles, UploadCloud, X, XCircle } from 'lucide-react';
-import { ArtQRJob, ArtQRStyle, createArtQRJob, fetchArtQRJob } from '@/lib/api';
+import {
+  CheckCircle2,
+  Download,
+  Focus,
+  ImageUp,
+  LoaderCircle,
+  QrCode,
+  RefreshCw,
+  ScanLine,
+  ShieldCheck,
+  Sparkles,
+  UploadCloud,
+  Wand2,
+  X,
+  XCircle,
+} from 'lucide-react';
+import ArtQRPlacementEditor from '@/components/dashboard/ArtQRPlacementEditor';
+import {
+  ArtQRPreset,
+  ArtQRJobResponse,
+  getArtQRJob,
+  getArtQRPresets,
+  Placement,
+  submitArtQRGeneration,
+} from '@/lib/artqr_api';
 
-const STYLES: { id: ArtQRStyle; name: string; description: string; colors: string[] }[] = [
-  { id: 'starry-night', name: 'Starry Night', description: 'Sơn dầu cobalt, bầu trời xoáy và ánh sao vàng.', colors: ['#172554', '#1d4ed8', '#facc15'] },
-  { id: 'cyberpunk', name: 'Cyberpunk', description: 'Khối QR hóa thành cửa sổ và biển neon thành phố đêm.', colors: ['#07131f', '#06b6d4', '#ec4899'] },
-  { id: 'watercolor', name: 'Watercolor', description: 'Lá, cành và màu nước mềm trên nền giấy ấm.', colors: ['#f5f0e8', '#047857', '#6366f1'] },
+const DEFAULT_PRESETS: ArtQRPreset[] = [
+  {
+    id: 'starry-night',
+    slug: 'starry-night',
+    name: 'Starry Night',
+    description: 'Sơn dầu cobalt huyền thoại, bầu trời xoáy và ánh sao vàng rực rỡ',
+    preview_url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
+    colors: ['#0b1e3f', '#1d4ed8', '#eab308'],
+    prompt: '',
+    negative_prompt: '',
+    conditioning_scale: 1.35,
+    guidance_scale: 7.5,
+  },
+  {
+    id: 'cyberpunk',
+    slug: 'cyberpunk',
+    name: 'Cyberpunk Metropolis',
+    description: 'Thành phố tương lai đêm mưa, biển neon rực rỡ và ánh phản chiếu công nghệ cao',
+    preview_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=80',
+    colors: ['#090d16', '#06b6d4', '#ec4899'],
+    prompt: '',
+    negative_prompt: '',
+    conditioning_scale: 1.38,
+    guidance_scale: 7.5,
+  },
+  {
+    id: 'watercolor',
+    slug: 'watercolor',
+    name: 'Botanical Watercolor',
+    description: 'Lá cây ngọc bích, sắc hoa mềm mại trên nền giấy mỹ thuật cổ điển',
+    preview_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600&auto=format&fit=crop&q=80',
+    colors: ['#fbf9f5', '#047857', '#6366f1'],
+    prompt: '',
+    negative_prompt: '',
+    conditioning_scale: 1.36,
+    guidance_scale: 7.0,
+  },
+  {
+    id: 'forest',
+    slug: 'forest',
+    name: 'Mystic Forest',
+    description: 'Rừng sương mù huyền bí, ánh nắng xuyên tán cây cổ thụ',
+    preview_url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&auto=format&fit=crop&q=80',
+    colors: ['#061a14', '#15803d', '#ca8a04'],
+    prompt: '',
+    negative_prompt: '',
+    conditioning_scale: 1.35,
+    guidance_scale: 7.5,
+  },
 ];
 
-const terminal = new Set(['completed', 'failed']);
-
 export default function ArtQrPage() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const objectURL = useRef<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [style, setStyle] = useState<ArtQRStyle>('starry-night');
-  const [dragging, setDragging] = useState(false);
-  const [job, setJob] = useState<ArtQRJob | null>(null);
+  const qrInputRef = useRef<HTMLInputElement>(null);
+  const refInputRef = useRef<HTMLInputElement>(null);
+
+  // States
+  const [qrFile, setQrFile] = useState<File | null>(null);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
+
+  const [presets, setPresets] = useState<ArtQRPreset[]>(DEFAULT_PRESETS);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('starry-night');
+
+  const [isCustomRef, setIsCustomRef] = useState<boolean>(false);
+  const [refFile, setRefFile] = useState<File | null>(null);
+  const [refPreview, setRefPreview] = useState<string | null>(null);
+
+  const [placement, setPlacement] = useState<Placement>({ x: 0.25, y: 0.25, size: 0.5 });
+  const [isDraggingQR, setIsDraggingQR] = useState(false);
+  const [isDraggingRef, setIsDraggingRef] = useState(false);
+
+  // Job Polling
+  const [job, setJob] = useState<ArtQRJobResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load presets on mount
   useEffect(() => {
-    if (!job?.job_id || terminal.has(job.status)) return;
-    let stopped = false;
-    const timer = window.setInterval(async () => {
+    getArtQRPresets().then((data) => {
+      if (data && data.length > 0) setPresets(data);
+    });
+  }, []);
+
+  // Poll Job status
+  useEffect(() => {
+    if (!job?.job_id || job.status === 'completed' || job.status === 'failed') return;
+    const interval = window.setInterval(async () => {
       try {
-        const next = await fetchArtQRJob(job.job_id);
-        if (!stopped) setJob(next);
-        if (terminal.has(next.status)) window.clearInterval(timer);
-      } catch (reason) {
-        if (!stopped) setError(reason instanceof Error ? reason.message : 'Mất kết nối khi kiểm tra tiến trình');
+        const nextJob = await getArtQRJob(job.job_id);
+        setJob(nextJob);
+        if (nextJob.status === 'completed' || nextJob.status === 'failed') {
+          window.clearInterval(interval);
+        }
+      } catch (err: any) {
+        console.error('Job polling error:', err);
       }
-    }, 3500);
-    return () => { stopped = true; window.clearInterval(timer); };
+    }, 2500);
+
+    return () => window.clearInterval(interval);
   }, [job?.job_id, job?.status]);
 
-  useEffect(() => () => { if (objectURL.current) URL.revokeObjectURL(objectURL.current); }, []);
+  // Clean up object URLs
+  useEffect(() => {
+    return () => {
+      if (qrPreview) URL.revokeObjectURL(qrPreview);
+      if (refPreview) URL.revokeObjectURL(refPreview);
+    };
+  }, [qrPreview, refPreview]);
 
-  const acceptFile = (next?: File) => {
-    if (!next) return;
-    if (!['image/png', 'image/jpeg', 'image/gif'].includes(next.type)) return setError('Chỉ hỗ trợ ảnh QR PNG, JPG hoặc GIF.');
-    if (next.size > 5 * 1024 * 1024) return setError('Ảnh QR phải nhỏ hơn 5 MB.');
-    if (objectURL.current) URL.revokeObjectURL(objectURL.current);
-    const url = URL.createObjectURL(next);
-    objectURL.current = url;
-    setFile(next); setPreview(url); setJob(null); setError(null);
+  const handleAcceptQR = (file?: File) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/gif'].includes(file.type)) {
+      return setError('Chỉ hỗ trợ ảnh QR PNG, JPG hoặc GIF.');
+    }
+    if (file.size > 10 * 1024 * 1024) return setError('Ảnh QR phải nhỏ hơn 10 MB.');
+    if (qrPreview) URL.revokeObjectURL(qrPreview);
+
+    setQrFile(file);
+    setQrPreview(URL.createObjectURL(file));
+    setJob(null);
+    setError(null);
   };
 
-  const clearFile = () => {
-    if (objectURL.current) URL.revokeObjectURL(objectURL.current);
-    objectURL.current = null;
-    setFile(null); setPreview(null); setJob(null); setError(null);
-    if (inputRef.current) inputRef.current.value = '';
+  const handleAcceptRef = (file?: File) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      return setError('Chỉ hỗ trợ ảnh phong cách PNG, JPG hoặc WEBP.');
+    }
+    if (file.size > 10 * 1024 * 1024) return setError('Ảnh tham khảo phải nhỏ hơn 10 MB.');
+    if (refPreview) URL.revokeObjectURL(refPreview);
+
+    setRefFile(file);
+    setRefPreview(URL.createObjectURL(file));
+    setIsCustomRef(true);
+    setError(null);
   };
 
-  const generate = async () => {
-    if (!file || submitting) return;
-    setSubmitting(true); setJob(null); setError(null);
-    try { setJob(await createArtQRJob(file, style)); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể bắt đầu tạo Art QR'); }
-    finally { setSubmitting(false); }
+  const clearQR = () => {
+    if (qrPreview) URL.revokeObjectURL(qrPreview);
+    setQrFile(null);
+    setQrPreview(null);
+    setJob(null);
+    setError(null);
+    if (qrInputRef.current) qrInputRef.current.value = '';
   };
 
-  const working = submitting || (!!job && !terminal.has(job.status));
-  const results = job?.images?.filter((image) => image.scannable) || [];
+  const clearRef = () => {
+    if (refPreview) URL.revokeObjectURL(refPreview);
+    setRefFile(null);
+    setRefPreview(null);
+    setIsCustomRef(false);
+    if (refInputRef.current) refInputRef.current.value = '';
+  };
 
-  return <div className="h-full w-full overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#090b10] p-3 sm:p-5 lg:p-6"><div className="mx-auto w-full max-w-7xl space-y-6 pb-10">
-    <header className="flex flex-col gap-4 border-b border-white/[0.08] pb-5 sm:flex-row sm:items-end sm:justify-between"><div className="max-w-3xl"><div className="mb-2 flex items-center gap-2"><QrCode className="size-5 text-emerald-300" /><span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Hugging Face QR-ControlNet</span></div><h1 className="text-2xl font-extrabold tracking-tight text-slate-50 sm:text-3xl">AI Art QR Studio</h1><p className="mt-1.5 max-w-[70ch] text-sm leading-6 text-slate-400">Tải QR, chọn phong cách và để ZeroGPU tạo tác phẩm. Go backend quét từng ảnh và chỉ trả mẫu có payload trùng khớp QR gốc.</p></div><div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3 py-2 text-[11px] font-medium text-emerald-200"><ShieldCheck className="size-4" /> Backend verified</div></header>
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(400px,1.05fr)]">
-      <section className="space-y-5 rounded-2xl border border-white/[0.08] bg-[#0e1118] p-4 sm:p-6">
-        <div><div className="mb-2 flex items-center justify-between"><label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300"><ImageUp className="size-3.5 text-cyan-300" /> 1. Tải QR gốc</label><span className="text-[10px] text-slate-600">PNG, JPG, GIF · tối đa 5 MB</span></div><div onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event: DragEvent<HTMLDivElement>) => { event.preventDefault(); setDragging(false); acceptFile(event.dataTransfer.files?.[0]); }} onClick={() => !file && inputRef.current?.click()} className={`relative flex min-h-56 items-center justify-center overflow-hidden rounded-2xl border border-dashed ${file ? 'border-white/10 bg-[#090c12]' : dragging ? 'cursor-copy border-emerald-400/60 bg-emerald-400/[0.07]' : 'cursor-pointer border-white/15 bg-white/[0.02] hover:border-emerald-400/40'}`}><input ref={inputRef} type="file" accept="image/png,image/jpeg,image/gif" onChange={(event: ChangeEvent<HTMLInputElement>) => acceptFile(event.target.files?.[0])} className="sr-only" />{preview ? <><img src={preview} alt="QR gốc" className="max-h-52 max-w-full object-contain p-4" /><button type="button" onClick={(event) => { event.stopPropagation(); clearFile(); }} className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg border border-white/10 bg-[#090c12]/90 text-slate-400 hover:text-white" aria-label="Xóa QR"><X className="size-4" /></button></> : <div className="text-center"><span className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]"><UploadCloud className="size-5 text-emerald-300" /></span><p className="text-sm font-semibold text-slate-200">Thả ảnh QR vào đây</p><p className="mt-1 text-xs text-slate-500">hoặc bấm để chọn từ thiết bị</p></div>}</div></div>
-        <div className="space-y-3 border-t border-white/[0.07] pt-5"><label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300"><Sparkles className="size-3.5 text-violet-300" /> 2. Chọn phong cách</label><div className="grid gap-2 sm:grid-cols-3">{STYLES.map((item) => { const selected = style === item.id; return <button key={item.id} type="button" onClick={() => { setStyle(item.id); setJob(null); }} className={`relative min-h-32 rounded-xl border p-4 text-left ${selected ? 'border-emerald-400/55 bg-emerald-400/[0.07]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'}`}><span className="mb-4 flex gap-1.5">{item.colors.map((color) => <i key={color} className="size-5 rounded-full border border-white/10" style={{ background: color }} />)}</span><strong className="block text-sm text-slate-100">{item.name}</strong><span className="mt-1.5 block text-[11px] leading-4 text-slate-500">{item.description}</span>{selected && <CheckCircle2 className="absolute right-3 top-3 size-4 text-emerald-300" />}</button>; })}</div></div>
-        <button type="button" onClick={generate} disabled={!file || working} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 text-sm font-extrabold text-[#06110d] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40">{working ? <><LoaderCircle className="size-4 animate-spin" /> {job?.status === 'validating' ? 'Đang quét kết quả...' : `ZeroGPU đang xử lý, lần ${job?.attempt || 0}/${job?.max_attempts || 2}...`}</> : <><Sparkles className="size-4" /> Tạo 4 mẫu Art QR</>}</button>{error && <Alert message={error} />}
-      </section>
-      <section className="rounded-2xl border border-white/[0.08] bg-[#0e1118]"><div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3.5"><div><h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">Kết quả đã xác minh</h2><p className="mt-1 text-[10px] text-slate-600">ZXing so sánh payload với QR gốc</p></div>{results.length > 0 && <span className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.07] px-2.5 py-1 text-[10px] font-semibold text-emerald-300">{results.length} mẫu đạt</span>}</div><div className="min-h-[520px] p-4 sm:p-5">{!working && !job && <Empty />}{working && <Progress job={job} />}{job?.status === 'failed' && <Failed message={job.error || 'Không có ảnh nào quét đúng QR gốc.'} retry={generate} />}{job?.status === 'completed' && results.length > 0 && <Results images={results} rejected={job.rejected_count || 0} />}</div></section>
+  const handleGenerate = async () => {
+    if (!qrFile || submitting) return;
+    setSubmitting(true);
+    setJob(null);
+    setError(null);
+
+    try {
+      const resp = await submitArtQRGeneration(qrFile, {
+        referenceFile: isCustomRef ? refFile : null,
+        presetId: isCustomRef ? undefined : selectedPresetId,
+        placement,
+      });
+
+      setJob({
+        job_id: resp.jobId,
+        status: (resp.status as any) || 'queued',
+        progress: resp.progress || 10,
+      });
+    } catch (err: any) {
+      setError(err.message || 'Không thể tạo tác vụ Art QR');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const activePreset = presets.find((p) => p.id === selectedPresetId || p.slug === selectedPresetId) || presets[0];
+  const editorBackground = isCustomRef && refPreview ? refPreview : activePreset?.preview_url || DEFAULT_PRESETS[0].preview_url;
+  const isWorking = submitting || (!!job && job.status !== 'completed' && job.status !== 'failed');
+  const results = job?.images || [];
+
+  return (
+    <div className="h-full w-full overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#090b10] p-3 sm:p-5 lg:p-6">
+      <div className="mx-auto w-full max-w-7xl space-y-6 pb-12">
+        {/* Header */}
+        <header className="flex flex-col gap-4 border-b border-white/[0.08] pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-2 flex items-center gap-2">
+              <QrCode className="size-5 text-emerald-300" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+                AI Art QR Studio
+              </span>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-50 sm:text-3xl">
+              Hòa Trộn QR Nghệ Thuật
+            </h1>
+            <p className="mt-1.5 max-w-[70ch] text-sm leading-6 text-slate-400">
+              Biến mã QR thành tranh nghệ thuật bằng công nghệ ControlNet Latent conditioning. Tự động kiểm tra giải mã 100%
+              trước khi trả về kết quả.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3.5 py-2 text-xs font-medium text-emerald-200">
+            <ShieldCheck className="size-4" /> Xác minh QR chuẩn máy quét
+          </div>
+        </header>
+
+        {/* Main 2-Column Grid */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(400px,0.95fr)]">
+          {/* Left Column: Flow Steps */}
+          <div className="space-y-6">
+            {/* Step 1: Upload QR */}
+            <section className="space-y-3 rounded-2xl border border-white/[0.08] bg-[#0e1118] p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
+                  <ImageUp className="size-3.5 text-cyan-400" /> 1. Tải lên mã QR gốc
+                </label>
+                <span className="text-[10px] text-slate-500">PNG, JPG · tối đa 10 MB</span>
+              </div>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDraggingQR(true); }}
+                onDragLeave={() => setIsDraggingQR(false)}
+                onDrop={(e: DragEvent<HTMLDivElement>) => {
+                  e.preventDefault();
+                  setIsDraggingQR(false);
+                  handleAcceptQR(e.dataTransfer.files?.[0]);
+                }}
+                onClick={() => !qrFile && qrInputRef.current?.click()}
+                className={`relative flex min-h-44 items-center justify-center overflow-hidden rounded-2xl border border-dashed transition-all ${
+                  qrFile
+                    ? 'border-white/10 bg-[#090c12]'
+                    : isDraggingQR
+                    ? 'cursor-copy border-emerald-400/60 bg-emerald-400/[0.07]'
+                    : 'cursor-pointer border-white/15 bg-white/[0.02] hover:border-emerald-400/40'
+                }`}
+              >
+                <input
+                  ref={qrInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => handleAcceptQR(e.target.files?.[0])}
+                  className="sr-only"
+                />
+                {qrPreview ? (
+                  <>
+                    <img src={qrPreview} alt="QR gốc" className="max-h-40 max-w-full object-contain p-3" />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); clearQR(); }}
+                      className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-lg border border-white/10 bg-[#090c12]/90 text-slate-400 hover:text-white"
+                      aria-label="Xóa QR"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-center p-4">
+                    <span className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
+                      <UploadCloud className="size-5 text-emerald-400" />
+                    </span>
+                    <p className="text-xs font-semibold text-slate-200">Kéo thả ảnh QR vào đây</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">hoặc bấm để chọn từ thiết bị</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Step 2: Choose Preset OR Upload Custom Reference */}
+            <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-[#0e1118] p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
+                  <Sparkles className="size-3.5 text-violet-400" /> 2. Chọn phong cách hoặc ảnh tham khảo
+                </label>
+                <div className="flex rounded-lg border border-white/10 bg-white/[0.02] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomRef(false)}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                      !isCustomRef ? 'bg-emerald-400/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Mẫu có sẵn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomRef(true)}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                      isCustomRef ? 'bg-violet-400/20 text-violet-300' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Ảnh tùy chọn
+                  </button>
+                </div>
+              </div>
+
+              {!isCustomRef ? (
+                /* Preset Cards */
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {presets.map((item) => {
+                    const selected = selectedPresetId === item.id || selectedPresetId === item.slug;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedPresetId(item.id)}
+                        className={`group relative flex gap-3 rounded-xl border p-3 text-left transition-all ${
+                          selected
+                            ? 'border-emerald-400/60 bg-emerald-400/[0.08] shadow-[0_0_20px_rgba(52,211,153,0.12)]'
+                            : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'
+                        }`}
+                      >
+                        <img
+                          src={item.preview_url}
+                          alt={item.name}
+                          className="size-16 shrink-0 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <strong className="block truncate text-xs font-bold text-slate-100">{item.name}</strong>
+                            {selected && <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />}
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[10.5px] leading-4 text-slate-400">{item.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Custom Reference Upload */
+                <div className="space-y-3">
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingRef(true); }}
+                    onDragLeave={() => setIsDraggingRef(false)}
+                    onDrop={(e: DragEvent<HTMLDivElement>) => {
+                      e.preventDefault();
+                      setIsDraggingRef(false);
+                      handleAcceptRef(e.dataTransfer.files?.[0]);
+                    }}
+                    onClick={() => !refFile && refInputRef.current?.click()}
+                    className={`relative flex min-h-36 items-center justify-center overflow-hidden rounded-2xl border border-dashed transition-all ${
+                      refFile
+                        ? 'border-white/10 bg-[#090c12]'
+                        : isDraggingRef
+                        ? 'cursor-copy border-violet-400/60 bg-violet-400/[0.07]'
+                        : 'cursor-pointer border-white/15 bg-white/[0.02] hover:border-violet-400/40'
+                    }`}
+                  >
+                    <input
+                      ref={refInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => handleAcceptRef(e.target.files?.[0])}
+                      className="sr-only"
+                    />
+                    {refPreview ? (
+                      <>
+                        <img src={refPreview} alt="Ảnh tham khảo" className="max-h-32 max-w-full object-contain p-3" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); clearRef(); }}
+                          className="absolute right-3 top-3 flex size-7 items-center justify-center rounded-lg border border-white/10 bg-[#090c12]/90 text-slate-400 hover:text-white"
+                          aria-label="Xóa ảnh"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center p-4">
+                        <span className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
+                          <Wand2 className="size-5 text-violet-400" />
+                        </span>
+                        <p className="text-xs font-semibold text-slate-200">Tải ảnh mẫu phong cách riêng</p>
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          xKiro DeepSeek Vision sẽ tự động phân tích nét vẽ, ánh sáng và bảng màu
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Step 3: Interactive Placement Editor */}
+            <section>
+              <ArtQRPlacementEditor
+                imageUrl={editorBackground}
+                placement={placement}
+                onPlacementChange={setPlacement}
+              />
+            </section>
+
+            {/* Action Button */}
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={!qrFile || isWorking}
+              className="inline-flex h-13 w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 text-sm font-extrabold text-[#05110d] shadow-lg shadow-emerald-500/15 hover:opacity-95 active:scale-[0.99] transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isWorking ? (
+                <>
+                  <LoaderCircle className="size-5 animate-spin" />
+                  <span>
+                    {job?.status === 'analyzing_style'
+                      ? 'xKiro Vision đang phân tích phong cách...'
+                      : job?.status === 'validating'
+                      ? 'Đang giải mã và đối chiếu payload QR...'
+                      : 'Đang tạo tranh QR nghệ thuật...'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-5" /> Bắt đầu tạo Art QR
+                </>
+              )}
+            </button>
+
+            {error && (
+              <div role="alert" className="flex gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.07] px-4 py-3 text-xs leading-5 text-rose-200">
+                <XCircle className="size-4.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Live Status & Verified Results Gallery */}
+          <div className="flex flex-col rounded-2xl border border-white/[0.08] bg-[#0e1118]">
+            <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">Kết quả Art QR</h2>
+                <p className="mt-0.5 text-[10px] text-slate-500">Mã hóa Latent Conditioning & xác thực QR 100%</p>
+              </div>
+              {results.length > 0 && (
+                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.07] px-2.5 py-1 text-[10px] font-semibold text-emerald-300">
+                  {results.length} mẫu đạt chuẩn
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-1 flex-col justify-center p-4 sm:p-5">
+              {/* State 1: Empty */}
+              {!isWorking && !results.length && (
+                <div className="flex min-h-[440px] flex-col items-center justify-center text-center p-6">
+                  <ScanLine className="mb-3 size-11 text-slate-600" />
+                  <p className="text-sm font-semibold text-slate-300">Chưa có kết quả</p>
+                  <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
+                    Tải QR gốc, tùy chỉnh vùng đặt mã QR trên tranh và bấm tạo để nhận tác phẩm.
+                  </p>
+                </div>
+              )}
+
+              {/* State 2: Progress Tracker */}
+              {isWorking && (
+                <div className="flex min-h-[440px] flex-col items-center justify-center text-center p-6 space-y-4">
+                  <LoaderCircle className="size-11 animate-spin text-emerald-400" />
+                  <div>
+                    <h3 className="text-base font-bold text-slate-100">
+                      {job?.status === 'decoding'
+                        ? 'Đang giải mã QR gốc...'
+                        : job?.status === 'analyzing_style'
+                        ? 'DeepSeek Vision đang học phong cách...'
+                        : job?.status === 'validating'
+                        ? 'Đang quét và so sánh dữ liệu mã QR...'
+                        : 'ControlNet ZeroGPU đang vẽ tranh...'}
+                    </h3>
+                    <p className="mt-1 max-w-xs text-xs text-slate-400">
+                      Tiến độ: {job?.progress || 20}% · Lần tạo {job?.attempts || 1}/{job?.max_attempts || 4}
+                    </p>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="h-1.5 w-full max-w-xs rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      style={{ width: `${job?.progress || 20}%` }}
+                      className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* State 3: Completed Results Gallery */}
+              {results.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3.5 py-2.5 text-xs text-emerald-200">
+                    <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
+                    <span>
+                      <strong>Đã tạo thành công {results.length} mẫu Art QR</strong>. Hãy mở camera điện thoại hoặc Zalo quét thử trực tiếp!
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3.5 grid-cols-2">
+                    {results.map((item, i) => (
+                      <article key={i} className="group overflow-hidden rounded-xl border border-white/[0.08] bg-[#090c12]">
+                        <div className="relative aspect-square">
+                          <img src={item.url} alt={`Art QR ${i + 1}`} className="h-full w-full object-cover" />
+                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-[#07130e]/90 px-2 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md">
+                            <ShieldCheck className="size-3" /> QR Verified
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-[#0d1017] px-3 py-2">
+                          <span className="text-[11px] font-medium text-slate-400">Mẫu #{i + 1}</span>
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            download={`lemas-art-qr-${i + 1}.png`}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                          >
+                            <Download className="size-3.5" /> Tải về
+                          </a>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  {!isWorking && (
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-slate-200 hover:bg-white/[0.08] transition-colors"
+                    >
+                      <RefreshCw className="size-3.5" /> Tạo thêm 4 mẫu khác
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div></div>;
+  );
 }
-
-function Alert({ message }: { message: string }) { return <div role="alert" className="flex gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.07] px-3.5 py-3 text-xs leading-5 text-rose-200"><XCircle className="size-4 shrink-0" />{message}</div>; }
-function Empty() { return <div className="flex min-h-[470px] flex-col items-center justify-center text-center"><ScanLine className="mb-3 size-8 text-slate-600" /><p className="text-sm font-semibold text-slate-300">Chưa có kết quả</p><p className="mt-1 max-w-xs text-xs leading-5 text-slate-600">ZeroGPU tạo ảnh, backend quét và tự thử lại khi QR không đạt.</p></div>; }
-function Progress({ job }: { job: ArtQRJob | null }) { return <div className="flex min-h-[470px] flex-col items-center justify-center text-center"><LoaderCircle className="mb-4 size-8 animate-spin text-emerald-300" /><p className="text-sm font-semibold text-slate-200">{job?.status === 'queued' ? 'Đang chờ ZeroGPU' : job?.status === 'validating' ? 'Đang xác minh QR' : 'QR-ControlNet đang tạo ảnh'}</p><p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">Queue có thể mất vài phút trong giờ cao điểm. Bạn có thể giữ trang này mở để nhận kết quả.</p></div>; }
-function Failed({ message, retry }: { message: string; retry: () => void }) { return <div className="flex min-h-[470px] flex-col items-center justify-center text-center"><XCircle className="mb-3 size-9 text-rose-300" /><p className="text-sm font-semibold text-slate-200">Chưa tạo được Art QR</p><p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">{message}</p><button type="button" onClick={retry} className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-semibold text-slate-200"><RefreshCw className="size-3.5" /> Thử lại</button></div>; }
-function Results({ images, rejected }: { images: { url: string }[]; rejected: number }) { return <div className="space-y-4"><div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3.5 py-3 text-xs text-emerald-200"><CheckCircle2 className="size-4" /><span><strong>{images.length} mẫu quét đúng</strong>, đã loại {rejected} mẫu không khớp.</span></div><div className="grid gap-3 sm:grid-cols-2">{images.map((item, index) => <article key={item.url} className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#090c12]"><div className="relative aspect-square"><img src={item.url} alt={`Art QR ${index + 1}`} className="h-full w-full object-cover" /><span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-lg bg-[#07130e]/90 px-2 py-1 text-[10px] font-bold text-emerald-300"><ShieldCheck className="size-3" /> Quét được</span></div><div className="flex items-center justify-between px-3 py-2.5"><span className="text-[11px] text-slate-400">Mẫu {index + 1}</span><a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-300"><Download className="size-3.5" /> Tải ảnh</a></div></article>)}</div></div>; }
