@@ -102,12 +102,41 @@ export default function ArtQrPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load presets on mount
+  // Load presets and default Demo QR on mount
   useEffect(() => {
     getArtQRPresets().then((data) => {
       if (data && data.length > 0) setPresets(data);
     });
+
+    fetch('https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=https://lemas.io.vn')
+      .then((res) => res.blob())
+      .then((blob) => {
+        const file = new File([blob], 'demo_qr.png', { type: 'image/png' });
+        setQrFile((prev) => {
+          if (!prev) {
+            setQrPreview(URL.createObjectURL(file));
+            return file;
+          }
+          return prev;
+        });
+      })
+      .catch(() => {});
   }, []);
+
+  const handleUseDemoQR = async () => {
+    try {
+      const res = await fetch('https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=https://lemas.io.vn');
+      const blob = await res.blob();
+      const file = new File([blob], 'demo_qr.png', { type: 'image/png' });
+      if (qrPreview) URL.revokeObjectURL(qrPreview);
+      setQrFile(file);
+      setQrPreview(URL.createObjectURL(file));
+      setJob(null);
+      setError(null);
+    } catch {
+      setError('Không thể tải mã QR mẫu');
+    }
+  };
 
   // One request at a time, with bounded retries and cleanup on job changes.
   useEffect(() => {
@@ -124,7 +153,7 @@ export default function ArtQrPage() {
       setError(message);
       setJob(null);
     };
-    const deadline = setTimeout(() => stopTracking('Đã chờ 10 phút nhưng chưa nhận kết quả. Tác vụ trên máy chủ có thể vẫn đang chạy.'), 10 * 60 * 1000);
+    const deadline = setTimeout(() => stopTracking('Đã chờ quá thời gian. Vui lòng thử lại.'), 8 * 60 * 1000);
     const poll = async () => {
       try {
         const nextJob = await getArtQRJob(jobID, controller.signal);
@@ -140,12 +169,14 @@ export default function ArtQrPage() {
       } catch (err: unknown) {
         if (stopped) return;
         failures += 1;
-        if (failures >= 3) {
-          stopTracking(`Không thể theo dõi tiến trình: ${err instanceof Error ? err.message : 'Mất kết nối API'}. Tác vụ có thể vẫn đang chạy trên máy chủ.`);
+        if (failures >= 5) {
+          stopTracking('Không thể kết nối tới máy chủ sau nhiều lần thử.');
           return;
         }
       }
-      timer = setTimeout(poll, 2500);
+      if (!stopped) {
+        timer = setTimeout(poll, 2500);
+      }
     };
     timer = setTimeout(poll, 2500);
 
@@ -211,13 +242,27 @@ export default function ArtQrPage() {
   };
 
   const handleGenerate = async () => {
-    if (!qrFile || !qrPreview || submitting || (job && job.status !== 'completed' && job.status !== 'failed')) return;
+    if (submitting || (job && job.status !== 'completed' && job.status !== 'failed')) return;
+
+    let activeQRFile = qrFile;
+    if (!activeQRFile) {
+      try {
+        const res = await fetch('https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=https://lemas.io.vn');
+        const blob = await res.blob();
+        activeQRFile = new File([blob], 'demo_qr.png', { type: 'image/png' });
+        setQrFile(activeQRFile);
+        setQrPreview(URL.createObjectURL(activeQRFile));
+      } catch {
+        return setError('Vui lòng tải lên ảnh mã QR gốc để bắt đầu.');
+      }
+    }
+
     setSubmitting(true);
     setJob(null);
     setError(null);
 
     try {
-      const resp = await submitArtQRGeneration(qrFile, {
+      const resp = await submitArtQRGeneration(activeQRFile, {
         referenceFile: isCustomRef ? refFile : null,
         presetId: isCustomRef ? undefined : selectedPresetId,
         placement,
@@ -275,7 +320,16 @@ export default function ArtQrPage() {
                 <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200">
                   <ImageUp className="size-3.5 text-cyan-400" /> 1. Tải lên mã QR gốc
                 </label>
-                <span className="text-[10px] text-slate-500">PNG, JPG · tối đa 10 MB</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleUseDemoQR}
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/[0.08] px-2 py-0.5 text-[10.5px] font-semibold text-emerald-300 hover:bg-emerald-400/15 transition-all"
+                  >
+                    <Sparkles className="size-3" /> Dùng QR mẫu
+                  </button>
+                  <span className="text-[10px] text-slate-500">PNG, JPG</span>
+                </div>
               </div>
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDraggingQR(true); }}
