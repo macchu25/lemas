@@ -86,15 +86,21 @@ export async function submitArtQRGeneration(
   });
 
   const text = await res.text();
+  let data: any = null;
   try {
-    const data = JSON.parse(text);
-    if (!res.ok) {
-      throw new Error(data.error || text || `HTTP ${res.status}`);
+    if (text && text.trim()) {
+      data = JSON.parse(text);
     }
-    return data;
-  } catch (err: any) {
-    throw new Error(err.message || text || 'Lỗi gửi yêu cầu tạo Art QR');
+  } catch {
+    // not valid JSON
   }
+
+  if (!res.ok) {
+    const errorMsg = data?.error || data?.message || text || `Lỗi HTTP ${res.status}`;
+    throw new Error(errorMsg);
+  }
+
+  return data || { jobId: '', status: 'queued', progress: 10 };
 }
 
 // Fetch Art QR Job status by ID
@@ -110,13 +116,19 @@ export async function getArtQRJob(jobId: string): Promise<ArtQRJobResponse> {
   });
 
   const text = await res.text();
+  let data: any = null;
   try {
-    const data = JSON.parse(text);
-    if (!res.ok) {
-      throw new Error(data.error || text || `HTTP ${res.status}`);
+    if (text && text.trim()) {
+      data = JSON.parse(text);
     }
-    return data;
-  } catch (err: any) {
-    throw new Error(err.message || 'Không thể đọc tiến trình tạo Art QR');
+  } catch {
+    // not valid JSON
   }
+
+  if (!res.ok) {
+    const errorMsg = data?.error || data?.message || text || `Lỗi HTTP ${res.status}`;
+    throw new Error(errorMsg);
+  }
+
+  return data;
 }
