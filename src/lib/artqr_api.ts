@@ -1,4 +1,5 @@
 import { API_BASE, getStoredToken } from './api';
+import { artQRRequest } from './artqr_transport';
 
 export interface Placement {
   x: number;
@@ -79,56 +80,29 @@ export async function submitArtQRGeneration(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}/api/art-qr/generate`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-
-  const text = await res.text();
-  let data: any = null;
-  try {
-    if (text && text.trim()) {
-      data = JSON.parse(text);
-    }
-  } catch {
-    // not valid JSON
+  const data = await artQRRequest(`${API_BASE}/api/art-qr/generate`, {
+    method: 'POST', headers, body: formData,
+  }, 60000);
+  if (typeof data.jobId !== 'string' || !data.jobId.trim()) {
+    throw new Error('API không trả mã tác vụ Art QR hợp lệ.');
   }
-
-  if (!res.ok) {
-    const errorMsg = data?.error || data?.message || text || `Lỗi HTTP ${res.status}`;
-    throw new Error(errorMsg);
-  }
-
-  return data || { jobId: '', status: 'queued', progress: 10 };
+  return { jobId: data.jobId, status: 'queued', progress: 5 };
 }
 
 // Fetch Art QR Job status by ID
-export async function getArtQRJob(jobId: string): Promise<ArtQRJobResponse> {
+export async function getArtQRJob(jobId: string, signal?: AbortSignal): Promise<ArtQRJobResponse> {
   const token = getStoredToken();
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}/api/art-qr/jobs/${encodeURIComponent(jobId)}`, {
-    headers,
+  const data = await artQRRequest(`${API_BASE}/api/art-qr/jobs/${encodeURIComponent(jobId)}`, {
+    headers, signal,
   });
-
-  const text = await res.text();
-  let data: any = null;
-  try {
-    if (text && text.trim()) {
-      data = JSON.parse(text);
-    }
-  } catch {
-    // not valid JSON
+  const statuses = ['queued', 'decoding', 'analyzing_style', 'generating', 'validating', 'completed', 'failed'];
+  if (data.job_id !== jobId || typeof data.status !== 'string' || !statuses.includes(data.status)) {
+    throw new Error('API trả trạng thái Art QR không hợp lệ.');
   }
-
-  if (!res.ok) {
-    const errorMsg = data?.error || data?.message || text || `Lỗi HTTP ${res.status}`;
-    throw new Error(errorMsg);
-  }
-
-  return data;
+  return data as unknown as ArtQRJobResponse;
 }

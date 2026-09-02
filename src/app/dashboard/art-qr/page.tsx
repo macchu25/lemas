@@ -109,23 +109,53 @@ export default function ArtQrPage() {
     });
   }, []);
 
-  // Poll Job status
+  // One request at a time, with bounded retries and cleanup on job changes.
   useEffect(() => {
     if (!job?.job_id || job.status === 'completed' || job.status === 'failed') return;
-    const interval = window.setInterval(async () => {
+    const jobID = job.job_id;
+    const controller = new AbortController();
+    let stopped = false;
+    let failures = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const stopTracking = (message: string) => {
+      if (stopped) return;
+      stopped = true;
+      controller.abort();
+      setError(message);
+      setJob(null);
+    };
+    const deadline = setTimeout(() => stopTracking('Đã chờ 10 phút nhưng chưa nhận kết quả. Tác vụ trên máy chủ có thể vẫn đang chạy.'), 10 * 60 * 1000);
+    const poll = async () => {
       try {
-        const nextJob = await getArtQRJob(job.job_id);
+        const nextJob = await getArtQRJob(jobID, controller.signal);
+        if (stopped) return;
+        failures = 0;
         setJob(nextJob);
         if (nextJob.status === 'completed' || nextJob.status === 'failed') {
-          window.clearInterval(interval);
+          stopped = true;
+          clearTimeout(deadline);
+          if (nextJob.status === 'failed') setError(nextJob.error || 'Không tạo được Art QR.');
+          return;
         }
-      } catch (err: any) {
-        console.error('Job polling error:', err);
+      } catch (err: unknown) {
+        if (stopped) return;
+        failures += 1;
+        if (failures >= 3) {
+          stopTracking(`Không thể theo dõi tiến trình: ${err instanceof Error ? err.message : 'Mất kết nối API'}. Tác vụ có thể vẫn đang chạy trên máy chủ.`);
+          return;
+        }
       }
-    }, 2500);
+      timer = setTimeout(poll, 2500);
+    };
+    timer = setTimeout(poll, 2500);
 
-    return () => window.clearInterval(interval);
-  }, [job?.job_id, job?.status]);
+    return () => {
+      stopped = true;
+      controller.abort();
+      clearTimeout(timer);
+      clearTimeout(deadline);
+    };
+  }, [job?.job_id]);
 
   // Clean up object URLs
   useEffect(() => {
@@ -181,7 +211,7 @@ export default function ArtQrPage() {
   };
 
   const handleGenerate = async () => {
-    if (!qrFile || !qrPreview || submitting) return;
+    if (!qrFile || !qrPreview || submitting || (job && job.status !== 'completed' && job.status !== 'failed')) return;
     setSubmitting(true);
     setJob(null);
     setError(null);
@@ -200,6 +230,7 @@ export default function ArtQrPage() {
       });
     } catch (err: any) {
       setError(err.message || 'Không thể tạo tác vụ Art QR');
+    } finally {
       setSubmitting(false);
     }
   };
