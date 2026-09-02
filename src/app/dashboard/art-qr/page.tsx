@@ -180,106 +180,6 @@ export default function ArtQrPage() {
     if (refInputRef.current) refInputRef.current.value = '';
   };
 
-function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('Không thể tải ảnh'));
-    image.src = source;
-  });
-}
-
-async function blendArtWithQR(
-  artUrl: string,
-  qrUrl: string,
-  placement: Placement
-): Promise<{ url: string; verified: boolean }> {
-  try {
-    const [artImg, qrImg] = await Promise.all([loadImage(artUrl), loadImage(qrUrl)]);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) throw new Error('Canvas không được hỗ trợ');
-
-    // 1. Draw full artwork background
-    const side = Math.min(artImg.naturalWidth, artImg.naturalHeight);
-    ctx.drawImage(
-      artImg,
-      (artImg.naturalWidth - side) / 2,
-      (artImg.naturalHeight - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      1024,
-      1024
-    );
-
-    // 2. Position QR at user-defined {x, y, size}
-    const px = Math.round(placement.x * 1024);
-    const py = Math.round(placement.y * 1024);
-    const pSize = Math.round(placement.size * 1024);
-
-    // 3. Draw QR with artistic multiply blend mode
-    ctx.save();
-    ctx.globalAlpha = 0.82;
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.drawImage(qrImg, px, py, pSize, pSize);
-    ctx.restore();
-
-    // 4. Protect the 3 Finder Pattern corners for 100% camera scanning
-    ctx.save();
-    ctx.globalAlpha = 0.98;
-    ctx.globalCompositeOperation = 'multiply';
-    const cornerRatio = 0.28;
-    const cornerSize = pSize * cornerRatio;
-    const srcCornerW = qrImg.naturalWidth * cornerRatio;
-    const srcCornerH = qrImg.naturalHeight * cornerRatio;
-
-    // Top-Left Corner
-    ctx.drawImage(qrImg, 0, 0, srcCornerW, srcCornerH, px, py, cornerSize, cornerSize);
-    // Top-Right Corner
-    ctx.drawImage(
-      qrImg,
-      qrImg.naturalWidth - srcCornerW,
-      0,
-      srcCornerW,
-      srcCornerH,
-      px + pSize - cornerSize,
-      py,
-      cornerSize,
-      cornerSize
-    );
-    // Bottom-Left Corner
-    ctx.drawImage(
-      qrImg,
-      0,
-      qrImg.naturalHeight - srcCornerH,
-      srcCornerW,
-      srcCornerH,
-      px,
-      py + pSize - cornerSize,
-      cornerSize,
-      cornerSize
-    );
-    ctx.restore();
-
-    return {
-      url: canvas.toDataURL('image/png'),
-      verified: true,
-    };
-  } catch (err) {
-    console.error('blendArtWithQR error:', err);
-    return {
-      url: artUrl,
-      verified: true,
-    };
-  }
-}
-
   const handleGenerate = async () => {
     if (!qrFile || !qrPreview || submitting) return;
     setSubmitting(true);
@@ -304,23 +204,10 @@ async function blendArtWithQR(
     }
   };
 
-  // When job completes, ensure QR is blended at the exact placement coordinates
-  const [blendedResults, setBlendedResults] = useState<{ url: string; verified: boolean }[]>([]);
-
-  useEffect(() => {
-    if (job?.status === 'completed' && job.images && job.images.length > 0 && qrPreview) {
-      Promise.all(job.images.map((img) => blendArtWithQR(img.url, qrPreview, placement))).then((finalImgs) => {
-        setBlendedResults(finalImgs);
-      });
-    } else {
-      setBlendedResults([]);
-    }
-  }, [job?.status, job?.images, qrPreview, placement]);
-
   const activePreset = presets.find((p) => p.id === selectedPresetId || p.slug === selectedPresetId) || presets[0];
   const editorBackground = isCustomRef && refPreview ? refPreview : activePreset?.preview_url || DEFAULT_PRESETS[0].preview_url;
   const isWorking = submitting || (!!job && job.status !== 'completed' && job.status !== 'failed');
-  const results = blendedResults.length > 0 ? blendedResults : job?.images || [];
+  const results = job?.images?.filter((image) => image.verified) || [];
 
   return (
     <div className="h-full w-full overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#090b10] p-3 sm:p-5 lg:p-6">
