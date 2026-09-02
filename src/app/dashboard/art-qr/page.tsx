@@ -24,6 +24,8 @@ import {
   getArtQRJob,
   getArtQRPresets,
   Placement,
+  StyleAnalysis,
+  analyzeStyle,
   submitArtQRGeneration,
 } from '@/lib/artqr_api';
 
@@ -96,6 +98,11 @@ export default function ArtQrPage() {
   const [placement, setPlacement] = useState<Placement>({ x: 0.25, y: 0.25, size: 0.5 });
   const [isDraggingQR, setIsDraggingQR] = useState(false);
   const [isDraggingRef, setIsDraggingRef] = useState(false);
+
+  // Vision Analysis & Editable Prompt
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [styleAnalysis, setStyleAnalysis] = useState<StyleAnalysis | null>(null);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
 
   // Job Polling
   const [job, setJob] = useState<ArtQRJobResponse | null>(null);
@@ -210,7 +217,7 @@ export default function ArtQrPage() {
     setError(null);
   };
 
-  const handleAcceptRef = (file?: File) => {
+  const handleAcceptRef = async (file?: File) => {
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       return setError('Chỉ hỗ trợ ảnh phong cách PNG, JPG hoặc WEBP.');
@@ -222,6 +229,21 @@ export default function ArtQrPage() {
     setRefPreview(URL.createObjectURL(file));
     setIsCustomRef(true);
     setError(null);
+    setStyleAnalysis(null);
+
+    // Trigger DeepSeek Vision AI analysis
+    setIsAnalyzing(true);
+    try {
+      const res = await analyzeStyle(file, placement);
+      setStyleAnalysis(res);
+      if (res?.prompt) {
+        setCustomPrompt(res.prompt);
+      }
+    } catch (err: any) {
+      console.warn('Vision analysis fallback:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const clearQR = () => {
@@ -238,6 +260,8 @@ export default function ArtQrPage() {
     setRefFile(null);
     setRefPreview(null);
     setIsCustomRef(false);
+    setStyleAnalysis(null);
+    setCustomPrompt('');
     if (refInputRef.current) refInputRef.current.value = '';
   };
 
@@ -265,6 +289,7 @@ export default function ArtQrPage() {
       const resp = await submitArtQRGeneration(activeQRFile, {
         referenceFile: isCustomRef ? refFile : null,
         presetId: isCustomRef ? undefined : selectedPresetId,
+        customPrompt: isCustomRef && customPrompt ? customPrompt : undefined,
         placement,
       });
 
@@ -490,6 +515,55 @@ export default function ArtQrPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Step 2.5: DeepSeek Vision Analysis Feedback & Editable AI Prompt */}
+                  {isCustomRef && (refFile || isAnalyzing || styleAnalysis) && (
+                    <div className="rounded-xl border border-violet-500/20 bg-gradient-to-b from-violet-950/20 to-slate-950/40 p-3.5 sm:p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Wand2 className="size-4 text-violet-400" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-violet-200">
+                            Phân tích thị giác AI (DeepSeek Vision)
+                          </h4>
+                        </div>
+                        {isAnalyzing ? (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-300 animate-pulse">
+                            <LoaderCircle className="size-3.5 animate-spin" /> Đang phân tích bức ảnh...
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                            <CheckCircle2 className="size-3.5" /> Đã trích xuất đặc trưng
+                          </span>
+                        )}
+                      </div>
+
+                      {styleAnalysis && (
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5">
+                            <span className="text-slate-400 block text-[10px]">Phong cách nhận diện:</span>
+                            <span className="font-semibold text-slate-200 truncate block">{styleAnalysis.style}</span>
+                          </div>
+                          <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5">
+                            <span className="text-slate-400 block text-[10px]">Ánh sáng & chất liệu:</span>
+                            <span className="font-semibold text-slate-200 truncate block">{styleAnalysis.lighting || styleAnalysis.texture}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
+                          <span>✨ Prompt AI cho ảnh này (Bạn có thể chỉnh sửa thêm):</span>
+                        </label>
+                        <textarea
+                          value={customPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          placeholder={isAnalyzing ? "Đang tạo câu lệnh từ ảnh..." : "Mô tả chi tiết phong cách bạn muốn AI hòa trộn..."}
+                          rows={3}
+                          className="w-full rounded-lg border border-white/10 bg-[#07090e] p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-400/40 leading-relaxed resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </section>

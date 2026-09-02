@@ -54,12 +54,48 @@ export async function getArtQRPresets(): Promise<ArtQRPreset[]> {
   }
 }
 
+export interface StyleAnalysis {
+  style: string;
+  palette: string[];
+  lighting: string;
+  texture: string;
+  prompt: string;
+  composition?: Record<string, any>;
+}
+
+// Analyze uploaded reference image via DeepSeek Vision
+export async function analyzeStyle(
+  referenceFile: File,
+  placement?: Placement
+): Promise<StyleAnalysis> {
+  const token = getStoredToken();
+  const formData = new FormData();
+  formData.append('reference_image', referenceFile);
+  if (placement) {
+    formData.append('placement', JSON.stringify(placement));
+  }
+
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const data = await artQRRequest(`${API_BASE}/api/art-qr/analyze-style`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  }, 45000);
+
+  return data as StyleAnalysis;
+}
+
 // Submit a new Art QR generation request
 export async function submitArtQRGeneration(
   qrFile: File,
   options: {
     referenceFile?: File | null;
     presetId?: string;
+    customPrompt?: string;
     placement: Placement;
   }
 ): Promise<{ jobId: string; status: string; progress: number }> {
@@ -72,6 +108,9 @@ export async function submitArtQRGeneration(
   }
   if (options.presetId) {
     formData.append('preset_id', options.presetId);
+  }
+  if (options.customPrompt) {
+    formData.append('custom_prompt', options.customPrompt);
   }
   formData.append('placement', JSON.stringify(options.placement));
 
