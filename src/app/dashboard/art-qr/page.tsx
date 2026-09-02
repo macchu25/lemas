@@ -510,31 +510,42 @@ export default function ArtQrPage() {
                         </span>
                         <p className="text-xs font-semibold text-slate-200">Tải ảnh mẫu phong cách riêng</p>
                         <p className="mt-0.5 text-[11px] text-slate-500">
-                          xKiro DeepSeek Vision sẽ tự động phân tích nét vẽ, ánh sáng và bảng màu
+                          GPT-4o Vision AI sẽ tự động phân tích nét vẽ, ánh sáng, chất liệu và bảng màu
                         </p>
                       </div>
                     )}
                   </div>
 
-                  {/* Step 2.5: DeepSeek Vision Analysis Feedback & Editable AI Prompt */}
+                  {/* Step 2.5: GPT-4o Vision Analysis Feedback & Editable AI Prompt */}
                   {isCustomRef && (refFile || isAnalyzing || styleAnalysis) && (
                     <div className="rounded-xl border border-violet-500/20 bg-gradient-to-b from-violet-950/20 to-slate-950/40 p-3.5 sm:p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Wand2 className="size-4 text-violet-400" />
                           <h4 className="text-xs font-bold uppercase tracking-wider text-violet-200">
-                            Phân tích thị giác AI (DeepSeek Vision)
+                            Phân tích thị giác AI (GPT-4o Vision)
                           </h4>
                         </div>
-                        {isAnalyzing ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-300 animate-pulse">
-                            <LoaderCircle className="size-3.5 animate-spin" /> Đang phân tích bức ảnh...
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
-                            <CheckCircle2 className="size-3.5" /> Đã trích xuất đặc trưng
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isAnalyzing ? (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-300 animate-pulse">
+                              <LoaderCircle className="size-3.5 animate-spin" /> Đang phân tích bức ảnh...
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => refFile && handleAcceptRef(refFile)}
+                                className="inline-flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-400/[0.08] px-2 py-0.5 text-[10.5px] font-semibold text-violet-300 hover:bg-violet-400/15 transition-all"
+                              >
+                                <Sparkles className="size-3" /> Phân tích lại
+                              </button>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                                <CheckCircle2 className="size-3.5" /> Đã trích xuất
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {styleAnalysis && (
@@ -552,7 +563,7 @@ export default function ArtQrPage() {
 
                       <div className="space-y-1.5">
                         <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-                          <span>✨ Prompt AI cho ảnh này (Bạn có thể chỉnh sửa thêm):</span>
+                          <span>✨ Prompt AI cho ảnh này (Bạn có thể xem & tùy chỉnh):</span>
                         </label>
                         <textarea
                           value={customPrompt}
@@ -560,7 +571,6 @@ export default function ArtQrPage() {
                           placeholder={isAnalyzing ? "Đang tạo câu lệnh từ ảnh..." : "Mô tả chi tiết phong cách bạn muốn AI hòa trộn..."}
                           rows={3}
                           className="w-full rounded-lg border border-white/10 bg-[#07090e] p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-400/40 leading-relaxed resize-none"
-                        />
                       </div>
                     </div>
                   )}
