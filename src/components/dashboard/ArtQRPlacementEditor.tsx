@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Focus, Move, RefreshCw, Sliders, Square } from 'lucide-react';
+import { Focus, Move, RefreshCw, Sliders, Sparkles, Square } from 'lucide-react';
 import { Placement } from '@/lib/artqr_api';
 
 interface ArtQRPlacementEditorProps {
   imageUrl: string;
+  qrImageUrl?: string | null;
   placement: Placement;
   onPlacementChange: (placement: Placement) => void;
   title?: string;
@@ -13,13 +14,15 @@ interface ArtQRPlacementEditorProps {
 
 export default function ArtQRPlacementEditor({
   imageUrl,
+  qrImageUrl,
   placement,
   onPlacementChange,
-  title = 'Vùng đặt mã QR nghệ thuật',
+  title = '3. Tùy chỉnh vùng đặt mã QR trên tranh',
 }: ArtQRPlacementEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [dragStart, setDragStart] = useState<{ mouseX: number; mouseY: number; startX: number; startY: number } | null>(null);
   const [resizeStart, setResizeStart] = useState<{ mouseX: number; startSize: number; startX: number; startY: number } | null>(null);
 
@@ -157,20 +160,29 @@ export default function ArtQRPlacementEditor({
         </div>
       </div>
 
-      {/* Editor Canvas Canvas Area */}
+      {/* Editor Canvas Area */}
       <div
         ref={containerRef}
-        className="relative aspect-square w-full select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
+        className="relative aspect-square w-full select-none overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#07090e] via-[#0b101c] to-[#121826] shadow-inner"
       >
-        {/* Background Artwork */}
-        <img
-          src={imageUrl}
-          alt="Style reference preview"
-          className="pointer-events-none h-full w-full object-cover opacity-90"
-        />
+        {/* Background Artwork Preview */}
+        {!imgError && imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="Style reference preview"
+            onError={() => setImgError(true)}
+            className="pointer-events-none h-full w-full object-cover opacity-80"
+          />
+        ) : (
+          <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-950 p-6 text-center">
+            <Sparkles className="size-8 text-emerald-400/60 mb-2" />
+            <p className="text-xs font-semibold text-slate-300">Khung nền tranh nghệ thuật</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Mã QR sẽ được AI hòa trộn trực tiếp vào vùng bạn chọn</p>
+          </div>
+        )}
 
-        {/* Ambient Dark Overlay to emphasize active QR region */}
-        <div className="pointer-events-none absolute inset-0 bg-black/40" />
+        {/* Ambient Overlay to emphasize active QR region */}
+        <div className="pointer-events-none absolute inset-0 bg-black/30" />
 
         {/* Draggable & Resizable QR Placement Region */}
         <div
@@ -182,31 +194,42 @@ export default function ArtQRPlacementEditor({
             width: `${sizePercent}%`,
             height: `${sizePercent}%`,
           }}
-          className={`group absolute cursor-grab active:cursor-grabbing border-2 border-emerald-400 bg-emerald-400/20 backdrop-blur-[2px] shadow-[0_0_25px_rgba(52,211,153,0.35)] transition-[border-color,background-color] ${
-            isDragging ? 'border-emerald-300 bg-emerald-400/30' : ''
+          className={`group absolute cursor-grab active:cursor-grabbing border-2 border-emerald-400 bg-emerald-400/20 backdrop-blur-[2px] shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-[border-color,background-color] ${
+            isDragging ? 'border-emerald-300 bg-emerald-400/35' : ''
           }`}
         >
-          {/* Inner QR Visual Grid Blueprint */}
-          <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center p-2 text-center">
-            <div className="rounded-lg bg-black/80 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-300 shadow-md backdrop-blur-md">
-              VÙNG MÃ QR
-            </div>
-            <div className="mt-1 text-[9px] font-medium text-emerald-200/80">
-              {Math.round(sizePercent)}% khung tranh
-            </div>
+          {/* Inner QR Visual - Shows actual QR code uploaded by user */}
+          <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-center overflow-hidden p-1.5 text-center">
+            {qrImageUrl ? (
+              <img
+                src={qrImageUrl}
+                alt="QR Code Preview"
+                className="h-full w-full object-contain mix-blend-multiply opacity-90 drop-shadow-md"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-2">
+                <div className="rounded-md bg-black/85 px-2 py-0.5 text-[9.5px] font-bold tracking-wider text-emerald-300 shadow-md">
+                  VÙNG MÃ QR
+                </div>
+                <div className="mt-1 text-[8.5px] font-medium text-emerald-200/80">
+                  {Math.round(sizePercent)}% kích thước
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 4 Corner Guides */}
-          <div className="absolute left-1 top-1 size-2 border-l-2 border-t-2 border-white" />
-          <div className="absolute right-1 top-1 size-2 border-r-2 border-t-2 border-white" />
-          <div className="absolute bottom-1 left-1 size-2 border-b-2 border-l-2 border-white" />
-          <div className="absolute bottom-1 right-1 size-2 border-b-2 border-r-2 border-white" />
+          <div className="absolute left-1 top-1 size-2.5 border-l-2 border-t-2 border-white" />
+          <div className="absolute right-1 top-1 size-2.5 border-r-2 border-t-2 border-white" />
+          <div className="absolute bottom-1 left-1 size-2.5 border-b-2 border-l-2 border-white" />
+          <div className="absolute bottom-1 right-1 size-2.5 border-b-2 border-r-2 border-white" />
 
           {/* Bottom-Right Resize Handle */}
           <div
             onMouseDown={handleResizeStart}
             onTouchStart={handleResizeStart}
-            className="absolute -bottom-2 -right-2 flex size-5 cursor-nwse-resize items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-lg transition-transform hover:scale-125"
+            className="absolute -bottom-2 -right-2 flex size-5.5 cursor-nwse-resize items-center justify-center rounded-full border-2 border-white bg-emerald-500 shadow-lg transition-transform hover:scale-125 active:scale-95"
+            aria-label="Kéo đổi kích thước"
           >
             <Square className="size-2 text-white" />
           </div>
