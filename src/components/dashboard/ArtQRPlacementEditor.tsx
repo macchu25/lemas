@@ -23,29 +23,39 @@ export default function ArtQRPlacementEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [dragStart, setDragStart] = useState<{ mouseX: number; mouseY: number; startX: number; startY: number } | null>(null);
   const [resizeStart, setResizeStart] = useState<{ mouseX: number; startSize: number; startX: number; startY: number } | null>(null);
 
   const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
 
+  const ar = aspectRatio || 1;
+  const boxWidthFraction = ar <= 1 ? placement.size : placement.size / ar;
+  const boxHeightFraction = ar <= 1 ? placement.size * ar : placement.size;
+
   const handleCenter = () => {
-    const size = placement.size;
-    const nextX = (1 - size) / 2;
-    const nextY = (1 - size) / 2;
-    onPlacementChange({ x: nextX, y: nextY, size });
+    const nextX = Math.max(0, (1 - boxWidthFraction) / 2);
+    const nextY = Math.max(0, (1 - boxHeightFraction) / 2);
+    onPlacementChange({ x: nextX, y: nextY, size: placement.size });
   };
 
   const handleReset = () => {
-    onPlacementChange({ x: 0.25, y: 0.25, size: 0.5 });
+    const defaultSize = 0.40;
+    const bwf = ar <= 1 ? defaultSize : defaultSize / ar;
+    const bhf = ar <= 1 ? defaultSize * ar : defaultSize;
+    onPlacementChange({ x: Math.max(0, (1 - bwf) / 2), y: Math.max(0, (1 - bhf) / 2), size: defaultSize });
   };
 
   const handleSizeSlider = (newSize: number) => {
-    const size = clamp(newSize, 0.15, 0.9);
+    const size = clamp(newSize, 0.15, 0.85);
+    const bwf = ar <= 1 ? size : size / ar;
+    const bhf = ar <= 1 ? size * ar : size;
+
     let x = placement.x;
     let y = placement.y;
 
-    if (x + size > 1) x = 1 - size;
-    if (y + size > 1) y = 1 - size;
+    if (x + bwf > 1) x = Math.max(0, 1 - bwf);
+    if (y + bhf > 1) y = Math.max(0, 1 - bhf);
 
     onPlacementChange({ x, y, size });
   };
@@ -93,20 +103,20 @@ export default function ArtQRPlacementEditor({
         let nextX = dragStart.startX + deltaX;
         let nextY = dragStart.startY + deltaY;
 
-        nextX = clamp(nextX, 0, 1 - placement.size);
-        nextY = clamp(nextY, 0, 1 - placement.size);
+        nextX = clamp(nextX, 0, Math.max(0, 1 - boxWidthFraction));
+        nextY = clamp(nextY, 0, Math.max(0, 1 - boxHeightFraction));
 
         onPlacementChange({ ...placement, x: nextX, y: nextY });
       } else if (isResizing && resizeStart) {
         const deltaSize = (clientX - resizeStart.mouseX) / rect.width;
         let nextSize = resizeStart.startSize + deltaSize;
 
-        nextSize = clamp(nextSize, 0.15, Math.min(1 - resizeStart.startX, 1 - resizeStart.startY));
+        nextSize = clamp(nextSize, 0.15, 0.85);
 
         onPlacementChange({ ...placement, size: nextSize });
       }
     },
-    [isDragging, isResizing, dragStart, resizeStart, placement, onPlacementChange]
+    [isDragging, isResizing, dragStart, resizeStart, placement, onPlacementChange, boxWidthFraction, boxHeightFraction]
   );
 
   const handlePointerEnd = useCallback(() => {
@@ -131,8 +141,6 @@ export default function ArtQRPlacementEditor({
     };
   }, [isDragging, isResizing, handlePointerMove, handlePointerEnd]);
 
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
-
   useEffect(() => {
     setImgError(false);
   }, [imageUrl]);
@@ -147,6 +155,8 @@ export default function ArtQRPlacementEditor({
   const leftPercent = placement.x * 100;
   const topPercent = placement.y * 100;
   const sizePercent = placement.size * 100;
+  const boxWidthPercent = boxWidthFraction * 100;
+  const boxHeightPercent = boxHeightFraction * 100;
 
   return (
     <div className="space-y-3 rounded-2xl border border-white/[0.08] bg-[#0b0e14] p-4 sm:p-5">
@@ -200,22 +210,22 @@ export default function ArtQRPlacementEditor({
         {/* Subtle Ambient Vignette to emphasize active QR region */}
         <div className="pointer-events-none absolute inset-0 bg-black/20" />
 
-        {/* Draggable & Resizable QR Placement Region */}
+        {/* Draggable & Resizable QR Placement Region - True 1:1 Square */}
         <div
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
           style={{
             left: `${leftPercent}%`,
             top: `${topPercent}%`,
-            width: `${sizePercent}%`,
-            height: `${sizePercent}%`,
+            width: `${boxWidthPercent}%`,
+            height: `${boxHeightPercent}%`,
           }}
           className={`group absolute cursor-grab active:cursor-grabbing border-2 border-emerald-400 bg-emerald-400/20 backdrop-blur-[2px] shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-[border-color,background-color] ${
             isDragging ? 'border-emerald-300 bg-emerald-400/35' : ''
           }`}
         >
           {/* Inner QR Visual - Shows actual QR code uploaded by user */}
-          <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-center overflow-hidden p-1.5 text-center">
+          <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center">
             {qrImageUrl ? (
               <img
                 src={qrImageUrl}
@@ -263,7 +273,7 @@ export default function ArtQRPlacementEditor({
         <input
           type="range"
           min="15"
-          max="90"
+          max="85"
           value={Math.round(sizePercent)}
           onChange={(e) => handleSizeSlider(Number(e.target.value) / 100)}
           className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-white/10 accent-emerald-400"
@@ -271,7 +281,7 @@ export default function ArtQRPlacementEditor({
         <div className="flex items-center justify-between text-[10px] text-slate-500">
           <span>X: {Math.round(leftPercent)}%</span>
           <span>Y: {Math.round(topPercent)}%</span>
-          <span className="text-emerald-400/90 font-medium">Kéo thả khung xanh để đổi vị trí</span>
+          <span className="text-emerald-400/90 font-medium">Kéo thả khung xanh để đổi vị trí (tỉ lệ 1:1 chuẩn QR)</span>
         </div>
       </div>
     </div>

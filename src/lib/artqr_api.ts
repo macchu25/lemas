@@ -59,11 +59,17 @@ export interface StyleAnalysis {
   palette: string[];
   lighting: string;
   texture: string;
-  prompt: string;
+  prompt?: string;
+  generated_prompt?: string;
+  patch_prompt?: string;
+  subject_details?: Record<string, any>;
+  qr_region_analysis?: Record<string, any>;
+  integration_strategy?: string[];
   composition?: Record<string, any>;
+  raw_json?: string;
 }
 
-// Analyze uploaded reference image via DeepSeek Vision
+// Analyze uploaded reference image via Vision AI (GPT-4o)
 export async function analyzeStyle(
   referenceFile: File,
   placement?: Placement
@@ -86,7 +92,7 @@ export async function analyzeStyle(
     body: formData,
   }, 45000);
 
-  return data as StyleAnalysis;
+  return (data as unknown) as StyleAnalysis;
 }
 
 // Submit a new Art QR generation request

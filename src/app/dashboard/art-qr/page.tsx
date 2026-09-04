@@ -570,6 +570,56 @@ export default function ArtQrPage() {
                             </div>
                           </div>
 
+                          {/* Subject & Protected Areas */}
+                          {styleAnalysis.subject_details && (
+                            <div className="rounded-lg bg-emerald-950/20 p-2.5 border border-emerald-500/20 space-y-1">
+                              <div className="flex items-center gap-1.5 text-emerald-300 font-bold text-[10px] uppercase tracking-wider">
+                                <ShieldCheck className="size-3.5 text-emerald-400" />
+                                <span>Khu vực bảo vệ nguyên vẹn 100%:</span>
+                              </div>
+                              <p className="text-slate-300 text-[10.5px] leading-relaxed">
+                                {typeof styleAnalysis.subject_details.protected_regions === 'string'
+                                  ? styleAnalysis.subject_details.protected_regions
+                                  : "Gương mặt, ánh mắt, làn da, tóc và hậu cảnh được bảo toàn 100% không biến dạng."}
+                              </p>
+                              {styleAnalysis.subject_details.wardrobe_material && (
+                                <p className="text-slate-400 text-[10px]">
+                                  <strong className="text-slate-300">Chất liệu trang phục:</strong> {String(styleAnalysis.subject_details.wardrobe_material)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Micro Patch Analysis */}
+                          {styleAnalysis.qr_region_analysis && (
+                            <div className="rounded-lg bg-cyan-950/20 p-2.5 border border-cyan-500/20 space-y-1">
+                              <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-[10px] uppercase tracking-wider">
+                                <ScanLine className="size-3.5 text-cyan-400" />
+                                <span>Phân tích vi mô vùng đặt mã QR (Patch Micro-Analysis):</span>
+                              </div>
+                              <p className="text-slate-300 text-[10.5px] leading-relaxed">
+                                <strong className="text-cyan-200">Bề mặt đích:</strong> {String(styleAnalysis.qr_region_analysis.target_surface || styleAnalysis.qr_region_analysis.local_textures || "Vải và hoa văn cục bộ")}
+                              </p>
+                              {styleAnalysis.qr_region_analysis.camouflage_technique && (
+                                <p className="text-slate-400 text-[10px] leading-relaxed">
+                                  <strong className="text-slate-300">Kỹ thuật hòa trộn:</strong> {String(styleAnalysis.qr_region_analysis.camouflage_technique)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Integration Strategy */}
+                          {styleAnalysis.integration_strategy && Array.isArray(styleAnalysis.integration_strategy) && styleAnalysis.integration_strategy.length > 0 && (
+                            <div className="rounded-lg bg-violet-950/20 p-2.5 border border-violet-500/20 space-y-1">
+                              <span className="text-violet-300 block text-[10px] uppercase font-bold tracking-wider">Chiến lược ControlNet Latent Fusion:</span>
+                              <ul className="list-disc list-inside space-y-0.5 text-[10px] text-slate-300">
+                                {styleAnalysis.integration_strategy.map((item: string, idx: number) => (
+                                  <li key={idx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
                           {styleAnalysis.palette && Array.isArray(styleAnalysis.palette) && styleAnalysis.palette.length > 0 && (
                             <div className="rounded-lg bg-white/[0.03] p-2 border border-white/5 flex items-center justify-between">
                               <span className="text-slate-400 text-[10.5px] font-medium">Bảng màu chủ đạo (Color DNA):</span>
@@ -596,7 +646,7 @@ export default function ArtQrPage() {
                                   Sao chép JSON
                                 </button>
                               </div>
-                              <pre className="max-h-48 overflow-auto rounded bg-black/60 p-2 font-mono text-[10px] text-emerald-300/90 leading-relaxed border border-white/5">
+                              <pre className="max-h-56 overflow-auto rounded bg-black/60 p-2 font-mono text-[10px] text-emerald-300/90 leading-relaxed border border-white/5">
                                 {JSON.stringify(styleAnalysis, null, 2)}
                               </pre>
                             </div>
@@ -732,8 +782,8 @@ export default function ArtQrPage() {
 
                   {results.length === 1 ? (
                     <article className="group overflow-hidden rounded-2xl border border-emerald-400/30 bg-[#090c12] shadow-2xl shadow-emerald-950/30">
-                      <div className="relative aspect-square w-full">
-                        <img src={results[0].url} alt="Masterpiece Art QR" className="h-full w-full object-cover" />
+                      <div className="relative flex min-h-[460px] w-full items-center justify-center overflow-hidden bg-black/60 p-2">
+                        <img src={results[0].url} alt="Masterpiece Art QR" className="max-h-[620px] w-auto max-w-full rounded-xl object-contain shadow-2xl" />
                         <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-xl bg-[#07130e]/95 px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg backdrop-blur-md border border-emerald-400/30">
                           <ShieldCheck className="size-4 text-emerald-400" /> QR Verified (100% Scannable)
                         </span>
@@ -741,7 +791,7 @@ export default function ArtQrPage() {
                       <div className="flex items-center justify-between bg-[#0d1017] p-4 border-t border-white/[0.08]">
                         <div>
                           <p className="text-xs font-bold text-slate-200">Tác phẩm Art QR Chất Lượng Cao</p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">Độ phân giải 1024x1024 · Sẵn sàng chia sẻ & in ấn</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Tỉ lệ gốc nguyên vẹn · Sẵn sàng chia sẻ & in ấn</p>
                         </div>
                         <a
                           href={results[0].url}
@@ -758,8 +808,8 @@ export default function ArtQrPage() {
                     <div className="grid gap-3.5 grid-cols-2">
                       {results.map((item, i) => (
                         <article key={i} className="group overflow-hidden rounded-xl border border-white/[0.08] bg-[#090c12]">
-                          <div className="relative aspect-square">
-                            <img src={item.url} alt={`Art QR ${i + 1}`} className="h-full w-full object-cover" />
+                          <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-black/50 p-1.5">
+                            <img src={item.url} alt={`Art QR ${i + 1}`} className="h-full w-full object-contain rounded-lg" />
                             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-[#07130e]/90 px-2 py-0.5 text-[10px] font-bold text-emerald-300 backdrop-blur-md">
                               <ShieldCheck className="size-3" /> QR Verified
                             </span>
