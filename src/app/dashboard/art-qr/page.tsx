@@ -134,7 +134,7 @@ export default function ArtQrPage() {
 
   const handleUseDemoQR = async () => {
     try {
-      const res = await fetch('https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=https://lemas.io.vn');
+      const res = await fetch('/demo_qr.png');
       const blob = await res.blob();
       const file = new File([blob], 'demo_qr.png', { type: 'image/png' });
       if (qrPreview) URL.revokeObjectURL(qrPreview);
@@ -304,7 +304,7 @@ export default function ArtQrPage() {
     let activeQRFile = qrFile;
     if (!activeQRFile) {
       try {
-        const res = await fetch('https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=https://lemas.io.vn');
+        const res = await fetch('/demo_qr.png');
         const blob = await res.blob();
         activeQRFile = new File([blob], 'demo_qr.png', { type: 'image/png' });
         setQrFile(activeQRFile);
