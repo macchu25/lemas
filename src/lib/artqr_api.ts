@@ -29,7 +29,17 @@ export interface OutputImage {
 
 export interface ArtQRJobResponse {
   job_id: string;
-  status: 'queued' | 'decoding' | 'analyzing_style' | 'generating' | 'validating' | 'completed' | 'failed';
+  status:
+    | 'queued'
+    | 'processing'
+    | 'decoding'
+    | 'analyzing_style'
+    | 'generating'
+    | 'validating'
+    | 'retrying'
+    | 'completed'
+    | 'failed'
+    | string;
   progress: number;
   preset_id?: string;
   placement?: Placement;
@@ -145,8 +155,7 @@ export async function getArtQRJob(jobId: string, signal?: AbortSignal): Promise<
   const data = await artQRRequest(`${API_BASE}/api/art-qr/jobs/${encodeURIComponent(jobId)}`, {
     headers, signal,
   });
-  const statuses = ['queued', 'decoding', 'analyzing_style', 'generating', 'validating', 'completed', 'failed'];
-  if (data.job_id !== jobId || typeof data.status !== 'string' || !statuses.includes(data.status)) {
+  if (!data || data.job_id !== jobId || typeof data.status !== 'string') {
     throw new Error('API trả trạng thái Art QR không hợp lệ.');
   }
   return data as unknown as ArtQRJobResponse;

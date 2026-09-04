@@ -147,6 +147,26 @@ export default function ArtQrPage() {
     }
   };
 
+  // Restore active job from localStorage on initial mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedJobId = localStorage.getItem('active_artqr_job_id');
+    if (savedJobId && !job) {
+      getArtQRJob(savedJobId)
+        .then((savedJob) => {
+          if (savedJob) {
+            setJob(savedJob);
+            if (savedJob.status === 'completed' || savedJob.status === 'failed') {
+              localStorage.removeItem('active_artqr_job_id');
+            }
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('active_artqr_job_id');
+        });
+    }
+  }, []);
+
   // One request at a time, with bounded retries and cleanup on job changes.
   useEffect(() => {
     if (!job?.job_id || job.status === 'completed' || job.status === 'failed') return;
@@ -155,30 +175,40 @@ export default function ArtQrPage() {
     let stopped = false;
     let failures = 0;
     let timer: ReturnType<typeof setTimeout>;
+
     const stopTracking = (message: string) => {
       if (stopped) return;
       stopped = true;
       controller.abort();
       setError(message);
-      setJob(null);
+      // Preserve job state so user sees error card rather than empty screen
+      setJob((prev) => (prev ? { ...prev, status: 'failed', error: message } : null));
+      if (typeof window !== 'undefined') localStorage.removeItem('active_artqr_job_id');
     };
-    const deadline = setTimeout(() => stopTracking('Đã chờ quá thời gian. Vui lòng thử lại.'), 8 * 60 * 1000);
+
+    const deadline = setTimeout(() => stopTracking('Đã chờ quá thời gian xử lý (8 phút). Vui lòng thử lại.'), 8 * 60 * 1000);
+
     const poll = async () => {
       try {
         const nextJob = await getArtQRJob(jobID, controller.signal);
         if (stopped) return;
         failures = 0;
         setJob(nextJob);
+
         if (nextJob.status === 'completed' || nextJob.status === 'failed') {
           stopped = true;
           clearTimeout(deadline);
-          if (nextJob.status === 'failed') setError(nextJob.error || 'Không tạo được Art QR.');
+          if (typeof window !== 'undefined') localStorage.removeItem('active_artqr_job_id');
+          if (nextJob.status === 'failed') {
+            setError(nextJob.error || 'Không tạo được Art QR.');
+          }
           return;
         }
       } catch (err: unknown) {
         if (stopped) return;
         failures += 1;
-        if (failures >= 5) {
+        // Allow up to 15 polling failures (~40s of network retries) before declaring failure
+        if (failures >= 15) {
           stopTracking('Không thể kết nối tới máy chủ sau nhiều lần thử.');
           return;
         }
@@ -195,7 +225,7 @@ export default function ArtQrPage() {
       clearTimeout(timer);
       clearTimeout(deadline);
     };
-  }, [job?.job_id]);
+  }, [job?.job_id, job?.status]);
 
   // Clean up object URLs
   useEffect(() => {
@@ -254,6 +284,7 @@ export default function ArtQrPage() {
     setQrPreview(null);
     setJob(null);
     setError(null);
+    if (typeof window !== 'undefined') localStorage.removeItem('active_artqr_job_id');
     if (qrInputRef.current) qrInputRef.current.value = '';
   };
 
@@ -294,6 +325,10 @@ export default function ArtQrPage() {
         customPrompt: isCustomRef && customPrompt ? customPrompt : undefined,
         placement,
       });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('active_artqr_job_id', resp.jobId);
+      }
 
       setJob({
         job_id: resp.jobId,
@@ -730,14 +765,39 @@ export default function ArtQrPage() {
             </div>
 
             <div className="flex flex-1 flex-col justify-center p-4 sm:p-5">
-              {/* State 1: Empty */}
-              {!isWorking && !results.length && (
+              {/* State 1: Empty (no active job, no error, no results) */}
+              {!isWorking && !results.length && !error && job?.status !== 'failed' && (
                 <div className="flex min-h-[440px] flex-col items-center justify-center text-center p-6">
                   <ScanLine className="mb-3 size-11 text-slate-600" />
                   <p className="text-sm font-semibold text-slate-300">Chưa có kết quả</p>
                   <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
                     Tải QR gốc, tùy chỉnh vùng đặt mã QR trên tranh và bấm tạo để nhận tác phẩm.
                   </p>
+                </div>
+              )}
+
+              {/* State 1.5: Job Failed or Error Alert Card */}
+              {!isWorking && !results.length && (job?.status === 'failed' || !!error) && (
+                <div className="flex min-h-[440px] flex-col items-center justify-center text-center p-6 space-y-4">
+                  <div className="flex size-14 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400">
+                    <XCircle className="size-7" />
+                  </div>
+                  <div className="max-w-sm space-y-1">
+                    <h3 className="text-base font-bold text-slate-200">Không thể hoàn tất tạo Art QR</h3>
+                    <p className="text-xs text-rose-300/90 leading-relaxed">
+                      {job?.error || error || 'Tác vụ gặp sự cố trong quá trình tạo hoặc quá thời gian chờ.'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 pt-1">
+                      Bạn có thể bấm nút bên dưới để thử tạo lại ngay với thông số tối ưu.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 px-4 py-2.5 text-xs font-bold text-[#05110d] shadow-lg shadow-emerald-500/15 hover:opacity-95 transition-all"
+                  >
+                    <RefreshCw className="size-3.5" /> Thử tạo lại ngay
+                  </button>
                 </div>
               )}
 
@@ -750,13 +810,15 @@ export default function ArtQrPage() {
                       {job?.status === 'decoding'
                         ? 'Đang giải mã QR gốc...'
                         : job?.status === 'analyzing_style'
-                        ? 'DeepSeek Vision đang học phong cách...'
+                        ? 'xKiro Vision AI đang phân tích chi tiết ảnh...'
                         : job?.status === 'validating'
                         ? 'Đang quét và so sánh dữ liệu mã QR...'
+                        : job?.status === 'processing'
+                        ? 'Đang chuẩn bị mô hình khuếch tán AI...'
                         : 'ControlNet ZeroGPU đang vẽ tranh...'}
                     </h3>
                     <p className="mt-1 max-w-xs text-xs text-slate-400">
-                      Tiến độ: {job?.progress || 20}% · Lần tạo {job?.attempts || 1}/{job?.max_attempts || 4}
+                      Tiến độ: {job?.progress || 20}% · Lần tạo {job?.attempts || 1}/{job?.max_attempts || 3}
                     </p>
                   </div>
 
@@ -776,7 +838,7 @@ export default function ArtQrPage() {
                   <div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] px-3.5 py-2.5 text-xs text-emerald-200">
                     <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
                     <span>
-                      <strong>Tác phẩm Art QR đã hoàn thiện & xác thực 100%</strong>. Hãy mở camera điện thoại hoặc Zalo quét thử trực tiếp!
+                      <strong>{results[0].verified ? 'Tác phẩm Art QR đã hoàn thiện & xác thực 100%' : 'Tác phẩm Art QR đã hoàn thiện'}</strong>. Hãy mở camera điện thoại hoặc Zalo quét thử trực tiếp!
                     </span>
                   </div>
 
@@ -784,9 +846,15 @@ export default function ArtQrPage() {
                     <article className="group overflow-hidden rounded-2xl border border-emerald-400/30 bg-[#090c12] shadow-2xl shadow-emerald-950/30">
                       <div className="relative flex min-h-[460px] w-full items-center justify-center overflow-hidden bg-black/60 p-2">
                         <img src={results[0].url} alt="Masterpiece Art QR" className="max-h-[620px] w-auto max-w-full rounded-xl object-contain shadow-2xl" />
-                        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-xl bg-[#07130e]/95 px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg backdrop-blur-md border border-emerald-400/30">
-                          <ShieldCheck className="size-4 text-emerald-400" /> QR Verified (100% Scannable)
-                        </span>
+                        {results[0].verified ? (
+                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-xl bg-[#07130e]/95 px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg backdrop-blur-md border border-emerald-400/30">
+                            <ShieldCheck className="size-4 text-emerald-400" /> QR Verified (100% Scannable)
+                          </span>
+                        ) : (
+                          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-xl bg-[#1a1408]/95 px-3 py-1 text-xs font-bold text-amber-300 shadow-lg backdrop-blur-md border border-amber-400/30">
+                            <Sparkles className="size-4 text-amber-400" /> Bản nghệ thuật (Khuyên dùng camera quét trực tiếp)
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between bg-[#0d1017] p-4 border-t border-white/[0.08]">
                         <div>
