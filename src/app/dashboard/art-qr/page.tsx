@@ -4,6 +4,7 @@ import React, { ChangeEvent, DragEvent, useEffect, useRef, useState } from 'reac
 import {
   CheckCircle2,
   Download,
+  Eye,
   Focus,
   ImageUp,
   LoaderCircle,
