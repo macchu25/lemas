@@ -310,7 +310,7 @@ export default function ArtQrPage() {
   const activePreset = presets.find((p) => p.id === selectedPresetId || p.slug === selectedPresetId) || presets[0];
   const editorBackground = isCustomRef && refPreview ? refPreview : activePreset?.preview_url || DEFAULT_PRESETS[0].preview_url;
   const isWorking = submitting || (!!job && job.status !== 'completed' && job.status !== 'failed');
-  const results = job?.images?.filter((image) => image.verified) || [];
+  const results = job?.images || [];
 
   return (
     <div className="h-full w-full overflow-y-auto rounded-2xl border border-white/[0.08] bg-[#090b10] p-3 sm:p-5 lg:p-6">
