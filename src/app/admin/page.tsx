@@ -1280,11 +1280,25 @@ export default function AdminPage() {
                               className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 ${
                                 isDead
                                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : k.request_count === 0
+                                  ? 'bg-slate-800 text-slate-300 border border-slate-700'
                                   : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                               }`}
                             >
-                              <span className={`size-1.5 rounded-full ${isDead ? 'bg-rose-400' : 'bg-emerald-400 animate-ping'}`} />
-                              {isDead ? `Lỗi HTTP ${k.last_status_code || 401}` : 'Hoạt Động Tốt'}
+                              <span
+                                className={`size-1.5 rounded-full ${
+                                  isDead
+                                    ? 'bg-rose-400'
+                                    : k.request_count === 0
+                                    ? 'bg-slate-400'
+                                    : 'bg-emerald-400 animate-ping'
+                                }`}
+                              />
+                              {isDead
+                                ? `Lỗi HTTP ${k.last_status_code || 401}`
+                                : k.request_count === 0
+                                ? 'Sẵn Sàng (Chưa gọi)'
+                                : 'Live (HTTP 200)'}
                             </span>
                             {k.last_error && (
                               <div className="text-[10px] text-rose-400 truncate max-w-xs mt-0.5 font-mono" title={k.last_error}>
