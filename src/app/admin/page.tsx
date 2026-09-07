@@ -36,6 +36,8 @@ import {
   Server,
   Play,
   Check,
+  Bot,
+  ImageIcon,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -98,6 +100,7 @@ export default function AdminPage() {
   const [newGiftMaxUses, setNewGiftMaxUses] = useState(10);
   const [giftCreating, setGiftCreating] = useState(false);
   const [adminTab, setAdminTab] = useState<'all' | 'giftcodes' | 'users' | 'rotator' | 'upstream'>('all');
+  const [apiCategory, setApiCategory] = useState<'xkiro' | 'machgen'>('xkiro');
 
   // Adjust modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -944,93 +947,211 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Category Switcher: Chia rõ 2 phần: xKiro (Chat AI) & MachGen (Tạo ảnh & Art QR) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setApiCategory('xkiro');
+                setTestBaseURL('https://proxyhack.mafiavietnam1945.workers.dev/v1');
+                setTestModel('deepseek/deepseek-v4-flash');
+                setTestProvider('xKiro Proxy');
+                setTestResult(null);
+              }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+                apiCategory === 'xkiro'
+                  ? 'border-cyan-500/70 bg-gradient-to-br from-cyan-950/40 to-[#0e1424] shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-500/40'
+                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] opacity-70 hover:opacity-100'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
+                    <Bot className="size-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white">PHẦN 1: API xKiro (Chat AI)</h3>
+                    <p className="text-[11px] text-cyan-300 font-semibold">Chuyên trách Chat Playground & Suy luận</p>
+                  </div>
+                </div>
+                {apiCategory === 'xkiro' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-cyan-500 text-black shadow-md">
+                    Đang xem
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Định tuyến toàn bộ hội thoại Chat, DeepSeek R1, GPT-4o, Claude, Qwen qua bể Key xKiro (kết nối an toàn qua Cloudflare Worker).
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setApiCategory('machgen');
+                setTestBaseURL('https://image.pollinations.ai');
+                setTestModel('flux');
+                setTestProvider('MachGen Studio');
+                setTestResult(null);
+              }}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+                apiCategory === 'machgen'
+                  ? 'border-amber-500/70 bg-gradient-to-br from-amber-950/40 to-[#18111e] shadow-xl shadow-amber-950/40 ring-1 ring-amber-500/40'
+                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] opacity-70 hover:opacity-100'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                    <Sparkles className="size-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white">PHẦN 2: API MachGen (Ảnh & Art QR)</h3>
+                    <p className="text-[11px] text-amber-300 font-semibold">Chuyên trách Tạo Ảnh 4K Studio & Art QR Code</p>
+                  </div>
+                </div>
+                {apiCategory === 'machgen' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500 text-black shadow-md">
+                    Đang xem
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Đảm nhiệm 100% Studio Tạo ảnh 4K (5 model: FLUX, Turbo, Photo, Anime, 3D) và phối màu tạo QR nghệ thuật quét được.
+              </p>
+            </button>
+          </div>
+
           {/* Live Tester Console */}
           <div className="p-6 rounded-2xl border border-white/10 bg-[#121626] space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
                 <Play className="size-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">Live Key Tester (Kiểm Tra Độc Lập)</h3>
+                <h3 className="text-sm font-bold text-white">
+                  {apiCategory === 'xkiro'
+                    ? '💬 Live Tester - API xKiro (Chuyên Trách Chat AI & Suy Luận)'
+                    : '🎨 Live Tester - API MachGen (Chuyên Trách Tạo Ảnh 4K & Art QR)'}
+                </h3>
               </div>
               <span className="text-[11px] text-slate-400">
-                Gửi 1 đoạn chat ping nhẹ tới upstream để đo HTTP Status Code và Latency (ms)
+                {apiCategory === 'xkiro'
+                  ? 'Gửi 1 đoạn chat ping nhẹ tới xKiro để đo HTTP Status Code và Latency (ms)'
+                  : 'Kiểm tra kết nối và độ sẵn sàng sinh ảnh của MachGen Engine'}
               </span>
             </div>
 
             {/* Quick Provider Presets */}
             <div>
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                Chọn Nhanh Cấu Hình Nhà Cung Cấp (Presets):
+                {apiCategory === 'xkiro'
+                  ? 'Chọn Cấu Hình xKiro / Chat Presets:'
+                  : 'Chọn Cấu Hình MachGen Engine Presets:'}
               </label>
               <div className="flex flex-wrap gap-2">
-                {[
-                  {
-                    name: 'xKiro (Cloudflare Proxy An Toàn)',
-                    url: 'https://proxyhack.mafiavietnam1945.workers.dev/v1',
-                    model: 'deepseek/deepseek-v4-flash',
-                    provider: 'xKiro Proxy',
-                  },
-                  {
-                    name: 'xKiro Trực Tiếp',
-                    url: 'https://api.xkiro.com/v1',
-                    model: 'deepseek/deepseek-v4-flash',
-                    provider: 'xKiro Upstream',
-                  },
-                  {
-                    name: 'DeepSeek Official',
-                    url: 'https://api.deepseek.com/v1',
-                    model: 'deepseek-chat',
-                    provider: 'DeepSeek Official',
-                  },
-                  {
-                    name: 'OpenRouter AI',
-                    url: 'https://openrouter.ai/api/v1',
-                    model: 'deepseek/deepseek-chat',
-                    provider: 'OpenRouter',
-                  },
-                  {
-                    name: 'OpenAI',
-                    url: 'https://api.openai.com/v1',
-                    model: 'gpt-4o-mini',
-                    provider: 'OpenAI',
-                  },
-                  {
-                    name: 'Groq Cloud',
-                    url: 'https://api.groq.com/openai/v1',
-                    model: 'llama-3.3-70b-versatile',
-                    provider: 'Groq',
-                  },
-                  {
-                    name: '🎨 MachGen Studio (Miễn Phí - Không Cần Key)',
-                    url: 'https://image.pollinations.ai',
-                    model: 'flux',
-                    provider: 'MachGen Studio',
-                  },
-                  {
-                    name: '🎨 MachGen Replicate (Cần Token r8_...)',
-                    url: 'https://api.replicate.com/v1',
-                    model: 'black-forest-labs/flux-schnell',
-                    provider: 'MachGen Replicate',
-                  },
-                ].map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => {
-                      setTestBaseURL(preset.url);
-                      setTestModel(preset.model);
-                      setTestProvider(preset.provider);
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      testBaseURL === preset.url
-                        ? 'border-amber-400 bg-amber-500/20 text-amber-200'
-                        : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {preset.name}
-                  </button>
-                ))}
+                {apiCategory === 'xkiro' ? (
+                  [
+                    {
+                      name: 'xKiro (Cloudflare Proxy An Toàn)',
+                      url: 'https://proxyhack.mafiavietnam1945.workers.dev/v1',
+                      model: 'deepseek/deepseek-v4-flash',
+                      provider: 'xKiro Proxy',
+                    },
+                    {
+                      name: 'xKiro Trực Tiếp',
+                      url: 'https://api.xkiro.com/v1',
+                      model: 'deepseek/deepseek-v4-flash',
+                      provider: 'xKiro Upstream',
+                    },
+                    {
+                      name: 'DeepSeek Official',
+                      url: 'https://api.deepseek.com/v1',
+                      model: 'deepseek-chat',
+                      provider: 'DeepSeek Official',
+                    },
+                    {
+                      name: 'OpenRouter AI',
+                      url: 'https://openrouter.ai/api/v1',
+                      model: 'deepseek/deepseek-chat',
+                      provider: 'OpenRouter',
+                    },
+                    {
+                      name: 'OpenAI Official',
+                      url: 'https://api.openai.com/v1',
+                      model: 'gpt-4o-mini',
+                      provider: 'OpenAI',
+                    },
+                    {
+                      name: 'Groq Cloud',
+                      url: 'https://api.groq.com/openai/v1',
+                      model: 'llama-3.3-70b-versatile',
+                      provider: 'Groq',
+                    },
+                  ].map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        setTestBaseURL(preset.url);
+                        setTestModel(preset.model);
+                        setTestProvider(preset.provider);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        testBaseURL === preset.url
+                          ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200 shadow-md shadow-cyan-950/40'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {preset.name}
+                    </button>
+                  ))
+                ) : (
+                  [
+                    {
+                      name: '🎨 MachGen Core Engine (Miễn Phí 100% - Không Cần Key)',
+                      url: 'https://image.pollinations.ai',
+                      model: 'flux',
+                      provider: 'MachGen Studio',
+                    },
+                    {
+                      name: '🎨 MachGen Replicate Engine (Cần Token r8_...)',
+                      url: 'https://api.replicate.com/v1',
+                      model: 'black-forest-labs/flux-schnell',
+                      provider: 'MachGen Replicate',
+                    },
+                  ].map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        setTestBaseURL(preset.url);
+                        setTestModel(preset.model);
+                        setTestProvider(preset.provider);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        testBaseURL === preset.url
+                          ? 'border-amber-400 bg-amber-500/20 text-amber-200 shadow-md shadow-amber-950/40'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {preset.name}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
+
+            {/* MachGen Architecture Info Banner when in MachGen mode */}
+            {apiCategory === 'machgen' && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-4 text-amber-400 shrink-0" />
+                  <span>
+                    <b>MachGen Engine đang phục vụ 2 dịch vụ:</b> 1) Tạo Ảnh 4K Studio (5 model tự chọn) & 2) Tạo Art QR Code.
+                  </span>
+                </div>
+                <span className="text-[11px] text-amber-300 font-mono">Không dùng chung key với xKiro</span>
+              </div>
+            )}
 
             {/* Input Form */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
