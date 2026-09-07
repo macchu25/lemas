@@ -64,14 +64,48 @@ export default function RegisterPage() {
     }
   }, []);
 
-  const handleOAuthLogin = async (provider: 'google' | 'github', token?: string, credential?: string) => {
+  const handleOAuthLogin = async (
+    provider: 'google' | 'github',
+    token?: string,
+    credential?: string,
+    extraProfile?: { email?: string; name?: string; avatar?: string }
+  ) => {
     setLoading(true);
     setError('');
     try {
+      let finalProfile = extraProfile;
+      // If we have an access token and no extra profile, fetch profile directly in browser
+      if (!finalProfile && token && provider === 'google') {
+        try {
+          const uRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (uRes.ok) {
+            const uData = await uRes.json();
+            if (uData.email) {
+              finalProfile = {
+                email: uData.email,
+                name: uData.name || uData.email.split('@')[0],
+                avatar: uData.picture || '',
+              };
+            }
+          }
+        } catch {
+          // ignore, backend will try verification
+        }
+      }
+
       const res = await fetch(`${API_BASE}/api/auth/oauth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, token, credential }),
+        body: JSON.stringify({
+          provider,
+          token,
+          credential,
+          email: finalProfile?.email,
+          name: finalProfile?.name,
+          avatar: finalProfile?.avatar,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
