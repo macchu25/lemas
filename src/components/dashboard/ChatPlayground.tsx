@@ -237,13 +237,16 @@ export default function ChatPlayground() {
             <select
               value={chatModel}
               onChange={(e) => setChatModel(e.target.value)}
-              className="bg-[#121520] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40"
+              className="bg-[#121520] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40 cursor-pointer"
             >
-              <option value="lemas-1.0">Lemas 1.0 (Default Flagship)</option>
-              <option value="deepseek/deepseek-r1">Lemas 1.0 Thinking (Reasoning R1)</option>
-              <option value="anthropic/claude-3.7-sonnet">Lemas 1.0 Pro (Claude 3.7)</option>
-              <option value="openai/gpt-4o">Lemas 1.0 Omni (GPT-4o)</option>
-              <option value="google/gemini-2.5-flash">Lemas 1.0 Flash (Gemini 2.5)</option>
+              <option value="lemas-1.0">⚡ Lemas 1.0 (Flagship Flash)</option>
+              <option value="deepseek/deepseek-r1">🧠 DeepSeek R1 (Reasoning)</option>
+              <option value="deepseek/deepseek-chat">💬 DeepSeek V3 (Chat)</option>
+              <option value="openai/gpt-4o">🌟 OpenAI GPT-4o</option>
+              <option value="openai/gpt-4o-mini">⚡ OpenAI GPT-4o Mini</option>
+              <option value="anthropic/claude-3.7-sonnet">🎭 Claude 3.7 Sonnet</option>
+              <option value="google/gemini-2.5-flash">⚡ Gemini 2.5 Flash</option>
+              <option value="llama-3.3-70b-versatile">🦙 Meta Llama 3.3 70B</option>
             </select>
           </div>
 
@@ -479,10 +482,43 @@ export default function ChatPlayground() {
                 }`}
               />
 
-              <div className="flex items-center justify-between pt-1.5 border-t border-white/5">
-                <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-mono font-medium">
-                  <Sparkles className="size-3 text-cyan-400" />
-                  <span>{getModelLabel(chatModel)}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-white/5 gap-2 flex-wrap sm:flex-nowrap">
+                {/* Model Selector directly on Chat Input Bar */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
+                    <Sparkles className="size-3.5 text-cyan-400 shrink-0" />
+                    <select
+                      value={chatModel}
+                      onChange={(e) => setChatModel(e.target.value)}
+                      className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer pr-1"
+                      title="Chọn mô hình AI bạn muốn trò chuyện"
+                    >
+                      <option value="lemas-1.0" className="bg-[#121520] text-white">
+                        ⚡ Lemas 1.0 (Flagship Flash)
+                      </option>
+                      <option value="deepseek/deepseek-r1" className="bg-[#121520] text-white">
+                        🧠 DeepSeek R1 (Lý Luận / Thinking)
+                      </option>
+                      <option value="deepseek/deepseek-chat" className="bg-[#121520] text-white">
+                        💬 DeepSeek V3 (Chat Chính Thức)
+                      </option>
+                      <option value="openai/gpt-4o" className="bg-[#121520] text-white">
+                        🌟 OpenAI GPT-4o
+                      </option>
+                      <option value="openai/gpt-4o-mini" className="bg-[#121520] text-white">
+                        ⚡ OpenAI GPT-4o Mini
+                      </option>
+                      <option value="anthropic/claude-3.7-sonnet" className="bg-[#121520] text-white">
+                        🎭 Claude 3.7 Sonnet (Anthropic)
+                      </option>
+                      <option value="google/gemini-2.5-flash" className="bg-[#121520] text-white">
+                        ⚡ Google Gemini 2.5 Flash
+                      </option>
+                      <option value="llama-3.3-70b-versatile" className="bg-[#121520] text-white">
+                        🦙 Meta Llama 3.3 70B
+                      </option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
