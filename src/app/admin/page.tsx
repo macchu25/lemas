@@ -29,6 +29,13 @@ import {
   Trash,
   QrCode,
   AlertCircle,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Globe,
+  Server,
+  Play,
+  Check,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -90,7 +97,7 @@ export default function AdminPage() {
   const [newGiftTokens, setNewGiftTokens] = useState(10000);
   const [newGiftMaxUses, setNewGiftMaxUses] = useState(10);
   const [giftCreating, setGiftCreating] = useState(false);
-  const [adminTab, setAdminTab] = useState<'all' | 'giftcodes' | 'users' | 'rotator'>('all');
+  const [adminTab, setAdminTab] = useState<'all' | 'giftcodes' | 'users' | 'rotator' | 'upstream'>('all');
 
   // Adjust modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -99,6 +106,144 @@ export default function AdminPage() {
   const [adjustPlan, setAdjustPlan] = useState('');
   const [adjusting, setAdjusting] = useState(false);
   const [checkingRotator, setCheckingRotator] = useState(false);
+
+  // Live Upstream Key Tester & Adder State
+  const [testKey, setTestKey] = useState('');
+  const [showTestKey, setShowTestKey] = useState(false);
+  const [testBaseURL, setTestBaseURL] = useState('https://api.xkiro.com/v1');
+  const [testModel, setTestModel] = useState('deepseek/deepseek-v4-flash');
+  const [testProvider, setTestProvider] = useState('xKiro Upstream');
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    status_code: number;
+    message: string;
+    latency_ms: number;
+  } | null>(null);
+
+  const [addKeyLoading, setAddKeyLoading] = useState(false);
+  const [addKeyFeedback, setAddKeyFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleTestLiveKey = async () => {
+    if (!testKey.trim()) {
+      alert('Vui lòng nhập API Key để kiểm tra');
+      return;
+    }
+    setTestRunning(true);
+    setTestResult(null);
+    setAddKeyFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/test-key`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          key: testKey.trim(),
+          base_url: testBaseURL.trim(),
+          model: testModel.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTestResult(data);
+      } else {
+        setTestResult({
+          success: false,
+          status_code: res.status,
+          message: data.error || 'Kiểm tra thất bại',
+          latency_ms: 0,
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        status_code: 0,
+        message: err?.message || 'Không thể kết nối tới server kiểm tra',
+        latency_ms: 0,
+      });
+    } finally {
+      setTestRunning(false);
+    }
+  };
+
+  const handleAddKeyToPool = async () => {
+    if (!testKey.trim()) {
+      alert('Vui lòng nhập API Key');
+      return;
+    }
+    setAddKeyLoading(true);
+    setAddKeyFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/keys/add`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          key: testKey.trim(),
+          provider: testProvider.trim() || 'Custom Upstream',
+          base_url: testBaseURL.trim(),
+          test_first: false,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAddKeyFeedback({
+          type: 'success',
+          message: `✅ Đã thêm key ${data.key?.key_masked || ''} vào bể xoay tua thành công!`,
+        });
+        setTestKey('');
+        setTestResult(null);
+        await loadAdminData();
+      } else {
+        setAddKeyFeedback({
+          type: 'error',
+          message: data.error || 'Thêm key thất bại',
+        });
+      }
+    } catch (err: any) {
+      setAddKeyFeedback({
+        type: 'error',
+        message: err?.message || 'Lỗi kết nối máy chủ',
+      });
+    } finally {
+      setAddKeyLoading(false);
+    }
+  };
+
+  const handleDeleteUpstreamKey = async (id: string, masked: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa key ${masked} khỏi hệ thống?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/keys/delete`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await loadAdminData();
+      } else {
+        alert(data.error || 'Xóa key thất bại');
+      }
+    } catch {
+      alert('Lỗi kết nối khi xóa key');
+    }
+  };
+
+  const handleToggleUpstreamKey = async (id: string, currentActive: boolean) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/keys/toggle`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ id, active: !currentActive }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await loadAdminData();
+      } else {
+        alert(data.error || 'Thay đổi trạng thái key thất bại');
+      }
+    } catch {
+      alert('Lỗi kết nối khi thay đổi trạng thái key');
+    }
+  };
 
   const handleCheckRotator = async () => {
     setCheckingRotator(true);
@@ -607,6 +752,21 @@ export default function AdminPage() {
             {overview?.upstream_stats?.total_keys ?? 8} Live
           </span>
         </button>
+
+        <button
+          onClick={() => setAdminTab('upstream')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            adminTab === 'upstream'
+              ? 'bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/30'
+              : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
+          }`}
+        >
+          <Key className="size-4" />
+          <span>🔑 Test Trực Tiếp & Thêm Upstream API</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-emerald-300">
+            Bảo mật 100%
+          </span>
+        </button>
       </div>
 
       {/* Internal Diagnostics Matrix (Visible to Admin Only) */}
@@ -720,6 +880,428 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Upstream API Live Testing & Key Management Section */}
+      {(adminTab === 'all' || adminTab === 'upstream') && (
+        <div className="p-6 sm:p-8 rounded-3xl border border-amber-500/20 bg-[#0c0e18] space-y-6 shadow-2xl relative overflow-hidden">
+          {/* Subtle Ambient Background Gradient */}
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 size-64 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/25">
+                  <Key className="size-5" />
+                </span>
+                <h2 className="text-lg font-black text-white tracking-wide">
+                  Kiểm Tra Trực Tiếp & Quản Lý Upstream API Keys
+                </h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <ShieldCheck className="size-3" />
+                  Bảo Mật Tuyệt Đối (Zero Exposure)
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Admin có thể thử nghiệm độc lập bất kỳ API Key nào (Base URL + Model) xem có sống không mà không cần lưu. Thêm key trực tiếp vào bể xoay tua (Rotator) ngay trong giao diện mà không cần restart server!
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={loadAdminData}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Cập nhật danh sách</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Security Guarantee Callout Card */}
+          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5 md:mt-0">
+                <Lock className="size-4" />
+              </div>
+              <div>
+                <span className="font-bold text-indigo-200 block text-xs">
+                  Cơ chế bảo vệ API Key chống lộ 100%:
+                </span>
+                <p className="text-slate-300 text-[11px] mt-0.5 leading-relaxed">
+                  • <b>Zero Raw Key Exposure:</b> Backend Go sử dụng thuộc tính <code>json:&quot;-&quot;</code>, server <b>tuyệt đối không bao giờ</b> gửi raw key về trình duyệt (kể cả F12 DevTools).<br />
+                  • <b>Masking tự động:</b> Toàn bộ key hiển thị dưới dạng che mờ (vd: <code>sk-xt-••••••••48f3</code>).<br />
+                  • <b>Xác thực đặc quyền:</b> Mọi API test & thêm key đều bắt buộc xác thực token Super Admin qua Header <code>X-Admin-Token</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Tester Console */}
+          <div className="p-6 rounded-2xl border border-white/10 bg-[#121626] space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <Play className="size-4 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">Live Key Tester (Kiểm Tra Độc Lập)</h3>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                Gửi 1 đoạn chat ping nhẹ tới upstream để đo HTTP Status Code và Latency (ms)
+              </span>
+            </div>
+
+            {/* Quick Provider Presets */}
+            <div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+                Chọn Nhanh Cấu Hình Nhà Cung Cấp (Presets):
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  {
+                    name: 'xKiro Upstream',
+                    url: 'https://api.xkiro.com/v1',
+                    model: 'deepseek/deepseek-v4-flash',
+                    provider: 'xKiro Upstream',
+                  },
+                  {
+                    name: 'DeepSeek Official',
+                    url: 'https://api.deepseek.com/v1',
+                    model: 'deepseek-chat',
+                    provider: 'DeepSeek Official',
+                  },
+                  {
+                    name: 'OpenRouter AI',
+                    url: 'https://openrouter.ai/api/v1',
+                    model: 'deepseek/deepseek-chat',
+                    provider: 'OpenRouter',
+                  },
+                  {
+                    name: 'OpenAI',
+                    url: 'https://api.openai.com/v1',
+                    model: 'gpt-4o-mini',
+                    provider: 'OpenAI',
+                  },
+                  {
+                    name: 'Groq Cloud',
+                    url: 'https://api.groq.com/openai/v1',
+                    model: 'llama-3.3-70b-versatile',
+                    provider: 'Groq',
+                  },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setTestBaseURL(preset.url);
+                      setTestModel(preset.model);
+                      setTestProvider(preset.provider);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      testBaseURL === preset.url
+                        ? 'border-amber-400 bg-amber-500/20 text-amber-200'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input Form */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Base URL (OpenAI Compatible)
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={testBaseURL}
+                    onChange={(e) => setTestBaseURL(e.target.value)}
+                    placeholder="https://api.xkiro.com/v1"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-cyan-300 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Model ID
+                </label>
+                <div className="relative">
+                  <Server className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={testModel}
+                    onChange={(e) => setTestModel(e.target.value)}
+                    placeholder="deepseek/deepseek-v4-flash"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-purple-300 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Tên Provider Gợi Nhớ
+                </label>
+                <input
+                  type="text"
+                  value={testProvider}
+                  onChange={(e) => setTestProvider(e.target.value)}
+                  placeholder="xKiro / DeepSeek / Key Backup"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-white focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Secret API Key Input */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Key className="size-3.5 text-amber-400" />
+                  <span>API Key Cần Test / Thêm</span>
+                </label>
+                <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                  <ShieldCheck className="size-3" />
+                  Được bảo vệ end-to-end qua TLS
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showTestKey ? 'text' : 'password'}
+                  value={testKey}
+                  onChange={(e) => setTestKey(e.target.value)}
+                  placeholder="Nhập secret key upstream (ví dụ: sk-xt-xxxxxxxxxxxx hoặc sk-xxxx)..."
+                  className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/15 bg-[#0e1220] text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowTestKey(!showTestKey)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  title={showTestKey ? 'Ẩn key' : 'Hiện key'}
+                >
+                  {showTestKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleTestLiveKey}
+                disabled={testRunning || !testKey.trim()}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                <Play className={`size-4 ${testRunning ? 'animate-spin' : ''}`} />
+                <span>{testRunning ? 'Đang gửi ping test...' : '⚡ Test Trực Tiếp Key Này'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAddKeyToPool}
+                disabled={addKeyLoading || !testKey.trim()}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                <Check className="size-4" />
+                <span>{addKeyLoading ? 'Đang thêm...' : '➕ Thêm Vào Bể Xoay Tua Lập Tức'}</span>
+              </button>
+
+              {testKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTestKey('');
+                    setTestResult(null);
+                    setAddKeyFeedback(null);
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5"
+                >
+                  Xóa ô nhập
+                </button>
+              )}
+            </div>
+
+            {/* Test Result Feedback */}
+            {testResult && (
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  testResult.success
+                    ? 'border-emerald-500/40 bg-emerald-950/20 text-emerald-200'
+                    : 'border-rose-500/40 bg-rose-950/20 text-rose-200'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 font-bold text-xs">
+                    {testResult.success ? (
+                      <>
+                        <CheckCircle2 className="size-4 text-emerald-400" />
+                        <span className="text-emerald-300">
+                          KẾT NỐI THÀNH CÔNG! API KEY HỢP LỆ VÀ SẴN SÀNG SỬ DỤNG
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="size-4 text-rose-400" />
+                        <span className="text-rose-300">
+                          KEY BỊ TỪ CHỐI HOẶC LỖI KẾT NỐI
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-[11px]">
+                    <span
+                      className={`px-2 py-0.5 rounded font-bold ${
+                        testResult.status_code === 200
+                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
+                      }`}
+                    >
+                      HTTP {testResult.status_code}
+                    </span>
+                    {testResult.latency_ms > 0 && (
+                      <span className="px-2 py-0.5 rounded bg-black/40 text-slate-300 border border-white/10">
+                        {testResult.latency_ms} ms
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 break-all">
+                  {testResult.message}
+                </p>
+              </div>
+            )}
+
+            {/* Add Key Feedback */}
+            {addKeyFeedback && (
+              <div
+                className={`p-3.5 rounded-2xl border text-xs font-semibold ${
+                  addKeyFeedback.type === 'success'
+                    ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                    : 'border-rose-500/40 bg-rose-950/30 text-rose-300'
+                }`}
+              >
+                {addKeyFeedback.message}
+              </div>
+            )}
+          </div>
+
+          {/* Active Keys in Upstream Pool Table */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Layers className="size-4 text-cyan-400" />
+                <span>Danh Sách Keys Trong Bể Xoay Tua Hiện Tại ({overview?.upstream_stats?.keys?.length || 0})</span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                Toàn bộ key hiển thị dưới dạng mã hóa che giấu
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0e1220]">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-4 font-semibold">STT</th>
+                    <th className="py-3 px-4 font-semibold">Masked API Key (Bảo Mật)</th>
+                    <th className="py-3 px-4 font-semibold">Nhà Cung Cấp / Base URL</th>
+                    <th className="py-3 px-4 font-semibold">Trạng Thái Live</th>
+                    <th className="py-3 px-4 font-semibold">Requests / Lỗi</th>
+                    <th className="py-3 px-4 font-semibold text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {!overview?.upstream_stats?.keys || overview.upstream_stats.keys.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
+                        Chưa có key nào trong bể xoay tua. Hãy thêm key đầu tiên ở trên!
+                      </td>
+                    </tr>
+                  ) : (
+                    overview.upstream_stats.keys.map((k: any) => {
+                      const isDead = !k.is_active || k.last_status_code === 401 || k.last_status_code === 403;
+                      return (
+                        <tr key={k.id || k.index} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-4 font-mono text-slate-400">
+                            #{k.index}
+                          </td>
+                          <td className="py-3 px-4 font-mono font-bold text-white">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-cyan-300">
+                                {k.key_masked}
+                              </span>
+                              <span title="Key được che giấu tuyệt đối không bao giờ gửi ra ngoài">
+                                <Lock className="size-3 text-slate-500" />
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-200">{k.provider || 'xKiro Upstream'}</div>
+                            <div className="text-[10px] font-mono text-slate-500 truncate max-w-xs">
+                              {k.base_url || 'https://api.xkiro.com/v1'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 ${
+                                isDead
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              }`}
+                            >
+                              <span className={`size-1.5 rounded-full ${isDead ? 'bg-rose-400' : 'bg-emerald-400 animate-ping'}`} />
+                              {isDead ? `Lỗi HTTP ${k.last_status_code || 401}` : 'Hoạt Động Tốt'}
+                            </span>
+                            {k.last_error && (
+                              <div className="text-[10px] text-rose-400 truncate max-w-xs mt-0.5 font-mono" title={k.last_error}>
+                                {k.last_error}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px]">
+                            <span className="text-cyan-300 font-bold">{k.request_count}</span>
+                            <span className="text-slate-500"> reqs / </span>
+                            <span className={k.error_count > 0 ? 'text-rose-400 font-bold' : 'text-slate-500'}>
+                              {k.error_count} lỗi
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleUpstreamKey(k.id || String(k.index), k.is_active)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                  k.is_active
+                                    ? 'border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                                    : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                                }`}
+                                title={k.is_active ? 'Tạm dừng key này' : 'Kích hoạt lại key'}
+                              >
+                                {k.is_active ? 'Tạm Dừng' : 'Bật Lại'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Xóa key này khỏi bể xoay tua"
+                              >
+                                <Trash className="size-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
