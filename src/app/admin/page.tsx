@@ -999,6 +999,18 @@ export default function AdminPage() {
                     model: 'llama-3.3-70b-versatile',
                     provider: 'Groq',
                   },
+                  {
+                    name: '🎨 MachGen FLUX Studio (Ảnh)',
+                    url: 'https://image.pollinations.ai',
+                    model: 'flux',
+                    provider: 'MachGen FLUX',
+                  },
+                  {
+                    name: '🎨 MachGen Replicate API',
+                    url: 'https://api.replicate.com/v1',
+                    model: 'black-forest-labs/flux-schnell',
+                    provider: 'MachGen Replicate',
+                  },
                 ].map((preset) => (
                   <button
                     key={preset.name}
