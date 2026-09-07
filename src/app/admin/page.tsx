@@ -961,7 +961,13 @@ export default function AdminPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   {
-                    name: 'xKiro Upstream',
+                    name: 'xKiro (Cloudflare Proxy An Toàn)',
+                    url: 'https://proxyhack.mafiavietnam1945.workers.dev/v1',
+                    model: 'deepseek/deepseek-v4-flash',
+                    provider: 'xKiro Proxy',
+                  },
+                  {
+                    name: 'xKiro Trực Tiếp',
                     url: 'https://api.xkiro.com/v1',
                     model: 'deepseek/deepseek-v4-flash',
                     provider: 'xKiro Upstream',
