@@ -17,11 +17,32 @@ import {
   Wallet,
   Zap,
   ArrowRight,
+  SlidersHorizontal,
+  X,
+  Trash2,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
-import { testChatCompletion } from '@/lib/api';
+import { testChatCompletion, getModels } from '@/lib/api';
 import { speakGoogleVoice, stopSpeaking } from '@/lib/voice';
 import MarkdownRenderer from './MarkdownRenderer';
+
+export interface ChatModelOption {
+  id: string;
+  name: string;
+  isCustom?: boolean;
+}
+
+const DEFAULT_CHAT_MODELS: ChatModelOption[] = [
+  { id: 'lemas-1.0', name: '⚡ Lemas 1.0 (Flagship Flash)' },
+  { id: 'deepseek/deepseek-r1', name: '🧠 DeepSeek R1 (Lý Luận / Thinking)' },
+  { id: 'deepseek/deepseek-chat', name: '💬 DeepSeek V3 (Chat Chính Thức)' },
+  { id: 'openai/gpt-4o', name: '🌟 OpenAI GPT-4o' },
+  { id: 'openai/gpt-4o-mini', name: '⚡ OpenAI GPT-4o Mini' },
+  { id: 'anthropic/claude-3.7-sonnet', name: '🎭 Claude 3.7 Sonnet (Anthropic)' },
+  { id: 'google/gemini-2.5-flash', name: '⚡ Google Gemini 2.5 Flash' },
+  { id: 'llama-3.3-70b-versatile', name: '🦙 Meta Llama 3.3 70B' },
+  { id: 'qwen/qwen3.7-plus', name: '🚀 Qwen 3.7 Plus (Alibaba)' },
+];
 
 export default function ChatPlayground() {
   const { user, keys, lang, t, refreshData } = useDashboard();
@@ -30,19 +51,94 @@ export default function ChatPlayground() {
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
 
+  // Custom Model Management State
+  const [customModels, setCustomModels] = useState<ChatModelOption[]>([]);
+  const [apiModels, setApiModels] = useState<ChatModelOption[]>([]);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customInputText, setCustomInputText] = useState('');
+
   // Voice States (Default: OFF / Tắt)
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isSpeakingIndex, setIsSpeakingIndex] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // Load custom models from localStorage & models from API
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('lemas_custom_chat_models');
+      if (saved) {
+        setCustomModels(JSON.parse(saved));
+      }
+    } catch {}
+
+    // Load additional models from API catalog
+    getModels().then((data) => {
+      if (data && data.length > 0) {
+        const mapped: ChatModelOption[] = data
+          .filter((m) => !DEFAULT_CHAT_MODELS.some((dm) => dm.id === m.id))
+          .map((m) => ({
+            id: m.id,
+            name: `✨ ${m.name} (${m.provider})`,
+          }));
+        setApiModels(mapped);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleApplyCustomModel = () => {
+    const trimmed = customInputText.trim();
+    if (!trimmed) {
+      setShowCustomInput(false);
+      return;
+    }
+
+    const allCurrent = [...customModels, ...apiModels, ...DEFAULT_CHAT_MODELS];
+    const exists = allCurrent.find(
+      (m) => m.id.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (!exists) {
+      const newModel: ChatModelOption = {
+        id: trimmed,
+        name: `⚙️ ${trimmed} (Tùy Chỉnh)`,
+        isCustom: true,
+      };
+      const updated = [newModel, ...customModels];
+      setCustomModels(updated);
+      try {
+        localStorage.setItem('lemas_custom_chat_models', JSON.stringify(updated));
+      } catch {}
+    }
+
+    setChatModel(trimmed);
+    setCustomInputText('');
+    setShowCustomInput(false);
+  };
+
+  const handleRemoveCustomModel = (e: React.MouseEvent, modelId: string) => {
+    e.stopPropagation();
+    const updated = customModels.filter((m) => m.id !== modelId);
+    setCustomModels(updated);
+    try {
+      localStorage.setItem('lemas_custom_chat_models', JSON.stringify(updated));
+    } catch {}
+    if (chatModel === modelId) {
+      setChatModel('lemas-1.0');
+    }
+  };
+
+  const availableModels = [...customModels, ...DEFAULT_CHAT_MODELS, ...apiModels];
+
   const getModelLabel = (modelId: string) => {
+    const found = availableModels.find((m) => m.id === modelId);
+    if (found) return found.name.replace(/^[^\s]+\s/, '');
     if (modelId === 'lemas-1.0' || modelId.includes('deepseek-v4') || modelId.includes('lemas')) return 'Lemas 1.0 (Flagship)';
-    if (modelId.includes('deepseek-r1') || modelId.includes('r1')) return 'Lemas 1.0 Thinking';
-    if (modelId.includes('claude')) return 'Lemas 1.0 Pro';
-    if (modelId.includes('gpt-4o') || modelId.includes('openai')) return 'Lemas 1.0 Omni';
-    if (modelId.includes('gemini')) return 'Lemas 1.0 Flash';
-    return 'Lemas 1.0';
+    if (modelId.includes('deepseek-r1') || modelId.includes('r1')) return 'DeepSeek R1 Thinking';
+    if (modelId.includes('claude')) return 'Claude 3.7 Pro';
+    if (modelId.includes('gpt-4o') || modelId.includes('openai')) return 'OpenAI GPT-4o';
+    if (modelId.includes('gemini')) return 'Gemini 2.5 Flash';
+    return modelId;
   };
 
   // Initialize Speech Recognition (Speech to Text)
@@ -234,20 +330,67 @@ export default function ChatPlayground() {
         <div className="h-14 border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between bg-[#0b0e16]/80 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="text-xs text-slate-400 font-medium">Model:</span>
-            <select
-              value={chatModel}
-              onChange={(e) => setChatModel(e.target.value)}
-              className="bg-[#121520] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40 cursor-pointer"
-            >
-              <option value="lemas-1.0">⚡ Lemas 1.0 (Flagship Flash)</option>
-              <option value="deepseek/deepseek-r1">🧠 DeepSeek R1 (Reasoning)</option>
-              <option value="deepseek/deepseek-chat">💬 DeepSeek V3 (Chat)</option>
-              <option value="openai/gpt-4o">🌟 OpenAI GPT-4o</option>
-              <option value="openai/gpt-4o-mini">⚡ OpenAI GPT-4o Mini</option>
-              <option value="anthropic/claude-3.7-sonnet">🎭 Claude 3.7 Sonnet</option>
-              <option value="google/gemini-2.5-flash">⚡ Gemini 2.5 Flash</option>
-              <option value="llama-3.3-70b-versatile">🦙 Meta Llama 3.3 70B</option>
-            </select>
+            {showCustomInput ? (
+              <div className="flex items-center gap-1.5 bg-[#121520] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs">
+                <input
+                  type="text"
+                  value={customInputText}
+                  onChange={(e) => setCustomInputText(e.target.value)}
+                  placeholder="Nhập Model ID..."
+                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-36 sm:w-48 font-mono"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleApplyCustomModel();
+                    if (e.key === 'Escape') setShowCustomInput(false);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCustomModel}
+                  className="px-2 py-0.5 rounded bg-cyan-500 text-black font-bold text-[10px] cursor-pointer"
+                >
+                  Dùng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomInput(false)}
+                  className="text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <select
+                  value={chatModel}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom_input__') {
+                      setShowCustomInput(true);
+                    } else {
+                      setChatModel(e.target.value);
+                    }
+                  }}
+                  className="bg-[#121520] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40 cursor-pointer max-w-[200px] sm:max-w-[260px] truncate"
+                >
+                  {availableModels.map((m) => (
+                    <option key={m.id} value={m.id} className="bg-[#121520] text-white">
+                      {m.name}
+                    </option>
+                  ))}
+                  <option value="__custom_input__" className="bg-[#1a1f30] text-amber-300 font-bold">
+                    ✨ + Nhập Model Tùy Chỉnh (Custom ID)...
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomInput(true)}
+                  className="p-1.5 rounded-lg border border-white/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                  title="Nhập mã model tùy ý"
+                >
+                  <SlidersHorizontal className="size-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right Controls: Auto-Speak Toggle */}
@@ -484,41 +627,75 @@ export default function ChatPlayground() {
 
               <div className="flex items-center justify-between pt-2 border-t border-white/5 gap-2 flex-wrap sm:flex-nowrap">
                 {/* Model Selector directly on Chat Input Bar */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
-                    <Sparkles className="size-3.5 text-cyan-400 shrink-0" />
-                    <select
-                      value={chatModel}
-                      onChange={(e) => setChatModel(e.target.value)}
-                      className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer pr-1"
-                      title="Chọn mô hình AI bạn muốn trò chuyện"
-                    >
-                      <option value="lemas-1.0" className="bg-[#121520] text-white">
-                        ⚡ Lemas 1.0 (Flagship Flash)
-                      </option>
-                      <option value="deepseek/deepseek-r1" className="bg-[#121520] text-white">
-                        🧠 DeepSeek R1 (Lý Luận / Thinking)
-                      </option>
-                      <option value="deepseek/deepseek-chat" className="bg-[#121520] text-white">
-                        💬 DeepSeek V3 (Chat Chính Thức)
-                      </option>
-                      <option value="openai/gpt-4o" className="bg-[#121520] text-white">
-                        🌟 OpenAI GPT-4o
-                      </option>
-                      <option value="openai/gpt-4o-mini" className="bg-[#121520] text-white">
-                        ⚡ OpenAI GPT-4o Mini
-                      </option>
-                      <option value="anthropic/claude-3.7-sonnet" className="bg-[#121520] text-white">
-                        🎭 Claude 3.7 Sonnet (Anthropic)
-                      </option>
-                      <option value="google/gemini-2.5-flash" className="bg-[#121520] text-white">
-                        ⚡ Google Gemini 2.5 Flash
-                      </option>
-                      <option value="llama-3.3-70b-versatile" className="bg-[#121520] text-white">
-                        🦙 Meta Llama 3.3 70B
-                      </option>
-                    </select>
-                  </div>
+                <div className="flex items-center gap-2 flex-1 max-w-full sm:max-w-md">
+                  {showCustomInput ? (
+                    <div className="flex items-center gap-1.5 w-full bg-[#121520] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs shadow-lg shadow-cyan-950/40">
+                      <Sparkles className="size-3.5 text-cyan-400 shrink-0" />
+                      <input
+                        type="text"
+                        value={customInputText}
+                        onChange={(e) => setCustomInputText(e.target.value)}
+                        placeholder="Nhập Model ID (vd: qwen/qwen3.7-plus, gpt-4.1...)"
+                        className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none flex-1 min-w-0 font-mono"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCustomModel();
+                          } else if (e.key === 'Escape') {
+                            setShowCustomInput(false);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCustomModel}
+                        className="px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-400 text-black font-extrabold text-[11px] hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                      >
+                        Áp Dụng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomInput(false)}
+                        className="p-0.5 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/30 transition-colors">
+                      <Sparkles className="size-3.5 text-cyan-400 shrink-0" />
+                      <select
+                        value={chatModel}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom_input__') {
+                            setShowCustomInput(true);
+                          } else {
+                            setChatModel(e.target.value);
+                          }
+                        }}
+                        className="bg-transparent text-xs font-semibold text-white focus:outline-none cursor-pointer pr-1 truncate max-w-[200px] sm:max-w-[260px]"
+                        title="Chọn mô hình AI bạn muốn trò chuyện"
+                      >
+                        {availableModels.map((m) => (
+                          <option key={m.id} value={m.id} className="bg-[#121520] text-white">
+                            {m.name}
+                          </option>
+                        ))}
+                        <option value="__custom_input__" className="bg-[#1a1f30] text-amber-300 font-bold">
+                          ✨ + Nhập Model Tùy Chỉnh (Custom ID)...
+                        </option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomInput(true)}
+                        className="text-slate-400 hover:text-cyan-300 transition-colors p-0.5 cursor-pointer"
+                        title="Tự nhập Model ID khác"
+                      >
+                        <SlidersHorizontal className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
