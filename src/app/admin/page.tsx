@@ -99,8 +99,7 @@ export default function AdminPage() {
   const [newGiftTokens, setNewGiftTokens] = useState(10000);
   const [newGiftMaxUses, setNewGiftMaxUses] = useState(10);
   const [giftCreating, setGiftCreating] = useState(false);
-  const [adminTab, setAdminTab] = useState<'all' | 'giftcodes' | 'users' | 'rotator' | 'upstream'>('all');
-  const [apiCategory, setApiCategory] = useState<'xkiro' | 'machgen'>('xkiro');
+  const [adminTab, setAdminTab] = useState<'xkiro' | 'machgen' | 'users' | 'giftcodes' | 'rotator'>('xkiro');
 
   // Adjust modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -110,47 +109,69 @@ export default function AdminPage() {
   const [adjusting, setAdjusting] = useState(false);
   const [checkingRotator, setCheckingRotator] = useState(false);
 
-  // Live Upstream Key Tester & Adder State
-  const [testKey, setTestKey] = useState('');
-  const [testKeyName, setTestKeyName] = useState('');
-  const [showTestKey, setShowTestKey] = useState(false);
-  const [testBaseURL, setTestBaseURL] = useState('https://proxyhack.mafiavietnam1945.workers.dev/v1');
-  const [testModel, setTestModel] = useState('deepseek/deepseek-v4-flash');
-  const [testProvider, setTestProvider] = useState('xKiro Proxy');
-  const [testRunning, setTestRunning] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  // Dedicated xKiro Chat Gateway State (Trang 1)
+  const [xkiroKey, setXkiroKey] = useState('');
+  const [xkiroKeyName, setXkiroKeyName] = useState('');
+  const [xkiroShowKey, setXkiroShowKey] = useState(false);
+  const [xkiroBaseURL, setXkiroBaseURL] = useState('https://proxyhack.mafiavietnam1945.workers.dev/v1');
+  const [xkiroModel, setXkiroModel] = useState('deepseek/deepseek-v4-flash');
+  const [xkiroProvider, setXkiroProvider] = useState('xKiro Proxy');
+  const [xkiroTesting, setXkiroTesting] = useState(false);
+  const [xkiroTestResult, setXkiroTestResult] = useState<{
     success: boolean;
     status_code: number;
     message: string;
     latency_ms: number;
   } | null>(null);
+  const [xkiroAddLoading, setXkiroAddLoading] = useState(false);
+  const [xkiroAddFeedback, setXkiroAddFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const [addKeyLoading, setAddKeyLoading] = useState(false);
-  const [addKeyFeedback, setAddKeyFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // Dedicated MachGen Image & QR Studio State (Trang 2)
+  const [machgenKey, setMachgenKey] = useState('');
+  const [machgenKeyName, setMachgenKeyName] = useState('');
+  const [machgenShowKey, setMachgenShowKey] = useState(false);
+  const [machgenBaseURL, setMachgenBaseURL] = useState('https://image.pollinations.ai');
+  const [machgenModel, setMachgenModel] = useState('flux');
+  const [machgenProvider, setMachgenProvider] = useState('MachGen Studio');
+  const [machgenTesting, setMachgenTesting] = useState(false);
+  const [machgenTestResult, setMachgenTestResult] = useState<{
+    success: boolean;
+    status_code: number;
+    message: string;
+    latency_ms: number;
+  } | null>(null);
+  const [machgenAddLoading, setMachgenAddLoading] = useState(false);
+  const [machgenAddFeedback, setMachgenAddFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const handleTestLiveKey = async () => {
-    if (!testKey.trim()) {
-      alert('Vui lòng nhập API Key để kiểm tra');
+  // Helper to distinguish xKiro vs MachGen keys
+  const isMachGenKey = (k: any) =>
+    (k.provider && k.provider.toLowerCase().includes('machgen')) ||
+    (k.base_url && (k.base_url.includes('pollinations') || k.base_url.includes('replicate')));
+
+  // --- Handlers for xKiro (Chat AI) ---
+  const handleTestXkiroKey = async () => {
+    if (!xkiroKey.trim()) {
+      alert('Vui lòng nhập API Key của xKiro để kiểm tra');
       return;
     }
-    setTestRunning(true);
-    setTestResult(null);
-    setAddKeyFeedback(null);
+    setXkiroTesting(true);
+    setXkiroTestResult(null);
+    setXkiroAddFeedback(null);
     try {
       const res = await fetch(`${API_BASE}/api/admin/rotator/test-key`, {
         method: 'POST',
         headers: getAdminHeaders(),
         body: JSON.stringify({
-          key: testKey.trim(),
-          base_url: testBaseURL.trim(),
-          model: testModel.trim(),
+          key: xkiroKey.trim(),
+          base_url: xkiroBaseURL.trim(),
+          model: xkiroModel.trim(),
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setTestResult(data);
+        setXkiroTestResult(data);
       } else {
-        setTestResult({
+        setXkiroTestResult({
           success: false,
           status_code: res.status,
           message: data.error || 'Kiểm tra thất bại',
@@ -158,59 +179,138 @@ export default function AdminPage() {
         });
       }
     } catch (err: any) {
-      setTestResult({
+      setXkiroTestResult({
         success: false,
         status_code: 0,
         message: err?.message || 'Không thể kết nối tới server kiểm tra',
         latency_ms: 0,
       });
     } finally {
-      setTestRunning(false);
+      setXkiroTesting(false);
     }
   };
 
-  const handleAddKeyToPool = async () => {
-    if (!testKey.trim()) {
-      alert('Vui lòng nhập API Key');
+  const handleAddXkiroKey = async () => {
+    if (!xkiroKey.trim()) {
+      alert('Vui lòng nhập API Key xKiro');
       return;
     }
-    setAddKeyLoading(true);
-    setAddKeyFeedback(null);
+    setXkiroAddLoading(true);
+    setXkiroAddFeedback(null);
     try {
       const res = await fetch(`${API_BASE}/api/admin/rotator/keys/add`, {
         method: 'POST',
         headers: getAdminHeaders(),
         body: JSON.stringify({
-          key: testKey.trim(),
-          name: testKeyName.trim() || 'Tài khoản chính',
-          provider: testProvider.trim() || 'Custom Upstream',
-          base_url: testBaseURL.trim(),
+          key: xkiroKey.trim(),
+          name: xkiroKeyName.trim() || 'Tài khoản xKiro',
+          provider: xkiroProvider.trim() || 'xKiro Proxy',
+          base_url: xkiroBaseURL.trim(),
           test_first: false,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setAddKeyFeedback({
+        setXkiroAddFeedback({
           type: 'success',
-          message: `✅ Đã thêm key [${data.key?.name || ''}] ${data.key?.key_masked || ''} vào bể xoay tua thành công!`,
+          message: `✅ Đã thêm key xKiro [${data.key?.name || ''}] ${data.key?.key_masked || ''} vào bể xoay tua Chat thành công!`,
         });
-        setTestKey('');
-        setTestKeyName('');
-        setTestResult(null);
+        setXkiroKey('');
+        setXkiroKeyName('');
+        setXkiroTestResult(null);
         await loadAdminData();
       } else {
-        setAddKeyFeedback({
+        setXkiroAddFeedback({
           type: 'error',
           message: data.error || 'Thêm key thất bại',
         });
       }
     } catch (err: any) {
-      setAddKeyFeedback({
+      setXkiroAddFeedback({
         type: 'error',
         message: err?.message || 'Lỗi kết nối máy chủ',
       });
     } finally {
-      setAddKeyLoading(false);
+      setXkiroAddLoading(false);
+    }
+  };
+
+  // --- Handlers for MachGen (Image & Art QR) ---
+  const handleTestMachgenKey = async () => {
+    setMachgenTesting(true);
+    setMachgenTestResult(null);
+    setMachgenAddFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/test-key`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          key: machgenKey.trim(),
+          base_url: machgenBaseURL.trim(),
+          model: machgenModel.trim() || 'flux',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMachgenTestResult(data);
+      } else {
+        setMachgenTestResult({
+          success: false,
+          status_code: res.status,
+          message: data.error || 'Kiểm tra thất bại',
+          latency_ms: 0,
+        });
+      }
+    } catch (err: any) {
+      setMachgenTestResult({
+        success: false,
+        status_code: 0,
+        message: err?.message || 'Không thể kết nối tới server kiểm tra',
+        latency_ms: 0,
+      });
+    } finally {
+      setMachgenTesting(false);
+    }
+  };
+
+  const handleAddMachgenKey = async () => {
+    setMachgenAddLoading(true);
+    setMachgenAddFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/keys/add`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          key: machgenKey.trim(),
+          name: machgenKeyName.trim() || 'MachGen Engine',
+          provider: machgenProvider.trim() || 'MachGen Studio',
+          base_url: machgenBaseURL.trim(),
+          test_first: false,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMachgenAddFeedback({
+          type: 'success',
+          message: `✅ Đã lưu cấu hình MachGen Engine [${data.key?.name || ''}] ${data.key?.key_masked || ''} thành công!`,
+        });
+        setMachgenKey('');
+        setMachgenKeyName('');
+        setMachgenTestResult(null);
+        await loadAdminData();
+      } else {
+        setMachgenAddFeedback({
+          type: 'error',
+          message: data.error || 'Lưu cấu hình thất bại',
+        });
+      }
+    } catch (err: any) {
+      setMachgenAddFeedback({
+        type: 'error',
+        message: err?.message || 'Lỗi kết nối máy chủ',
+      });
+    } finally {
+      setMachgenAddLoading(false);
     }
   };
 
@@ -443,6 +543,10 @@ export default function AdminPage() {
       u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const allUpstreamKeys = overview?.upstream_stats?.keys || [];
+  const xkiroKeys = allUpstreamKeys.filter((k: any) => !isMachGenKey(k));
+  const machgenKeys = allUpstreamKeys.filter((k: any) => isMachGenKey(k));
 
   // If not authenticated, render Cyber Security Admin Gate
   if (!isAdminAuth) {
@@ -692,29 +796,32 @@ export default function AdminPage() {
       {/* Interactive Admin Tabs */}
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/[0.03] border border-white/10 overflow-x-auto">
         <button
-          onClick={() => setAdminTab('all')}
+          onClick={() => setAdminTab('xkiro')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'all'
-              ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+            adminTab === 'xkiro'
+              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 ring-1 ring-cyan-400'
+              : 'text-cyan-300 hover:text-white hover:bg-cyan-500/10'
           }`}
         >
-          <Sparkles className="size-4" />
-          <span>Toàn Bộ Tổng Quan</span>
+          <Bot className="size-4" />
+          <span>💬 Trang 1: API xKiro (Chat AI)</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-cyan-200">
+            {xkiroKeys.length} Keys
+          </span>
         </button>
 
         <button
-          onClick={() => setAdminTab('giftcodes')}
+          onClick={() => setAdminTab('machgen')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'giftcodes'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-              : 'text-purple-300 hover:text-white hover:bg-purple-500/10'
+            adminTab === 'machgen'
+              ? 'bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/40 ring-1 ring-amber-400'
+              : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
           }`}
         >
-          <Gift className="size-4" />
-          <span>🎁 Tạo & Quản Lý Giftcode</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono">
-            {giftcodes.length} mã
+          <Sparkles className="size-4" />
+          <span>🎨 Trang 2: API MachGen (Ảnh & Art QR)</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-amber-200">
+            {machgenKeys.length} Keys
           </span>
         </button>
 
@@ -734,49 +841,35 @@ export default function AdminPage() {
         </button>
 
         <button
-          onClick={() => setAdminTab('rotator')}
+          onClick={() => setAdminTab('giftcodes')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'rotator'
-              ? (overview?.upstream_stats?.active_keys ?? 0) === 0
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-              : (overview?.upstream_stats?.active_keys ?? 0) === 0
-              ? 'text-rose-400 hover:text-white hover:bg-rose-500/10'
-              : 'text-emerald-400 hover:text-white hover:bg-emerald-500/10'
+            adminTab === 'giftcodes'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+              : 'text-purple-300 hover:text-white hover:bg-purple-500/10'
           }`}
         >
-          <Activity className="size-4" />
-          <span>⚡ Bể Xoay Tua Keys</span>
-          <span
-            className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-              (overview?.upstream_stats?.active_keys ?? 0) === 0
-                ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                : 'bg-black/40'
-            }`}
-          >
-            {overview?.upstream_stats?.active_keys ?? 0}/
-            {overview?.upstream_stats?.total_keys ?? 8} Live
+          <Gift className="size-4" />
+          <span>🎁 Quản Lý Giftcode</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono">
+            {giftcodes.length} mã
           </span>
         </button>
 
         <button
-          onClick={() => setAdminTab('upstream')}
+          onClick={() => setAdminTab('rotator')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'upstream'
-              ? 'bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/30'
-              : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
+            adminTab === 'rotator'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Key className="size-4" />
-          <span>🔑 Test Trực Tiếp & Thêm Upstream API</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-emerald-300">
-            Bảo mật 100%
-          </span>
+          <Activity className="size-4" />
+          <span>⚡ Diagnostics Matrix (Live Ping)</span>
         </button>
       </div>
 
       {/* Internal Diagnostics Matrix (Visible to Admin Only) */}
-      {(adminTab === 'all' || adminTab === 'rotator') && overview?.upstream_stats?.keys && (
+      {adminTab === 'rotator' && overview?.upstream_stats?.keys && (
         <div
           className={`p-6 rounded-3xl border space-y-4 shadow-xl ${
             (overview?.upstream_stats?.active_keys ?? 0) === 0
@@ -871,18 +964,6 @@ export default function AdminPage() {
                       {k.last_error}
                     </div>
                   )}
-
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5">
-                    <span>
-                      Reqs: <b className="text-cyan-300">{k.request_count}</b>
-                    </span>
-                    <span>
-                      Lỗi:{' '}
-                      <b className={k.error_count > 0 ? 'text-rose-400' : 'text-slate-400'}>
-                        {k.error_count}
-                      </b>
-                    </span>
-                  </div>
                 </div>
               );
             })}
@@ -890,296 +971,149 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Upstream API Live Testing & Key Management Section */}
-      {(adminTab === 'all' || adminTab === 'upstream') && (
-        <div className="p-6 sm:p-8 rounded-3xl border border-amber-500/20 bg-[#0c0e18] space-y-6 shadow-2xl relative overflow-hidden">
-          {/* Subtle Ambient Background Gradient */}
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 size-64 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
+      {/* ========================================================================= */}
+      {/* TRANG 1: QUẢN LÝ & TEST API xKiro (CHUYÊN TRÁCH CHAT AI & SUY LUẬN)        */}
+      {/* ========================================================================= */}
+      {adminTab === 'xkiro' && (
+        <div className="p-6 sm:p-8 rounded-3xl border border-cyan-500/30 bg-[#090d1a] space-y-6 shadow-2xl relative overflow-hidden ring-1 ring-cyan-500/20">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 size-64 rounded-full bg-cyan-500/5 blur-3xl pointer-events-none" />
 
-          {/* Section Header */}
+          {/* Page 1 Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/25">
-                  <Key className="size-5" />
+              <div className="flex items-center gap-2.5">
+                <span className="p-2.5 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-black shadow-lg shadow-cyan-500/25">
+                  <Bot className="size-5" />
                 </span>
-                <h2 className="text-lg font-black text-white tracking-wide">
-                  Kiểm Tra Trực Tiếp & Quản Lý Upstream API Keys
-                </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck className="size-3" />
-                  Bảo Mật Tuyệt Đối (Zero Exposure)
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Admin có thể thử nghiệm độc lập bất kỳ API Key nào (Base URL + Model) xem có sống không mà không cần lưu. Thêm key trực tiếp vào bể xoay tua (Rotator) ngay trong giao diện mà không cần restart server!
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={loadAdminData}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>Cập nhật danh sách</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Security Guarantee Callout Card */}
-          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5 md:mt-0">
-                <Lock className="size-4" />
-              </div>
-              <div>
-                <span className="font-bold text-indigo-200 block text-xs">
-                  Cơ chế bảo vệ API Key chống lộ 100%:
-                </span>
-                <p className="text-slate-300 text-[11px] mt-0.5 leading-relaxed">
-                  • <b>Zero Raw Key Exposure:</b> Backend Go sử dụng thuộc tính <code>json:&quot;-&quot;</code>, server <b>tuyệt đối không bao giờ</b> gửi raw key về trình duyệt (kể cả F12 DevTools).<br />
-                  • <b>Masking tự động:</b> Toàn bộ key hiển thị dưới dạng che mờ (vd: <code>sk-xt-••••••••48f3</code>).<br />
-                  • <b>Xác thực đặc quyền:</b> Mọi API test & thêm key đều bắt buộc xác thực token Super Admin qua Header <code>X-Admin-Token</code>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Switcher: Chia rõ 2 phần: xKiro (Chat AI) & MachGen (Tạo ảnh & Art QR) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setApiCategory('xkiro');
-                setTestBaseURL('https://proxyhack.mafiavietnam1945.workers.dev/v1');
-                setTestModel('deepseek/deepseek-v4-flash');
-                setTestProvider('xKiro Proxy');
-                setTestResult(null);
-              }}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
-                apiCategory === 'xkiro'
-                  ? 'border-cyan-500/70 bg-gradient-to-br from-cyan-950/40 to-[#0e1424] shadow-xl shadow-cyan-950/40 ring-1 ring-cyan-500/40'
-                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] opacity-70 hover:opacity-100'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
-                    <Bot className="size-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-white">PHẦN 1: API xKiro (Chat AI)</h3>
-                    <p className="text-[11px] text-cyan-300 font-semibold">Chuyên trách Chat Playground & Suy luận</p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black text-white tracking-wide">
+                      TRANG 1: Quản Lý & Test API xKiro (Chat AI & Suy Luận)
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      Chuyên Trách Chat
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Định tuyến toàn bộ hội thoại Chat Playground, DeepSeek R1, GPT-4o, Claude, Qwen qua bể API Key xoay tua của xKiro (kết nối an toàn qua Cloudflare Worker).
+                  </p>
                 </div>
-                {apiCategory === 'xkiro' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-cyan-500 text-black shadow-md">
-                    Đang xem
-                  </span>
-                )}
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Định tuyến toàn bộ hội thoại Chat, DeepSeek R1, GPT-4o, Claude, Qwen qua bể Key xKiro (kết nối an toàn qua Cloudflare Worker).
-              </p>
-            </button>
+            </div>
 
             <button
               type="button"
-              onClick={() => {
-                setApiCategory('machgen');
-                setTestBaseURL('https://image.pollinations.ai');
-                setTestModel('flux');
-                setTestProvider('MachGen Studio');
-                setTestResult(null);
-              }}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
-                apiCategory === 'machgen'
-                  ? 'border-amber-500/70 bg-gradient-to-br from-amber-950/40 to-[#18111e] shadow-xl shadow-amber-950/40 ring-1 ring-amber-500/40'
-                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05] opacity-70 hover:opacity-100'
-              }`}
+              onClick={loadAdminData}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all shrink-0 cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
-                    <Sparkles className="size-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-white">PHẦN 2: API MachGen (Ảnh & Art QR)</h3>
-                    <p className="text-[11px] text-amber-300 font-semibold">Chuyên trách Tạo Ảnh 4K Studio & Art QR Code</p>
-                  </div>
-                </div>
-                {apiCategory === 'machgen' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500 text-black shadow-md">
-                    Đang xem
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Đảm nhiệm 100% Studio Tạo ảnh 4K (5 model: FLUX, Turbo, Photo, Anime, 3D) và phối màu tạo QR nghệ thuật quét được.
-              </p>
+              <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Làm mới ({xkiroKeys.length} keys)</span>
             </button>
           </div>
 
-          {/* Live Tester Console */}
-          <div className="p-6 rounded-2xl border border-white/10 bg-[#121626] space-y-5">
+          {/* Test & Add Form for xKiro */}
+          <div className="p-6 rounded-2xl border border-cyan-500/20 bg-[#0e1424] space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
               <div className="flex items-center gap-2">
-                <Play className="size-4 text-amber-400" />
-                <h3 className="text-sm font-bold text-white">
-                  {apiCategory === 'xkiro'
-                    ? '💬 Live Tester - API xKiro (Chuyên Trách Chat AI & Suy Luận)'
-                    : '🎨 Live Tester - API MachGen (Chuyên Trách Tạo Ảnh 4K & Art QR)'}
-                </h3>
+                <Play className="size-4 text-cyan-400" />
+                <h3 className="text-sm font-bold text-white">Kiểm Tra Trực Tiếp & Thêm Key xKiro</h3>
               </div>
               <span className="text-[11px] text-slate-400">
-                {apiCategory === 'xkiro'
-                  ? 'Gửi 1 đoạn chat ping nhẹ tới xKiro để đo HTTP Status Code và Latency (ms)'
-                  : 'Kiểm tra kết nối và độ sẵn sàng sinh ảnh của MachGen Engine'}
+                Gửi đoạn ping nhẹ tới xKiro để đo HTTP Status Code và độ trễ ms trước khi thêm
               </span>
             </div>
 
-            {/* Quick Provider Presets */}
+            {/* xKiro Presets */}
             <div>
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                {apiCategory === 'xkiro'
-                  ? 'Chọn Cấu Hình xKiro / Chat Presets:'
-                  : 'Chọn Cấu Hình MachGen Engine Presets:'}
+                Chọn Nhanh Endpoint xKiro / Chat:
               </label>
               <div className="flex flex-wrap gap-2">
-                {apiCategory === 'xkiro' ? (
-                  [
-                    {
-                      name: 'xKiro (Cloudflare Proxy An Toàn)',
-                      url: 'https://proxyhack.mafiavietnam1945.workers.dev/v1',
-                      model: 'deepseek/deepseek-v4-flash',
-                      provider: 'xKiro Proxy',
-                    },
-                    {
-                      name: 'xKiro Trực Tiếp',
-                      url: 'https://api.xkiro.com/v1',
-                      model: 'deepseek/deepseek-v4-flash',
-                      provider: 'xKiro Upstream',
-                    },
-                    {
-                      name: 'DeepSeek Official',
-                      url: 'https://api.deepseek.com/v1',
-                      model: 'deepseek-chat',
-                      provider: 'DeepSeek Official',
-                    },
-                    {
-                      name: 'OpenRouter AI',
-                      url: 'https://openrouter.ai/api/v1',
-                      model: 'deepseek/deepseek-chat',
-                      provider: 'OpenRouter',
-                    },
-                    {
-                      name: 'OpenAI Official',
-                      url: 'https://api.openai.com/v1',
-                      model: 'gpt-4o-mini',
-                      provider: 'OpenAI',
-                    },
-                    {
-                      name: 'Groq Cloud',
-                      url: 'https://api.groq.com/openai/v1',
-                      model: 'llama-3.3-70b-versatile',
-                      provider: 'Groq',
-                    },
-                  ].map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => {
-                        setTestBaseURL(preset.url);
-                        setTestModel(preset.model);
-                        setTestProvider(preset.provider);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        testBaseURL === preset.url
-                          ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200 shadow-md shadow-cyan-950/40'
-                          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {preset.name}
-                    </button>
-                  ))
-                ) : (
-                  [
-                    {
-                      name: '🎨 MachGen Core Engine (Miễn Phí 100% - Không Cần Key)',
-                      url: 'https://image.pollinations.ai',
-                      model: 'flux',
-                      provider: 'MachGen Studio',
-                    },
-                    {
-                      name: '🎨 MachGen Replicate Engine (Cần Token r8_...)',
-                      url: 'https://api.replicate.com/v1',
-                      model: 'black-forest-labs/flux-schnell',
-                      provider: 'MachGen Replicate',
-                    },
-                  ].map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => {
-                        setTestBaseURL(preset.url);
-                        setTestModel(preset.model);
-                        setTestProvider(preset.provider);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                        testBaseURL === preset.url
-                          ? 'border-amber-400 bg-amber-500/20 text-amber-200 shadow-md shadow-amber-950/40'
-                          : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {preset.name}
-                    </button>
-                  ))
-                )}
+                {[
+                  {
+                    name: 'xKiro (Cloudflare Proxy An Toàn)',
+                    url: 'https://proxyhack.mafiavietnam1945.workers.dev/v1',
+                    model: 'deepseek/deepseek-v4-flash',
+                    provider: 'xKiro Proxy',
+                  },
+                  {
+                    name: 'xKiro Trực Tiếp',
+                    url: 'https://api.xkiro.com/v1',
+                    model: 'deepseek/deepseek-v4-flash',
+                    provider: 'xKiro Upstream',
+                  },
+                  {
+                    name: 'DeepSeek Official',
+                    url: 'https://api.deepseek.com/v1',
+                    model: 'deepseek-chat',
+                    provider: 'DeepSeek Official',
+                  },
+                  {
+                    name: 'OpenRouter AI',
+                    url: 'https://openrouter.ai/api/v1',
+                    model: 'deepseek/deepseek-chat',
+                    provider: 'OpenRouter',
+                  },
+                  {
+                    name: 'OpenAI Official',
+                    url: 'https://api.openai.com/v1',
+                    model: 'gpt-4o-mini',
+                    provider: 'OpenAI',
+                  },
+                  {
+                    name: 'Groq Cloud',
+                    url: 'https://api.groq.com/openai/v1',
+                    model: 'llama-3.3-70b-versatile',
+                    provider: 'Groq',
+                  },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setXkiroBaseURL(preset.url);
+                      setXkiroModel(preset.model);
+                      setXkiroProvider(preset.provider);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      xkiroBaseURL === preset.url
+                        ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200 shadow-md shadow-cyan-950/40'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* MachGen Architecture Info Banner when in MachGen mode */}
-            {apiCategory === 'machgen' && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-amber-400 shrink-0" />
-                  <span>
-                    <b>MachGen Engine đang phục vụ 2 dịch vụ:</b> 1) Tạo Ảnh 4K Studio (5 model tự chọn) & 2) Tạo Art QR Code.
-                  </span>
-                </div>
-                <span className="text-[11px] text-amber-300 font-mono">Không dùng chung key với xKiro</span>
-              </div>
-            )}
-
-            {/* Input Form */}
+            {/* xKiro Input Form */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Tên Tài Khoản / Gợi Nhớ
+                  Tên Tài Khoản xKiro
                 </label>
                 <input
                   type="text"
-                  value={testKeyName}
-                  onChange={(e) => setTestKeyName(e.target.value)}
-                  placeholder="Ví dụ: Acc xKiro VIP 1 / Acc MachGen Studio"
-                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-amber-300 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  value={xkiroKeyName}
+                  onChange={(e) => setXkiroKeyName(e.target.value)}
+                  placeholder="Ví dụ: Acc xKiro VIP 1 / Acc Phụ 2"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#070b14] text-xs font-bold text-cyan-300 placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Base URL (OpenAI / Image API)
+                  Base URL xKiro
                 </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
                   <input
                     type="text"
-                    value={testBaseURL}
-                    onChange={(e) => setTestBaseURL(e.target.value)}
+                    value={xkiroBaseURL}
+                    onChange={(e) => setXkiroBaseURL(e.target.value)}
                     placeholder="https://proxyhack.mafiavietnam1945.workers.dev/v1"
-                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-cyan-300 focus:border-amber-400 focus:outline-none"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#070b14] text-xs font-mono text-cyan-300 focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1187,132 +1121,126 @@ export default function AdminPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-slate-300">
-                    Model ID (Chỉ để Ping Test)
+                    Model ID Test
                   </label>
-                  <span className="text-[10px] text-amber-400 font-medium">User tự chọn</span>
+                  <span className="text-[10px] text-cyan-400 font-medium">User tự chọn khi Chat</span>
                 </div>
                 <div className="relative">
                   <Server className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
                   <input
                     type="text"
-                    value={testModel}
-                    onChange={(e) => setTestModel(e.target.value)}
-                    placeholder={testProvider?.toLowerCase().includes('machgen') ? 'flux (User tự chọn trên Studio)' : 'deepseek/deepseek-v4-flash'}
-                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-purple-300 focus:border-amber-400 focus:outline-none"
+                    value={xkiroModel}
+                    onChange={(e) => setXkiroModel(e.target.value)}
+                    placeholder="deepseek/deepseek-v4-flash"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#070b14] text-xs font-mono text-purple-300 focus:border-cyan-400 focus:outline-none"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  {testProvider?.toLowerCase().includes('machgen')
-                    ? '✨ MachGen: Admin chỉ cần thêm API. Mọi model (FLUX.1, Turbo 2.0, Photo, Anime, 3D) do người dùng tự chọn trên Studio.'
-                    : '💡 Chỉ dùng để Ping Test. Khi Chat, người dùng có thể tự do chọn bất kỳ model nào.'}
-                </p>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Tên Nhà Cung Cấp (Provider)
+                  Tên Provider
                 </label>
                 <input
                   type="text"
-                  value={testProvider}
-                  onChange={(e) => setTestProvider(e.target.value)}
+                  value={xkiroProvider}
+                  onChange={(e) => setXkiroProvider(e.target.value)}
                   placeholder="xKiro Proxy / DeepSeek"
-                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-white focus:border-amber-400 focus:outline-none"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#070b14] text-xs font-bold text-white focus:border-cyan-400 focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Secret API Key Input */}
+            {/* Secret xKiro API Key Input */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Key className="size-3.5 text-amber-400" />
-                  <span>API Key Cần Test / Thêm</span>
+                  <Key className="size-3.5 text-cyan-400" />
+                  <span>API Key xKiro (Bắt đầu bằng sk-xt-...)</span>
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
                   <ShieldCheck className="size-3" />
-                  Được bảo vệ end-to-end qua TLS
+                  Không bao giờ lộ ra ngoài
                 </span>
               </div>
               <div className="relative">
                 <input
-                  type={showTestKey ? 'text' : 'password'}
-                  value={testKey}
-                  onChange={(e) => setTestKey(e.target.value)}
-                  placeholder="Nhập secret key upstream (ví dụ: sk-xt-xxxxxxxxxxxx hoặc sk-xxxx)..."
-                  className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/15 bg-[#0e1220] text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  type={xkiroShowKey ? 'text' : 'password'}
+                  value={xkiroKey}
+                  onChange={(e) => setXkiroKey(e.target.value)}
+                  placeholder="sk-xt-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/10 bg-[#070b14] text-xs font-mono text-cyan-200 placeholder-slate-600 focus:border-cyan-400 focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowTestKey(!showTestKey)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
-                  title={showTestKey ? 'Ẩn key' : 'Hiện key'}
+                  onClick={() => setXkiroShowKey(!xkiroShowKey)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                 >
-                  {showTestKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {xkiroShowKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons for xKiro */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 type="button"
-                onClick={handleTestLiveKey}
-                disabled={testRunning || !testKey.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+                onClick={handleTestXkiroKey}
+                disabled={xkiroTesting || !xkiroKey.trim()}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-extrabold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50 cursor-pointer"
               >
-                <Play className={`size-4 ${testRunning ? 'animate-spin' : ''}`} />
-                <span>{testRunning ? 'Đang gửi ping test...' : '⚡ Test Trực Tiếp Key Này'}</span>
+                <Play className={`size-4 ${xkiroTesting ? 'animate-spin' : ''}`} />
+                <span>{xkiroTesting ? 'Đang gửi ping test xKiro...' : '⚡ Test Trực Tiếp Key xKiro'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleAddKeyToPool}
-                disabled={addKeyLoading || !testKey.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-bold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+                onClick={handleAddXkiroKey}
+                disabled={xkiroAddLoading || !xkiroKey.trim()}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-extrabold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
               >
                 <Check className="size-4" />
-                <span>{addKeyLoading ? 'Đang thêm...' : '➕ Thêm Vào Bể Xoay Tua Lập Tức'}</span>
+                <span>{xkiroAddLoading ? 'Đang thêm...' : '➕ Thêm Key Vào Bể Chat xKiro'}</span>
               </button>
 
-              {testKey && (
+              {xkiroKey && (
                 <button
                   type="button"
                   onClick={() => {
-                    setTestKey('');
-                    setTestResult(null);
-                    setAddKeyFeedback(null);
+                    setXkiroKey('');
+                    setXkiroTestResult(null);
+                    setXkiroAddFeedback(null);
                   }}
-                  className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5"
+                  className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5 cursor-pointer"
                 >
                   Xóa ô nhập
                 </button>
               )}
             </div>
 
-            {/* Test Result Feedback */}
-            {testResult && (
+            {/* Test Result Feedback for xKiro */}
+            {xkiroTestResult && (
               <div
                 className={`p-4 rounded-2xl border transition-all ${
-                  testResult.success
+                  xkiroTestResult.success
                     ? 'border-emerald-500/40 bg-emerald-950/20 text-emerald-200'
                     : 'border-rose-500/40 bg-rose-950/20 text-rose-200'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 font-bold text-xs">
-                    {testResult.success ? (
+                    {xkiroTestResult.success ? (
                       <>
                         <CheckCircle2 className="size-4 text-emerald-400" />
                         <span className="text-emerald-300">
-                          KẾT NỐI THÀNH CÔNG! API KEY HỢP LỆ VÀ SẴN SÀNG SỬ DỤNG
+                          KẾT NỐI xKIRO THÀNH CÔNG! KEY SẴN SÀNG PHỤC VỤ CHAT AI
                         </span>
                       </>
                     ) : (
                       <>
                         <AlertCircle className="size-4 text-rose-400" />
                         <span className="text-rose-300">
-                          KEY BỊ TỪ CHỐI HOẶC LỖI KẾT NỐI
+                          KEY xKIRO BỊ TỪ CHỐI HOẶC HẾT HẠN
                         </span>
                       </>
                     )}
@@ -1320,95 +1248,88 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2 font-mono text-[11px]">
                     <span
                       className={`px-2 py-0.5 rounded font-bold ${
-                        testResult.status_code === 200
+                        xkiroTestResult.status_code === 200
                           ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
                           : 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
                       }`}
                     >
-                      HTTP {testResult.status_code}
+                      HTTP {xkiroTestResult.status_code}
                     </span>
-                    {testResult.latency_ms > 0 && (
+                    {xkiroTestResult.latency_ms > 0 && (
                       <span className="px-2 py-0.5 rounded bg-black/40 text-slate-300 border border-white/10">
-                        {testResult.latency_ms} ms
+                        {xkiroTestResult.latency_ms} ms
                       </span>
                     )}
                   </div>
                 </div>
                 <p className="text-xs font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 break-all">
-                  {testResult.message}
+                  {xkiroTestResult.message}
                 </p>
               </div>
             )}
 
-            {/* Add Key Feedback */}
-            {addKeyFeedback && (
+            {/* Add Key Feedback for xKiro */}
+            {xkiroAddFeedback && (
               <div
                 className={`p-3.5 rounded-2xl border text-xs font-semibold ${
-                  addKeyFeedback.type === 'success'
+                  xkiroAddFeedback.type === 'success'
                     ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
                     : 'border-rose-500/40 bg-rose-950/30 text-rose-300'
                 }`}
               >
-                {addKeyFeedback.message}
+                {xkiroAddFeedback.message}
               </div>
             )}
           </div>
 
-          {/* Active Keys in Upstream Pool Table */}
+          {/* Dedicated xKiro Active Keys Table */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Layers className="size-4 text-cyan-400" />
-                <span>Danh Sách Keys Trong Bể Xoay Tua Hiện Tại ({overview?.upstream_stats?.keys?.length || 0})</span>
+                <span>Bể Xoay Tua Key xKiro Chat ({xkiroKeys.length} keys)</span>
               </h3>
               <span className="text-xs text-slate-400">
-                Toàn bộ key hiển thị dưới dạng mã hóa che giấu
+                Chỉ hiển thị các key phục vụ Chat AI (không lẫn key tạo ảnh)
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0e1220]">
+            <div className="overflow-x-auto rounded-2xl border border-cyan-500/20 bg-[#0e1220]">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider bg-white/[0.02]">
                     <th className="py-3 px-4 font-semibold">STT</th>
-                    <th className="py-3 px-4 font-semibold">Tên Tài Khoản / Gợi Nhớ</th>
-                    <th className="py-3 px-4 font-semibold">Masked API Key (Bảo Mật)</th>
-                    <th className="py-3 px-4 font-semibold">Nhà Cung Cấp / Base URL</th>
+                    <th className="py-3 px-4 font-semibold">Tên Tài Khoản xKiro</th>
+                    <th className="py-3 px-4 font-semibold">Masked Key</th>
+                    <th className="py-3 px-4 font-semibold">Base URL</th>
                     <th className="py-3 px-4 font-semibold">Trạng Thái Live</th>
                     <th className="py-3 px-4 font-semibold">Requests / Lỗi</th>
                     <th className="py-3 px-4 font-semibold text-right">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {!overview?.upstream_stats?.keys || overview.upstream_stats.keys.length === 0 ? (
+                  {xkiroKeys.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-xs text-slate-500">
-                        Chưa có key nào trong bể xoay tua. Hãy thêm key đầu tiên ở trên!
+                        Chưa có key xKiro nào trong bể xoay tua. Hãy thêm key đầu tiên ở trên!
                       </td>
                     </tr>
                   ) : (
-                    overview.upstream_stats.keys.map((k: any) => {
+                    xkiroKeys.map((k: any, idx: number) => {
                       const isDead = !k.is_active || k.last_status_code === 401 || k.last_status_code === 403;
                       return (
-                        <tr key={k.id || k.index} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3 px-4 font-mono text-slate-400">
-                            #{k.index}
-                          </td>
+                        <tr key={k.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-4 font-mono text-slate-400">#{idx + 1}</td>
                           <td className="py-3 px-4">
-                            <span className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
-                              <span className="size-1.5 rounded-full bg-amber-400" />
-                              <span>{k.name || `Tài khoản #${k.index}`}</span>
+                            <span className="font-bold text-cyan-300 text-xs flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-cyan-400" />
+                              <span>{k.name || `Acc xKiro #${idx + 1}`}</span>
                             </span>
                           </td>
                           <td className="py-3 px-4 font-mono font-bold text-white">
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-cyan-300">
-                                {k.key_masked}
-                              </span>
-                              <span title="Key được che giấu tuyệt đối không bao giờ gửi ra ngoài">
-                                <Lock className="size-3 text-slate-500" />
-                              </span>
-                            </div>
+                            <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-cyan-300">
+                              {k.key_masked}
+                            </span>
                           </td>
                           <td className="py-3 px-4">
                             <div className="font-semibold text-slate-200">{k.provider || 'xKiro Upstream'}</div>
@@ -1421,31 +1342,20 @@ export default function AdminPage() {
                               className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 ${
                                 isDead
                                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                  : k.request_count === 0
-                                  ? 'bg-slate-800 text-slate-300 border border-slate-700'
                                   : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                               }`}
                             >
                               <span
                                 className={`size-1.5 rounded-full ${
-                                  isDead
-                                    ? 'bg-rose-400'
-                                    : k.request_count === 0
-                                    ? 'bg-slate-400'
-                                    : 'bg-emerald-400 animate-ping'
+                                  isDead ? 'bg-rose-400' : k.request_count === 0 ? 'bg-slate-400' : 'bg-emerald-400 animate-ping'
                                 }`}
                               />
                               {isDead
                                 ? `Lỗi HTTP ${k.last_status_code || 401}`
                                 : k.request_count === 0
-                                ? 'Sẵn Sàng (Chưa gọi)'
+                                ? 'Sẵn Sàng'
                                 : 'Live (HTTP 200)'}
                             </span>
-                            {k.last_error && (
-                              <div className="text-[10px] text-rose-400 truncate max-w-xs mt-0.5 font-mono" title={k.last_error}>
-                                {k.last_error}
-                              </div>
-                            )}
                           </td>
                           <td className="py-3 px-4 font-mono text-[11px]">
                             <span className="text-cyan-300 font-bold">{k.request_count}</span>
@@ -1459,12 +1369,7 @@ export default function AdminPage() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleUpstreamKey(k.id || String(k.index), k.is_active)}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                                  k.is_active
-                                    ? 'border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-                                    : 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                                }`}
-                                title={k.is_active ? 'Tạm dừng key này' : 'Kích hoạt lại key'}
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
                               >
                                 {k.is_active ? 'Tạm Dừng' : 'Bật Lại'}
                               </button>
@@ -1490,8 +1395,452 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* TRANG 2: QUẢN LÝ & TEST API MachGen (CHUYÊN TRÁCH TẠO ẢNH 4K & ART QR)     */}
+      {/* ========================================================================= */}
+      {adminTab === 'machgen' && (
+        <div className="p-6 sm:p-8 rounded-3xl border border-amber-500/30 bg-[#120e09]/90 space-y-6 shadow-2xl relative overflow-hidden ring-1 ring-amber-500/20">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 size-64 rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
+
+          {/* Page 2 Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/25">
+                  <Sparkles className="size-5" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black text-white tracking-wide">
+                      TRANG 2: Quản Lý & Test API MachGen (Ảnh 4K & Art QR Studio)
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Chuyên Trách Đồ Họa
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Hạ tầng độc lập MachGen chuyên trách <b>Tạo ảnh 4K</b> (/dashboard/image) và <b>Art QR Code</b> (/dashboard/art-qr). Hoàn toàn tách biệt khỏi luồng Chat AI xKiro.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={loadAdminData}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all shrink-0 cursor-pointer"
+            >
+              <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Làm mới ({machgenKeys.length} keys)</span>
+            </button>
+          </div>
+
+          {/* Architecture Banner */}
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div className="space-y-1">
+              <div className="font-bold text-amber-300 flex items-center gap-2">
+                <Sparkles className="size-4 text-amber-400" />
+                <span>Kiến Trúc Độc Lập MachGen: Image Studio + Art QR Generator</span>
+              </div>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                • <b>Mặc định Free Engine:</b> Hệ thống sử dụng cụm Pollinations FLUX không giới hạn lượt tạo, không yêu cầu API key trả phí.<br />
+                • <b>Người dùng tự do chọn Model:</b> Trên giao diện Studio, khách hàng có thể chọn 5+ models khác nhau (Flux-Realism, Anime, Turbo...). Thêm key Replicate nếu muốn tốc độ siêu tốc dưới 2s.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/dashboard/image"
+                target="_blank"
+                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+              >
+                <span>Mở Image Studio</span>
+                <ExternalLink className="size-3" />
+              </Link>
+              <Link
+                href="/dashboard/art-qr"
+                target="_blank"
+                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center gap-1 transition-all"
+              >
+                <span>Mở Art QR Studio</span>
+                <ExternalLink className="size-3" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Test & Add Form for MachGen */}
+          <div className="p-6 rounded-2xl border border-amber-500/20 bg-[#171109] space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <Play className="size-4 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">Kiểm Tra Kết Nối & Thêm Key MachGen</h3>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                Ping kiểm tra endpoint tạo ảnh Pollinations hoặc Replicate Token trước khi đưa vào bể
+              </span>
+            </div>
+
+            {/* MachGen Presets */}
+            <div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+                Chọn Nhanh Endpoint MachGen / Tạo Ảnh:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  {
+                    name: 'MachGen Studio (Pollinations FLUX Free)',
+                    url: 'https://image.pollinations.ai',
+                    model: 'flux',
+                    provider: 'MachGen Studio',
+                  },
+                  {
+                    name: 'MachGen Turbo (Pollinations Turbo Free)',
+                    url: 'https://image.pollinations.ai',
+                    model: 'turbo',
+                    provider: 'MachGen Studio',
+                  },
+                  {
+                    name: 'Replicate Official (Token r8_...)',
+                    url: 'https://api.replicate.com/v1',
+                    model: 'black-forest-labs/flux-schnell',
+                    provider: 'MachGen Replicate',
+                  },
+                  {
+                    name: 'Hugging Face FLUX.1',
+                    url: 'https://api-inference.huggingface.co/models',
+                    model: 'black-forest-labs/FLUX.1-dev',
+                    provider: 'MachGen HuggingFace',
+                  },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => {
+                      setMachgenBaseURL(preset.url);
+                      setMachgenModel(preset.model);
+                      setMachgenProvider(preset.provider);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      machgenBaseURL === preset.url && machgenModel === preset.model
+                        ? 'border-amber-400 bg-amber-500/20 text-amber-200 shadow-md shadow-amber-950/40'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* MachGen Input Form */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Tên Cấu Hình MachGen
+                </label>
+                <input
+                  type="text"
+                  value={machgenKeyName}
+                  onChange={(e) => setMachgenKeyName(e.target.value)}
+                  placeholder="Ví dụ: Cụm FLUX Miễn Phí / Replicate VIP"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-bold text-amber-300 placeholder-slate-600 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Base URL Engine
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={machgenBaseURL}
+                    onChange={(e) => setMachgenBaseURL(e.target.value)}
+                    placeholder="https://image.pollinations.ai"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-300 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Model Mặc Định
+                  </label>
+                  <span className="text-[10px] text-amber-400 font-medium">User tự chọn ở Studio</span>
+                </div>
+                <div className="relative">
+                  <Server className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+                  <input
+                    type="text"
+                    value={machgenModel}
+                    onChange={(e) => setMachgenModel(e.target.value)}
+                    placeholder="flux"
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-300 focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Tên Provider
+                </label>
+                <input
+                  type="text"
+                  value={machgenProvider}
+                  onChange={(e) => setMachgenProvider(e.target.value)}
+                  placeholder="MachGen Studio"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-bold text-white focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Secret MachGen API Key / Token */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Key className="size-3.5 text-amber-400" />
+                  <span>API Token MachGen (Nếu dùng Replicate: r8_... | Nếu dùng Pollinations Free: có thể để trống)</span>
+                </label>
+                <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                  <ShieldCheck className="size-3" />
+                  Bảo mật tuyệt đối
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={machgenShowKey ? 'text' : 'password'}
+                  value={machgenKey}
+                  onChange={(e) => setMachgenKey(e.target.value)}
+                  placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxx (hoặc để trống nếu dùng Pollinations Free Engine)"
+                  className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-200 placeholder-slate-600 focus:border-amber-400 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMachgenShowKey(!machgenShowKey)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {machgenShowKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons for MachGen */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleTestMachgenKey}
+                disabled={machgenTesting}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-extrabold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                <Play className={`size-4 ${machgenTesting ? 'animate-spin' : ''}`} />
+                <span>{machgenTesting ? 'Đang kiểm tra kết nối...' : '⚡ Test Kết Nối Engine MachGen'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAddMachgenKey}
+                disabled={machgenAddLoading}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-extrabold text-xs hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                <Check className="size-4" />
+                <span>{machgenAddLoading ? 'Đang lưu...' : '➕ Lưu Cấu Hình Vào MachGen'}</span>
+              </button>
+
+              {machgenKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMachgenKey('');
+                    setMachgenTestResult(null);
+                    setMachgenAddFeedback(null);
+                  }}
+                  className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/5 hover:bg-white/5 cursor-pointer"
+                >
+                  Xóa ô nhập
+                </button>
+              )}
+            </div>
+
+            {/* Test Result Feedback for MachGen */}
+            {machgenTestResult && (
+              <div
+                className={`p-4 rounded-2xl border transition-all ${
+                  machgenTestResult.success
+                    ? 'border-emerald-500/40 bg-emerald-950/20 text-emerald-200'
+                    : 'border-rose-500/40 bg-rose-950/20 text-rose-200'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 font-bold text-xs">
+                    {machgenTestResult.success ? (
+                      <>
+                        <CheckCircle2 className="size-4 text-emerald-400" />
+                        <span className="text-emerald-300">
+                          KẾT NỐI MACHGEN SẴN SÀNG! ĐÃ SẴN SÀNG TẠO ẢNH 4K & ART QR
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="size-4 text-rose-400" />
+                        <span className="text-rose-300">
+                          KẾT NỐI MACHGEN BỊ TỪ CHỐI
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-[11px]">
+                    <span
+                      className={`px-2 py-0.5 rounded font-bold ${
+                        machgenTestResult.status_code === 200
+                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
+                      }`}
+                    >
+                      HTTP {machgenTestResult.status_code}
+                    </span>
+                    {machgenTestResult.latency_ms > 0 && (
+                      <span className="px-2 py-0.5 rounded bg-black/40 text-slate-300 border border-white/10">
+                        {machgenTestResult.latency_ms} ms
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 break-all">
+                  {machgenTestResult.message}
+                </p>
+              </div>
+            )}
+
+            {/* Add Feedback for MachGen */}
+            {machgenAddFeedback && (
+              <div
+                className={`p-3.5 rounded-2xl border text-xs font-semibold ${
+                  machgenAddFeedback.type === 'success'
+                    ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                    : 'border-rose-500/40 bg-rose-950/30 text-rose-300'
+                }`}
+              >
+                {machgenAddFeedback.message}
+              </div>
+            )}
+          </div>
+
+          {/* Dedicated MachGen Active Keys Table */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sparkles className="size-4 text-amber-400" />
+                <span>Danh Sách Cấu Hình / Key MachGen Đang Hoạt Động ({machgenKeys.length} items)</span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                Chỉ hiển thị các key & endpoint phục vụ Tạo Ảnh & Art QR Studio
+              </span>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-amber-500/20 bg-[#15100a]">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider bg-white/[0.02]">
+                    <th className="py-3 px-4 font-semibold">STT</th>
+                    <th className="py-3 px-4 font-semibold">Tên Cấu Hình MachGen</th>
+                    <th className="py-3 px-4 font-semibold">Masked Key / Token</th>
+                    <th className="py-3 px-4 font-semibold">Base URL</th>
+                    <th className="py-3 px-4 font-semibold">Trạng Thái Live</th>
+                    <th className="py-3 px-4 font-semibold">Lượt Tạo Ảnh / Lỗi</th>
+                    <th className="py-3 px-4 font-semibold text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {machgenKeys.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-xs text-slate-500">
+                        Chưa có key MachGen tùy chỉnh nào. Hệ thống mặc định đang dùng Free Engine Pollinations. Hãy thêm cấu hình ở trên nếu muốn thêm token Replicate!
+                      </td>
+                    </tr>
+                  ) : (
+                    machgenKeys.map((k: any, idx: number) => {
+                      const isDead = !k.is_active || k.last_status_code === 401 || k.last_status_code === 403;
+                      return (
+                        <tr key={k.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3 px-4 font-mono text-slate-400">#{idx + 1}</td>
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-amber-400" />
+                              <span>{k.name || `MachGen Node #${idx + 1}`}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-bold text-white">
+                            <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-amber-300">
+                              {k.key_masked || 'Free Engine (No Key)'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-slate-200">{k.provider || 'MachGen Studio'}</div>
+                            <div className="text-[10px] font-mono text-slate-500 truncate max-w-xs">
+                              {k.base_url || 'https://image.pollinations.ai'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 ${
+                                isDead
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              }`}
+                            >
+                              <span
+                                className={`size-1.5 rounded-full ${
+                                  isDead ? 'bg-rose-400' : k.request_count === 0 ? 'bg-slate-400' : 'bg-emerald-400 animate-ping'
+                                }`}
+                              />
+                              {isDead
+                                ? `Lỗi HTTP ${k.last_status_code || 401}`
+                                : k.request_count === 0
+                                ? 'Sẵn Sàng'
+                                : 'Live (HTTP 200)'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px]">
+                            <span className="text-amber-300 font-bold">{k.request_count}</span>
+                            <span className="text-slate-500"> ảnh / </span>
+                            <span className={k.error_count > 0 ? 'text-rose-400 font-bold' : 'text-slate-500'}>
+                              {k.error_count} lỗi
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleUpstreamKey(k.id || String(k.index), k.is_active)}
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                              >
+                                {k.is_active ? 'Tạm Dừng' : 'Bật Lại'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Xóa key này khỏi hệ thống"
+                              >
+                                <Trash className="size-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* User Management Section */}
-      {(adminTab === 'all' || adminTab === 'users') && (
+      {adminTab === 'users' && (
         <div className="p-6 sm:p-8 rounded-3xl border border-white/10 bg-[#0a0d18] space-y-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1647,7 +1996,7 @@ export default function AdminPage() {
       )}
 
       {/* Giftcode Management Section */}
-      {(adminTab === 'all' || adminTab === 'giftcodes') && (
+      {adminTab === 'giftcodes' && (
         <div className="p-6 sm:p-8 rounded-3xl border border-purple-500/20 bg-[#0a0d18] space-y-6 shadow-2xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
