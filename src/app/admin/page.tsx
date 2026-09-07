@@ -109,10 +109,11 @@ export default function AdminPage() {
 
   // Live Upstream Key Tester & Adder State
   const [testKey, setTestKey] = useState('');
+  const [testKeyName, setTestKeyName] = useState('');
   const [showTestKey, setShowTestKey] = useState(false);
-  const [testBaseURL, setTestBaseURL] = useState('https://api.xkiro.com/v1');
+  const [testBaseURL, setTestBaseURL] = useState('https://proxyhack.mafiavietnam1945.workers.dev/v1');
   const [testModel, setTestModel] = useState('deepseek/deepseek-v4-flash');
-  const [testProvider, setTestProvider] = useState('xKiro Upstream');
+  const [testProvider, setTestProvider] = useState('xKiro Proxy');
   const [testRunning, setTestRunning] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -178,6 +179,7 @@ export default function AdminPage() {
         headers: getAdminHeaders(),
         body: JSON.stringify({
           key: testKey.trim(),
+          name: testKeyName.trim() || 'Tài khoản chính',
           provider: testProvider.trim() || 'Custom Upstream',
           base_url: testBaseURL.trim(),
           test_first: false,
@@ -187,9 +189,10 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         setAddKeyFeedback({
           type: 'success',
-          message: `✅ Đã thêm key ${data.key?.key_masked || ''} vào bể xoay tua thành công!`,
+          message: `✅ Đã thêm key [${data.key?.name || ''}] ${data.key?.key_masked || ''} vào bể xoay tua thành công!`,
         });
         setTestKey('');
+        setTestKeyName('');
         setTestResult(null);
         await loadAdminData();
       } else {
@@ -1018,7 +1021,20 @@ export default function AdminPage() {
             </div>
 
             {/* Input Form */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Tên Tài Khoản / Gợi Nhớ
+                </label>
+                <input
+                  type="text"
+                  value={testKeyName}
+                  onChange={(e) => setTestKeyName(e.target.value)}
+                  placeholder="Ví dụ: Acc xKiro VIP 1 / Acc Phụ 2"
+                  className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-amber-300 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                />
+              </div>
+
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
                   Base URL (OpenAI Compatible)
@@ -1029,7 +1045,7 @@ export default function AdminPage() {
                     type="text"
                     value={testBaseURL}
                     onChange={(e) => setTestBaseURL(e.target.value)}
-                    placeholder="https://api.xkiro.com/v1"
+                    placeholder="https://proxyhack.mafiavietnam1945.workers.dev/v1"
                     className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-cyan-300 focus:border-amber-400 focus:outline-none"
                   />
                 </div>
@@ -1053,13 +1069,13 @@ export default function AdminPage() {
 
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Tên Provider Gợi Nhớ
+                  Tên Nhà Cung Cấp (Provider)
                 </label>
                 <input
                   type="text"
                   value={testProvider}
                   onChange={(e) => setTestProvider(e.target.value)}
-                  placeholder="xKiro / DeepSeek / Key Backup"
+                  placeholder="xKiro Proxy / DeepSeek"
                   className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-white focus:border-amber-400 focus:outline-none"
                 />
               </div>
@@ -1214,6 +1230,7 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider bg-white/[0.02]">
                     <th className="py-3 px-4 font-semibold">STT</th>
+                    <th className="py-3 px-4 font-semibold">Tên Tài Khoản / Gợi Nhớ</th>
                     <th className="py-3 px-4 font-semibold">Masked API Key (Bảo Mật)</th>
                     <th className="py-3 px-4 font-semibold">Nhà Cung Cấp / Base URL</th>
                     <th className="py-3 px-4 font-semibold">Trạng Thái Live</th>
@@ -1224,7 +1241,7 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-white/5">
                   {!overview?.upstream_stats?.keys || overview.upstream_stats.keys.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
+                      <td colSpan={7} className="py-8 text-center text-xs text-slate-500">
                         Chưa có key nào trong bể xoay tua. Hãy thêm key đầu tiên ở trên!
                       </td>
                     </tr>
@@ -1235,6 +1252,12 @@ export default function AdminPage() {
                         <tr key={k.id || k.index} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3 px-4 font-mono text-slate-400">
                             #{k.index}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                              <span className="size-1.5 rounded-full bg-amber-400" />
+                              <span>{k.name || `Tài khoản #${k.index}`}</span>
+                            </span>
                           </td>
                           <td className="py-3 px-4 font-mono font-bold text-white">
                             <div className="flex items-center gap-1.5">
