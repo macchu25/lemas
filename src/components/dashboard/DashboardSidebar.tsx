@@ -142,6 +142,8 @@ export default function DashboardSidebar() {
               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">
                 Puter.js
               </span>
+            </Link>
+
             <Link
               href="/dashboard/art-qr"
               prefetch={true}
