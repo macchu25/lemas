@@ -145,7 +145,7 @@ export default function DashboardSidebar() {
             </Link>
 
             <Link
-              href="/dashboard/image"
+              href="/dashboard/art-qr"
               prefetch={true}
               className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/art-qr')
@@ -155,10 +155,10 @@ export default function DashboardSidebar() {
             >
               <div className="flex items-center gap-2.5">
                 <QrCode className="size-4 text-amber-400" />
-                <span>Art QR</span>
+                <span>Art QR Studio</span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">
-                MachGen
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                Admin
               </span>
             </Link>
 

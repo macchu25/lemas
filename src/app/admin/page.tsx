@@ -27,6 +27,7 @@ import {
   LogOut,
   Gift,
   Trash,
+  QrCode,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -380,6 +381,14 @@ export default function AdminPage() {
             <Cpu className="size-3.5" />
             <span>Vào User Dashboard</span>
             <ArrowUpRight className="size-3.5" />
+          </Link>
+
+          <Link
+            href="/dashboard/art-qr"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all"
+          >
+            <QrCode className="size-3.5 text-amber-400" />
+            <span>Art QR & Tách Nền Studio</span>
           </Link>
 
           <button

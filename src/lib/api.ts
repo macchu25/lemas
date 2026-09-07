@@ -457,3 +457,57 @@ export async function fetchArtQRJob(jobID: string): Promise<ArtQRJob> {
   if (!response.ok) throw new Error(data.error || 'Không thể đọc trạng thái Art QR');
   return data;
 }
+
+export interface QRTransOptions {
+  threshold?: number;
+  crop_mode?: 'none' | 'crop' | 'mask';
+  validate?: boolean;
+}
+
+export interface QRTransResponse {
+  success: boolean;
+  error?: string;
+  width?: number;
+  height?: number;
+  qrValid?: boolean;
+  inputPayload?: string;
+  outputPayload?: string;
+  thresholdUsed?: number;
+  retries?: number;
+  executionTimeMs?: number;
+  dataUrl?: string;
+  qrBounds?: { minX: number; minY: number; maxX: number; maxY: number };
+}
+
+export async function processQRTransparency(
+  file: File | Blob,
+  opts: QRTransOptions,
+  adminToken: string
+): Promise<QRTransResponse> {
+  const form = new FormData();
+  form.append('image', file);
+  if (opts.threshold !== undefined) form.append('threshold', opts.threshold.toString());
+  if (opts.crop_mode) form.append('crop_mode', opts.crop_mode);
+  if (opts.validate !== undefined) form.append('validate', opts.validate.toString());
+
+  const res = await fetch(`${API_BASE}/api/admin/art-qr/isolate-transparent`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: form,
+  });
+  return await res.json();
+}
+
+export async function getSampleQR(
+  text?: string,
+  size?: number
+): Promise<{ success: boolean; data_url: string; payload: string }> {
+  const params = new URLSearchParams();
+  if (text) params.append('text', text);
+  if (size) params.append('size', size.toString());
+  const res = await fetch(`${API_BASE}/api/art-qr/sample-qr?${params.toString()}`);
+  return await res.json();
+}
+
