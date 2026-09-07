@@ -1000,13 +1000,13 @@ export default function AdminPage() {
                     provider: 'Groq',
                   },
                   {
-                    name: '🎨 MachGen Studio (API Tạo Ảnh)',
+                    name: '🎨 MachGen Studio (Miễn Phí - Không Cần Key)',
                     url: 'https://image.pollinations.ai',
                     model: 'flux',
                     provider: 'MachGen Studio',
                   },
                   {
-                    name: '🎨 MachGen Replicate (API Tạo Ảnh)',
+                    name: '🎨 MachGen Replicate (Cần Token r8_...)',
                     url: 'https://api.replicate.com/v1',
                     model: 'black-forest-labs/flux-schnell',
                     provider: 'MachGen Replicate',
