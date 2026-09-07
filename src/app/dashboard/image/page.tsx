@@ -130,9 +130,10 @@ export default function ImageStudioPage() {
   const activeRatioObj = ASPECT_RATIOS[selectedRatio] || ASPECT_RATIOS['16:9'];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+    <div className="h-full w-full rounded-2xl border border-white/[0.08] overflow-y-auto bg-[#0a0c12] shadow-2xl p-3 sm:p-5 lg:p-6 relative">
+      <div className="space-y-6 max-w-7xl mx-auto pb-16">
+        {/* Top Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-xl bg-gradient-to-tr from-cyan-500/20 via-teal-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
@@ -606,6 +607,7 @@ export default function ImageStudioPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -242,8 +242,8 @@ export default function ArtQRStudioPage() {
   // 1. ADMIN LOCK SCREEN (If not authenticated)
   if (!isAdminAuth) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-md">
+      <div className="h-full w-full rounded-2xl border border-white/[0.08] overflow-y-auto bg-[#0a0c12] shadow-2xl p-4 sm:p-6 relative flex items-center justify-center">
+        <div className="relative w-full max-w-md my-auto">
           {/* Ambient Glows */}
           <div className="absolute -top-12 -left-12 size-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -right-12 size-48 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -348,9 +348,10 @@ export default function ArtQRStudioPage() {
 
   // 2. AUTHENTICATED ART QR STUDIO
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
-      {/* Top Header & Admin Bar */}
-      <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="h-full w-full rounded-2xl border border-white/[0.08] overflow-y-auto bg-[#0a0c12] shadow-2xl p-3 sm:p-5 lg:p-6 relative">
+      <div className="space-y-6 max-w-7xl mx-auto pb-16">
+        {/* Top Header & Admin Bar */}
+        <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <div className="size-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
@@ -837,6 +838,7 @@ export default function ArtQRStudioPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
