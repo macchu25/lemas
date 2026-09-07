@@ -1000,13 +1000,13 @@ export default function AdminPage() {
                     provider: 'Groq',
                   },
                   {
-                    name: '🎨 MachGen FLUX Studio (Ảnh)',
+                    name: '🎨 MachGen Studio (API Tạo Ảnh)',
                     url: 'https://image.pollinations.ai',
                     model: 'flux',
-                    provider: 'MachGen FLUX',
+                    provider: 'MachGen Studio',
                   },
                   {
-                    name: '🎨 MachGen Replicate API',
+                    name: '🎨 MachGen Replicate (API Tạo Ảnh)',
                     url: 'https://api.replicate.com/v1',
                     model: 'black-forest-labs/flux-schnell',
                     provider: 'MachGen Replicate',
@@ -1042,14 +1042,14 @@ export default function AdminPage() {
                   type="text"
                   value={testKeyName}
                   onChange={(e) => setTestKeyName(e.target.value)}
-                  placeholder="Ví dụ: Acc xKiro VIP 1 / Acc Phụ 2"
+                  placeholder="Ví dụ: Acc xKiro VIP 1 / Acc MachGen Studio"
                   className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-bold text-amber-300 placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Base URL (OpenAI Compatible)
+                  Base URL (OpenAI / Image API)
                 </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
@@ -1064,19 +1064,27 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                  Model ID
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Model ID (Chỉ để Ping Test)
+                  </label>
+                  <span className="text-[10px] text-amber-400 font-medium">User tự chọn</span>
+                </div>
                 <div className="relative">
                   <Server className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
                   <input
                     type="text"
                     value={testModel}
                     onChange={(e) => setTestModel(e.target.value)}
-                    placeholder="deepseek/deepseek-v4-flash"
+                    placeholder={testProvider?.toLowerCase().includes('machgen') ? 'flux (User tự chọn trên Studio)' : 'deepseek/deepseek-v4-flash'}
                     className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0e1220] text-xs font-mono text-purple-300 focus:border-amber-400 focus:outline-none"
                   />
                 </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {testProvider?.toLowerCase().includes('machgen')
+                    ? '✨ MachGen: Admin chỉ cần thêm API. Mọi model (FLUX.1, Turbo 2.0, Photo, Anime, 3D) do người dùng tự chọn trên Studio.'
+                    : '💡 Chỉ dùng để Ping Test. Khi Chat, người dùng có thể tự do chọn bất kỳ model nào.'}
+                </p>
               </div>
 
               <div>
