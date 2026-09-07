@@ -18,6 +18,7 @@ export interface ArtQRPreset {
   negative_prompt: string;
   conditioning_scale: number;
   guidance_scale: number;
+  placement?: Placement;
 }
 
 export interface OutputImage {

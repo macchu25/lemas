@@ -142,24 +142,24 @@ export default function DashboardSidebar() {
               <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">
                 Puter.js
               </span>
-            </Link>
             <Link
               href="/dashboard/art-qr"
               prefetch={true}
               className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 isLinkActive('/dashboard/art-qr')
-                  ? 'bg-emerald-500/10 text-emerald-300 font-semibold border border-emerald-500/25'
+                  ? 'bg-amber-500/10 text-amber-300 font-semibold border border-amber-500/25'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <QrCode className="size-4" />
+                <QrCode className="size-4 text-amber-400" />
                 <span>Art QR</span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300">
-                Mới
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/20">
+                Coming Soon
               </span>
             </Link>
+
             <Link
               href="/dashboard/models"
               prefetch={true}

@@ -23,6 +23,7 @@ export default function ArtQRPlacementEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [qrImgError, setQrImgError] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   const [dragStart, setDragStart] = useState<{ mouseX: number; mouseY: number; startX: number; startY: number } | null>(null);
   const [resizeStart, setResizeStart] = useState<{ mouseX: number; startSize: number; startX: number; startY: number } | null>(null);
@@ -39,11 +40,25 @@ export default function ArtQRPlacementEditor({
     onPlacementChange({ x: nextX, y: nextY, size: placement.size });
   };
 
+  const handleChest = () => {
+    onPlacementChange({ x: 0.23, y: 0.61, size: 0.38 });
+  };
+
+  const handleCorner = () => {
+    const defaultSize = 0.38;
+    onPlacementChange({ x: 0.55, y: 0.55, size: defaultSize });
+  };
+
   const handleReset = () => {
-    const defaultSize = 0.40;
-    const bwf = ar <= 1 ? defaultSize : defaultSize / ar;
-    const bhf = ar <= 1 ? defaultSize * ar : defaultSize;
-    onPlacementChange({ x: Math.max(0, (1 - bwf) / 2), y: Math.max(0, (1 - bhf) / 2), size: defaultSize });
+    if (ar && ar < 0.95) {
+      // For portrait images, reset to chest area to avoid covering face
+      onPlacementChange({ x: 0.23, y: 0.61, size: 0.38 });
+    } else {
+      const defaultSize = 0.40;
+      const bwf = ar <= 1 ? defaultSize : defaultSize / ar;
+      const bhf = ar <= 1 ? defaultSize * ar : defaultSize;
+      onPlacementChange({ x: Math.max(0, (1 - bwf) / 2), y: Math.max(0, (1 - bhf) / 2), size: defaultSize });
+    }
   };
 
   const handleSizeSlider = (newSize: number) => {
@@ -165,13 +180,28 @@ export default function ArtQRPlacementEditor({
           <Focus className="size-4 text-emerald-400" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">{title}</h3>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleChest}
+            className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors shadow-sm"
+            title="Đặt mã QR lên trang phục/thân dưới để giữ khuôn mặt nguyên vẹn và tạo họa tiết đẹp nhất"
+          >
+            <Sparkles className="size-3 text-amber-400" /> Ngực áo (Đẹp nhất)
+          </button>
           <button
             type="button"
             onClick={handleCenter}
             className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:bg-white/[0.08] transition-colors"
           >
             <Move className="size-3" /> Căn giữa
+          </button>
+          <button
+            type="button"
+            onClick={handleCorner}
+            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:bg-white/[0.08] transition-colors"
+          >
+            <Square className="size-3" /> Góc phải
           </button>
           <button
             type="button"
@@ -186,8 +216,12 @@ export default function ArtQRPlacementEditor({
       {/* Editor Canvas Area */}
       <div
         ref={containerRef}
-        style={{ aspectRatio: aspectRatio ? `${aspectRatio}` : '1 / 1', maxHeight: '560px' }}
-        className="relative mx-auto w-full select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
+        style={{
+          aspectRatio: aspectRatio ? `${aspectRatio}` : '1 / 1',
+          maxHeight: '520px',
+          width: aspectRatio ? `min(100%, calc(520px * ${aspectRatio}))` : '100%',
+        }}
+        className="relative mx-auto select-none overflow-hidden rounded-xl border border-white/10 bg-[#07090e] shadow-inner"
       >
         {/* Background Artwork Preview */}
         {!imgError && imageUrl ? (
@@ -197,7 +231,7 @@ export default function ArtQRPlacementEditor({
             alt="Style reference preview"
             onLoad={handleImageLoad}
             onError={() => setImgError(true)}
-            className="pointer-events-none h-full w-full object-contain"
+            className="pointer-events-none h-full w-full object-cover"
           />
         ) : (
           <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-950 p-6 text-center">
@@ -226,10 +260,11 @@ export default function ArtQRPlacementEditor({
         >
           {/* Inner QR Visual - Shows actual QR code uploaded by user */}
           <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center">
-            {qrImageUrl ? (
+            {qrImageUrl && !qrImgError ? (
               <img
                 src={qrImageUrl}
                 alt="QR Code Preview"
+                onError={() => setQrImgError(true)}
                 className="h-full w-full object-contain mix-blend-multiply opacity-90 drop-shadow-md"
               />
             ) : (
