@@ -28,6 +28,7 @@ import {
   Gift,
   Trash,
   QrCode,
+  AlertCircle,
 } from 'lucide-react';
 import { API_BASE } from '@/lib/api';
 
@@ -97,6 +98,36 @@ export default function AdminPage() {
   const [adjustTokens, setAdjustTokens] = useState(1000000);
   const [adjustPlan, setAdjustPlan] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+  const [checkingRotator, setCheckingRotator] = useState(false);
+
+  const handleCheckRotator = async () => {
+    setCheckingRotator(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/rotator/check`, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok && data.stats) {
+        setOverview((prev) =>
+          prev
+            ? {
+                ...prev,
+                upstream_stats: data.stats,
+                upstream_keys_health:
+                  data.stats.active_keys === 0
+                    ? 'CRITICAL: 0 Keys Hoạt Động (Tất Cả Keys Lỗi)'
+                    : `${data.stats.active_keys}/${data.stats.total_keys} Keys Hoạt Động`,
+              }
+            : prev
+        );
+      }
+    } catch {
+      alert('Lỗi kết nối khi kiểm tra upstream keys');
+    } finally {
+      setCheckingRotator(false);
+    }
+  };
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('lemas_admin_auth');
@@ -454,17 +485,55 @@ export default function AdminPage() {
         </div>
 
         {/* Upstream Health */}
-        <div className="p-6 rounded-3xl border border-emerald-500/30 bg-[#071317] space-y-3 relative overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between text-xs text-emerald-400 font-bold">
-            <span>Bể Xoay Tua Lõi (Rotator)</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+        <div
+          className={`p-6 rounded-3xl border space-y-3 relative overflow-hidden shadow-xl ${
+            (overview?.upstream_stats?.active_keys ?? 0) === 0
+              ? 'border-rose-500/40 bg-[#180a0f]'
+              : 'border-emerald-500/30 bg-[#071317]'
+          }`}
+        >
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span
+              className={
+                (overview?.upstream_stats?.active_keys ?? 0) === 0
+                  ? 'text-rose-400'
+                  : 'text-emerald-400'
+              }
+            >
+              Bể Xoay Tua Lõi (Rotator)
+            </span>
+            <div
+              className={`p-2 rounded-xl ${
+                (overview?.upstream_stats?.active_keys ?? 0) === 0
+                  ? 'bg-rose-500/20 text-rose-400'
+                  : 'bg-emerald-500/20 text-emerald-400'
+              }`}
+            >
               <Activity className="size-4.5" />
             </div>
           </div>
-          <div className="text-3xl font-black text-emerald-300">8 / 8 Keys</div>
-          <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
-            <span className="size-2 rounded-full bg-emerald-400 animate-ping mr-1" />
-            <span>Auto-Failover Sẵn Sàng</span>
+          <div
+            className={`text-3xl font-black ${
+              (overview?.upstream_stats?.active_keys ?? 0) === 0
+                ? 'text-rose-400'
+                : 'text-emerald-300'
+            }`}
+          >
+            {overview?.upstream_stats?.active_keys ?? 0} /{' '}
+            {overview?.upstream_stats?.total_keys ?? 8} Keys
+          </div>
+          <div className="flex items-center gap-1 text-[11px] font-semibold">
+            {(overview?.upstream_stats?.active_keys ?? 0) === 0 ? (
+              <span className="text-rose-400 flex items-center gap-1">
+                <AlertTriangle className="size-3.5" />
+                <span>Toàn bộ Keys lỗi / hết hạn!</span>
+              </span>
+            ) : (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <span className="size-2 rounded-full bg-emerald-400 animate-ping mr-1" />
+                <span>Hoạt Động Bình Thường</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -517,55 +586,140 @@ export default function AdminPage() {
           onClick={() => setAdminTab('rotator')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
             adminTab === 'rotator'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+              ? (overview?.upstream_stats?.active_keys ?? 0) === 0
+                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+              : (overview?.upstream_stats?.active_keys ?? 0) === 0
+              ? 'text-rose-400 hover:text-white hover:bg-rose-500/10'
               : 'text-emerald-400 hover:text-white hover:bg-emerald-500/10'
           }`}
         >
           <Activity className="size-4" />
-          <span>⚡ Bể Xoay Tua 8 Keys</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono">
-            8/8 Live
+          <span>⚡ Bể Xoay Tua Keys</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+              (overview?.upstream_stats?.active_keys ?? 0) === 0
+                ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                : 'bg-black/40'
+            }`}
+          >
+            {overview?.upstream_stats?.active_keys ?? 0}/
+            {overview?.upstream_stats?.total_keys ?? 8} Live
           </span>
         </button>
       </div>
 
       {/* Internal Diagnostics Matrix (Visible to Admin Only) */}
       {(adminTab === 'all' || adminTab === 'rotator') && overview?.upstream_stats?.keys && (
-        <div className="p-6 rounded-3xl border border-white/10 bg-[#0a0d18] space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
+        <div
+          className={`p-6 rounded-3xl border space-y-4 shadow-xl ${
+            (overview?.upstream_stats?.active_keys ?? 0) === 0
+              ? 'border-rose-500/30 bg-[#0f0910]'
+              : 'border-white/10 bg-[#0a0d18]'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Layers className="size-4.5 text-cyan-400" />
-                Trạng Thái Chi Tiết 8 Upstream Keys (Ẩn Phía Sau)
+                <span>Trạng Thái Live {overview.upstream_stats.total_keys || 8} Upstream Keys</span>
+                {(overview?.upstream_stats?.active_keys ?? 0) === 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                    Cảnh Báo Lỗi Toàn Bộ
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Theo dõi tải và phân bổ request luân phiên trên từng khóa bí mật của xKiro
+                Kiểm tra sức khỏe kết nối, mã lỗi HTTP và số lần gọi luân phiên tới nhà cung cấp xKiro
               </p>
             </div>
-            <span className="text-xs font-mono text-cyan-300">
-              Model đích: {overview.upstream_stats.default_model}
-            </span>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono text-cyan-300 hidden md:inline">
+                Model: {overview.upstream_stats.default_model}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleCheckRotator}
+                disabled={checkingRotator}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 active:scale-95 transition-all disabled:opacity-50"
+                title="Gửi request kiểm tra trạng thái từng key"
+              >
+                <RefreshCw className={`size-3.5 ${checkingRotator ? 'animate-spin' : ''}`} />
+                <span>{checkingRotator ? 'Đang ping keys...' : 'Ping Test Toàn Bộ'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {overview.upstream_stats.keys.map((k: any) => (
-              <div
-                key={k.index}
-                className="p-3.5 rounded-2xl border border-white/5 bg-[#0e1222] space-y-1.5"
-              >
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-white">Key #{k.index}</span>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400">
-                    Live
-                  </span>
-                </div>
-                <div className="font-mono text-[11px] text-slate-400 truncate">{k.key_masked}</div>
-                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-white/5">
-                  <span>Reqs: <b className="text-cyan-300">{k.request_count}</b></span>
-                  <span>Lỗi: <b className={k.error_count > 0 ? 'text-rose-400' : 'text-slate-400'}>{k.error_count}</b></span>
-                </div>
+          {/* Critical Error Alert Banner if 0 keys active */}
+          {(overview?.upstream_stats?.active_keys ?? 0) === 0 && (
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-rose-400">
+                <AlertCircle className="size-4" />
+                <span>CẢNH BÁO HỆ THỐNG: TẤT CẢ {overview.upstream_stats.total_keys || 8} UPSTREAM KEYS ĐỀU ĐANG BỊ LỖI!</span>
               </div>
-            ))}
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Các API key upstream trả về lỗi <b>HTTP 401: Invalid or disabled ClientApiKey</b>. Người dùng khi nhắn tin trong màn hình Chat sẽ nhận câu thông báo router fallback thay vì câu trả lời của AI. Vui lòng cập nhật API keys còn hạn trong file <code>.env</code> trên máy chủ.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {overview.upstream_stats.keys.map((k: any) => {
+              const isKeyDead = !k.is_active || k.last_status_code === 401 || k.last_status_code === 403;
+              return (
+                <div
+                  key={k.index}
+                  className={`p-3.5 rounded-2xl border space-y-2 transition-all ${
+                    isKeyDead
+                      ? 'border-rose-500/30 bg-[#160b11]'
+                      : 'border-white/5 bg-[#0e1222]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-white flex items-center gap-1">
+                      <span>Key #{k.index}</span>
+                      {isKeyDead && <AlertTriangle className="size-3 text-rose-400" />}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                        isKeyDead
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      }`}
+                    >
+                      {isKeyDead
+                        ? `LỖI (${k.last_status_code || 401})`
+                        : 'Live'}
+                    </span>
+                  </div>
+
+                  <div className="font-mono text-[11px] text-slate-300 truncate">{k.key_masked}</div>
+
+                  {k.last_error && (
+                    <div
+                      className="text-[10px] text-rose-400 bg-black/40 rounded p-1 font-mono truncate"
+                      title={k.last_error}
+                    >
+                      {k.last_error}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5">
+                    <span>
+                      Reqs: <b className="text-cyan-300">{k.request_count}</b>
+                    </span>
+                    <span>
+                      Lỗi:{' '}
+                      <b className={k.error_count > 0 ? 'text-rose-400' : 'text-slate-400'}>
+                        {k.error_count}
+                      </b>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
