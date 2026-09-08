@@ -200,11 +200,25 @@ export async function generateArtQRSync(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}/api/art-qr/generate?sync=true`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 110000); // 110s client-side timeout
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/art-qr/generate?sync=true`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Hết thời gian chờ phản hồi từ máy chủ (>110 giây). Vui lòng thử lại.');
+    }
+    throw new Error('Không thể kết nối đến máy chủ Art QR. Kiểm tra mạng hoặc thử lại sau.');
+  }
+  clearTimeout(timeoutId);
 
   const data = await res.json();
   if (!res.ok && !data.error) {
