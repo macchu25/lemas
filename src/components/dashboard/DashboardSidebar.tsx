@@ -157,8 +157,8 @@ export default function DashboardSidebar() {
                 <QrCode className="size-4 text-amber-400" />
                 <span>Art QR Studio</span>
               </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border border-emerald-500/30">
-                21×21 AI
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-amber-500/20 to-cyan-500/20 text-amber-300 border border-amber-500/30">
+                Tách Nền
               </span>
             </Link>
 

@@ -13,34 +13,16 @@ import {
   Zap,
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
   Crop,
   FileCheck,
   CheckCheck,
   ScanLine,
-  TrendingDown,
-  Link2,
 } from 'lucide-react';
 import {
   processQRTransparency,
   getSampleQR,
-  createIntermediateQR,
   QRTransResponse,
-  IntermediateQRData,
 } from '@/lib/api';
-
-// Safe dimension helper
-const getModuleDim = (modules?: number): number => {
-  if (!modules || modules <= 0) return 21;
-  const dim = Math.round(Math.sqrt(modules));
-  return isNaN(dim) || dim < 21 ? 21 : dim;
-};
-
-// Safe percentage helper
-const getReductionPercent = (pct?: number): number => {
-  if (pct === undefined || pct === null || isNaN(pct)) return 0;
-  return Math.max(0, Math.round(pct));
-};
 
 export default function ArtQRStudioPage() {
   // Prevent hydration mismatch
@@ -62,13 +44,10 @@ export default function ArtQRStudioPage() {
   const [processing, setProcessing] = useState<boolean>(false);
   const [processError, setProcessError] = useState<string>('');
   const [result, setResult] = useState<QRTransResponse | null>(null);
-  const [intermediate, setIntermediate] = useState<IntermediateQRData | null>(null);
-  const [activePreview, setActivePreview] = useState<'intermediate' | 'original'>('intermediate');
   const [bgPreview, setBgPreview] = useState<'checker' | 'white' | 'dark'>('checker');
 
   // Copy feedback state
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
-  const [copiedShortUrl, setCopiedShortUrl] = useState<boolean>(false);
   const [copiedDataUrl, setCopiedDataUrl] = useState<boolean>(false);
   const [copiedImage, setCopiedImage] = useState<boolean>(false);
 
@@ -84,7 +63,6 @@ export default function ArtQRStudioPage() {
     setProcessing(true);
     setProcessError('');
     setResult(null);
-    setIntermediate(null);
 
     try {
       const opts = {
@@ -93,40 +71,11 @@ export default function ArtQRStudioPage() {
         validate: validateQR,
       };
 
-      // 1. Process transparency and minimal intermediate QR simultaneously
       const res = await processQRTransparency(file, opts);
       if (res && res.success) {
         setResult(res);
-        if (res.intermediate && res.intermediate.dataUrl) {
-          setIntermediate(res.intermediate);
-          setActivePreview('intermediate');
-        } else {
-          // Fallback: try createIntermediateQR directly if not included
-          try {
-            const interRes = await createIntermediateQR(file);
-            if (interRes && interRes.dataUrl) {
-              setIntermediate(interRes);
-              setActivePreview('intermediate');
-            } else {
-              setActivePreview('original');
-            }
-          } catch {
-            setActivePreview('original');
-          }
-        }
       } else {
-        // Fallback: try createIntermediateQR directly even if isolation had issues
-        try {
-          const interRes = await createIntermediateQR(file);
-          if (interRes && interRes.dataUrl) {
-            setIntermediate(interRes);
-            setActivePreview('intermediate');
-          } else {
-            setProcessError(res?.error || 'Không thể đọc hoặc xử lý mã QR trong ảnh');
-          }
-        } catch {
-          setProcessError(res?.error || 'Không thể đọc hoặc xử lý mã QR trong ảnh');
-        }
+        setProcessError(res?.error || 'Không thể đọc hoặc xử lý mã QR trong ảnh');
       }
     } catch (err: unknown) {
       setProcessError(err instanceof Error ? err.message : 'Lỗi kết nối tới máy chủ xử lý QR');
@@ -159,7 +108,7 @@ export default function ArtQRStudioPage() {
       if (data && data.success && data.data_url) {
         const res = await fetch(data.data_url);
         const blob = await res.blob();
-        const file = new File([blob], 'sample_vietqr_demo.png', { type: 'image/png' });
+        const file = new File([blob], 'sample_qr_demo.png', { type: 'image/png' });
         await processQRFile(file);
       }
     } catch {
@@ -173,7 +122,7 @@ export default function ArtQRStudioPage() {
     if (selectedFile) {
       await processQRFile(selectedFile);
     } else {
-      setProcessError('Vui lòng chọn hoặc tải lên một hình ảnh QR trước!');
+      setProcessError('Vui lòng chọn hoặc tải lên một hình ảnh mã QR trước!');
     }
   };
 
@@ -200,44 +149,26 @@ export default function ArtQRStudioPage() {
 
   // Copy text payload
   const handleCopyPayload = () => {
-    const text = intermediate?.targetUrl || result?.outputPayload || result?.inputPayload || '';
+    const text = result?.outputPayload || result?.inputPayload || '';
     if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedPayload(true);
     setTimeout(() => setCopiedPayload(false), 2000);
   };
 
-  // Copy short URL
-  const handleCopyShortURL = () => {
-    if (!intermediate?.shortUrl) return;
-    navigator.clipboard.writeText(intermediate.shortUrl);
-    setCopiedShortUrl(true);
-    setTimeout(() => setCopiedShortUrl(false), 2000);
-  };
-
-  // Get active image dataUrl
-  const getActiveDataUrl = (): string => {
-    if (activePreview === 'intermediate' && intermediate?.dataUrl) {
-      return intermediate.dataUrl;
-    }
-    return result?.dataUrl || intermediate?.dataUrl || '';
-  };
-
   // Copy Data URL
   const handleCopyDataURL = () => {
-    const dataUrl = getActiveDataUrl();
-    if (!dataUrl) return;
-    navigator.clipboard.writeText(dataUrl);
+    if (!result?.dataUrl) return;
+    navigator.clipboard.writeText(result.dataUrl);
     setCopiedDataUrl(true);
     setTimeout(() => setCopiedDataUrl(false), 2000);
   };
 
   // Copy image to clipboard
   const handleCopyImageToClipboard = async () => {
-    const dataUrl = getActiveDataUrl();
-    if (!dataUrl) return;
+    if (!result?.dataUrl) return;
     try {
-      const res = await fetch(dataUrl);
+      const res = await fetch(result.dataUrl);
       const blob = await res.blob();
       await navigator.clipboard.write([
         new ClipboardItem({ 'image/png': blob }),
@@ -251,16 +182,10 @@ export default function ArtQRStudioPage() {
 
   // Download Transparent PNG
   const handleDownload = () => {
-    const dataUrl = getActiveDataUrl();
-    if (!dataUrl) return;
+    if (!result?.dataUrl) return;
     const a = document.createElement('a');
-    a.href = dataUrl;
-    if (activePreview === 'intermediate' && intermediate) {
-      const dim = getModuleDim(intermediate.moduleCount);
-      a.download = `artqr_minimal_${dim}x${dim}_${intermediate.slug || 'slug'}_${Date.now()}.png`;
-    } else {
-      a.download = `artqr_transparent_${cropMode}_${Date.now()}.png`;
-    }
+    a.href = result.dataUrl;
+    a.download = `artqr_transparent_${cropMode}_${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -277,10 +202,6 @@ export default function ArtQRStudioPage() {
     );
   }
 
-  const intermediateDim = intermediate?.reducedDimension || (intermediate?.moduleCount ? Math.round(Math.sqrt(intermediate.moduleCount)) : 21);
-  const originalDim = intermediate?.originalDimension || (intermediate?.originalModules ? Math.round(Math.sqrt(intermediate.originalModules)) : 53);
-  const reductionPct = intermediate?.reductionPercent ? Math.round(intermediate.reductionPercent) : 84;
-
   return (
     <div className="h-full w-full rounded-2xl border border-white/[0.08] overflow-y-auto bg-[#0a0c12] shadow-2xl p-3 sm:p-5 lg:p-6 relative">
       <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -288,26 +209,26 @@ export default function ArtQRStudioPage() {
         <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-xl bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <div className="size-9 rounded-xl bg-gradient-to-tr from-amber-500/20 to-cyan-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <QrCode className="size-5" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-white flex items-center gap-2 flex-wrap">
-                  <span>Art QR Studio • Tối Thiểu Hóa Module QR</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border border-emerald-500/30">
-                    Version 1 (21×21)
+                  <span>Art QR Studio • Tách Nền Trong Suốt Cho AI Art</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500/20 to-cyan-500/20 text-amber-300 border border-amber-500/30">
+                    Go Engine ~3ms
                   </span>
                 </h1>
                 <p className="text-xs text-slate-400">
-                  Tải lên hình ảnh mã QR bất kỳ để tự động tạo mã QR trung gian tối thiểu module (21×21 ô) giúp AI hòa trộn tranh nghệ thuật không bị đè ô vuông
+                  Tải lên hình ảnh mã QR bất kỳ để bóc tách nền trắng thành PNG trong suốt (RGBA), hỗ trợ tự động tìm vùng mã và tối ưu độ tương phản cho AI Art & ControlNet
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-semibold shrink-0">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Tự Động Nén 21×21 Live</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-semibold shrink-0">
+            <span className="size-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Xử Lý Trực Tiếp Không Qua Rút Gọn</span>
           </div>
         </div>
 
@@ -334,7 +255,7 @@ export default function ArtQRStudioPage() {
                   className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20"
                 >
                   <Sparkles className="size-3 text-cyan-400" />
-                  <span>Thử ảnh VietQR mẫu (53×53)</span>
+                  <span>Thử ảnh QR mẫu</span>
                 </button>
               </div>
 
@@ -375,7 +296,7 @@ export default function ArtQRStudioPage() {
                         {selectedFile?.name || 'Ảnh mã QR đã tải lên'}
                       </p>
                       <p className="text-[11px] text-emerald-400 font-semibold mt-0.5">
-                        ✓ Đã tự động giải mã và tạo QR trung gian {intermediateDim}×{intermediateDim}
+                        ✓ Đã tự động bóc tách nền trắng
                       </p>
                       <p className="text-[10px] text-slate-500 mt-1">
                         Bấm vào đây để chọn ảnh khác, kéo thả file mới hoặc bấm <kbd className="px-1 py-0.2 rounded bg-slate-800 border border-slate-700 font-mono text-[9px] text-amber-300">Ctrl + V</kbd>
@@ -395,7 +316,7 @@ export default function ArtQRStudioPage() {
                         Hỗ trợ PNG, JPG, WebP • Có thể bấm <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-amber-300">Ctrl + V</kbd> để dán ảnh trực tiếp
                       </p>
                       <p className="text-[10px] text-cyan-400/80 mt-1 font-medium">
-                        ⚡ Tự động nén số ô module xuống tối thiểu (Version 1: 21×21) ngay khi tải ảnh
+                        ⚡ Giữ nguyên 100% dữ liệu gốc của bạn, tách nền trong suốt cực chuẩn cho AI Art
                       </p>
                     </div>
                   </div>
@@ -571,12 +492,12 @@ export default function ArtQRStudioPage() {
                 {processing ? (
                   <>
                     <RefreshCw className="size-4 animate-spin" />
-                    <span>Đang xử lý thuật toán Go (~3ms)...</span>
+                    <span>Đang tách nền Go (~3ms)...</span>
                   </>
                 ) : (
                   <>
                     <Zap className="size-4" />
-                    <span>Tách Nền & Tự Động Rút Gọn Module</span>
+                    <span>Tách Nền Trong Suốt (Process Transparency)</span>
                   </>
                 )}
               </button>
@@ -626,68 +547,9 @@ export default function ArtQRStudioPage() {
                 </div>
               </div>
 
-              {/* Preview Switcher Tabs (Intermediate vs Original) */}
-              {(intermediate || result) && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner">
-                    {intermediate && (
-                      <button
-                        type="button"
-                        onClick={() => setActivePreview('intermediate')}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                          activePreview === 'intermediate'
-                            ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/10'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
-                      >
-                        <Zap className="size-3.5 text-emerald-400" />
-                        <span>Mã Rút Gọn Module ({intermediateDim}×{intermediateDim})</span>
-                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          -{reductionPct}% Ô
-                        </span>
-                      </button>
-                    )}
-
-                    {result?.dataUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setActivePreview('original')}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                          activePreview === 'original'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                        }`}
-                      >
-                        <Layers className="size-3.5 text-amber-400" />
-                        <span>Mã Gốc Tách Nền ({originalDim}×{originalDim})</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Module Reduction Comparison Pill */}
-                  {intermediate && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 text-xs shadow-md">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono text-[11px] border border-slate-700/60">
-                          Mã gốc: {originalDim}×{originalDim} ({intermediate.originalModules || (originalDim * originalDim)} ô)
-                        </span>
-                        <span className="text-emerald-400 font-bold">➔</span>
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1">
-                          <Zap className="size-3 text-emerald-400" />
-                          Mã trung gian: {intermediateDim}×{intermediateDim} (Chỉ {intermediate.moduleCount || (intermediateDim * intermediateDim)} ô)
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 self-start sm:self-auto">
-                        Giảm -{reductionPct}% ô ma trận
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Display Canvas Viewport */}
               <div
-                className={`relative rounded-2xl min-h-[360px] flex items-center justify-center p-6 border border-slate-800/80 overflow-hidden transition-all ${
+                className={`relative rounded-2xl min-h-[380px] flex items-center justify-center p-6 border border-slate-800/80 overflow-hidden transition-all ${
                   bgPreview === 'checker'
                     ? 'bg-[linear-gradient(45deg,#151921_25%,transparent_25%),linear-gradient(-45deg,#151921_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#151921_75%),linear-gradient(-45deg,transparent_75%,#151921_75%)] bg-[size:20px_20px] bg-[#0d1117]'
                     : bgPreview === 'white'
@@ -695,26 +557,19 @@ export default function ArtQRStudioPage() {
                     : 'bg-[#06080c]'
                 }`}
               >
-                {getActiveDataUrl() ? (
+                {result?.dataUrl ? (
                   <div className="relative group max-w-full">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={getActiveDataUrl()}
+                      src={result.dataUrl}
                       alt="Processed QR Preview"
-                      className="max-h-[320px] max-w-full object-contain mx-auto transition-transform group-hover:scale-[1.01]"
+                      className="max-h-[340px] max-w-full object-contain mx-auto transition-transform group-hover:scale-[1.01]"
                     />
                     {/* Quality Badge */}
                     <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                      {activePreview === 'intermediate' && intermediate ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/80 text-emerald-300 border border-emerald-500/40 backdrop-blur-md flex items-center gap-1">
-                          <Zap className="size-3 text-emerald-400" />
-                          <span>Version {intermediate.qrVersion || 1} ({intermediateDim}×{intermediateDim} ô)</span>
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/80 text-amber-300 border border-amber-500/40 backdrop-blur-md">
-                          Mã Gốc Tách Nền (PNG RGBA)
-                        </span>
-                      )}
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-black/80 text-amber-300 border border-amber-500/40 backdrop-blur-md">
+                        PNG Trong Suốt (RGBA)
+                      </span>
                     </div>
                   </div>
                 ) : (
@@ -725,132 +580,14 @@ export default function ArtQRStudioPage() {
                     <div>
                       <p className="text-xs font-bold text-slate-300">Chưa có kết quả xử lý</p>
                       <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                        Tải lên hoặc kéo thả ảnh mã QR (PNG, JPG, WebP) bên trái để tự động tạo mã QR rút gọn tối thiểu module.
+                        Tải lên hoặc kéo thả ảnh mã QR (PNG, JPG, WebP) bên trái để tách nền trong suốt chuẩn cho AI Art.
                       </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* INTERMEDIATE QR COMPARISON & REDUCTION CARD */}
-              {intermediate && (
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0e1622]/90 to-[#0a1017]/90 border border-cyan-500/30 shadow-xl space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                        <TrendingDown className="size-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-extrabold text-white flex items-center gap-2">
-                          <span>Bộ Giảm Thiểu Module QR Cho AI Art</span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            Intermediate Minimal QR
-                          </span>
-                        </h3>
-                        <p className="text-[10px] text-slate-400">
-                          Ép ma trận mã QR về mức tối thiểu để AI Diffusion hòa trộn ảnh nghệ thuật không bị nhiễu ô vuông
-                        </p>
-                      </div>
-                    </div>
-
-                    {reductionPct > 0 && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-extrabold self-start sm:self-auto">
-                        <Zap className="size-3 text-emerald-400" />
-                        <span>Giảm -{reductionPct}% Ô Ma Trận</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Module Comparison Stats Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Original Box */}
-                    <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800/80 space-y-1">
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase">Mã Gốc (Original)</p>
-                      <p className="text-xs font-mono font-bold text-slate-200">
-                        {originalDim > 0 ? `${originalDim}×${originalDim} modules` : 'Mã Dày Đặc'}
-                      </p>
-                      <p className="text-[10px] text-slate-500">
-                        {intermediate.originalModules ? `${intermediate.originalModules.toLocaleString()} ô vuông` : 'Nhiều chi tiết'}
-                      </p>
-                    </div>
-
-                    {/* Reduced Box */}
-                    <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1">
-                      <p className="text-[10px] font-semibold text-emerald-400 uppercase flex items-center gap-1">
-                        <CheckCircle2 className="size-3" />
-                        <span>Rút Gọn (Minimal)</span>
-                      </p>
-                      <p className="text-xs font-mono font-bold text-emerald-300">
-                        Version {intermediate.qrVersion || 1} ({intermediateDim}×{intermediateDim})
-                      </p>
-                      <p className="text-[10px] text-emerald-400/80">
-                        Chỉ {intermediate.moduleCount || (intermediateDim * intermediateDim)} ô vuông (Cực thoáng)
-                      </p>
-                    </div>
-
-                    {/* Benefit Box */}
-                    <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/30 space-y-1">
-                      <p className="text-[10px] font-semibold text-cyan-400 uppercase">Hiệu Quả AI Art</p>
-                      <p className="text-xs font-bold text-cyan-200">
-                        Tối ưu 100% Diffusion
-                      </p>
-                      <p className="text-[10px] text-cyan-400/80">
-                        Điện thoại quét nhạy & nhanh
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Short URL & Redirection Info */}
-                  <div className="space-y-2 pt-1">
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5 text-slate-300 flex-wrap">
-                          <Link2 className="size-3.5 text-cyan-400 shrink-0" />
-                          <span className="font-semibold">Link chuyển hướng trung gian:</span>
-                          <span className="font-mono text-cyan-300 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/30 break-all">
-                            {intermediate.shortUrl}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={handleCopyShortURL}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700/80 flex items-center gap-1 transition-colors"
-                          >
-                            {copiedShortUrl ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                            <span>{copiedShortUrl ? 'Đã chép link' : 'Chép link'}</span>
-                          </button>
-
-                          {intermediate.shortUrl && (
-                            <a
-                              href={intermediate.shortUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1 transition-colors"
-                            >
-                              <ExternalLink className="size-3" />
-                              <span>Mở test</span>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Target Payload Display */}
-                      {intermediate.targetUrl && (
-                        <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/60 flex items-start gap-1.5">
-                          <span className="font-semibold shrink-0 text-slate-500">Đích đến:</span>
-                          <span className="font-mono text-slate-300 break-all line-clamp-2">
-                            {intermediate.targetUrl}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Result Metadata Badges for Original QR */}
+              {/* Result Metadata Badges */}
               {result && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                   <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-center">
@@ -885,7 +622,7 @@ export default function ArtQRStudioPage() {
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-center">
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase">Kích Thước Gốc</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase">Kích Thước</p>
                     <p className="text-xs font-mono font-bold text-slate-200 mt-1">
                       {result.width || 0} x {result.height || 0} px
                     </p>
@@ -899,7 +636,7 @@ export default function ArtQRStudioPage() {
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-semibold text-slate-400 flex items-center gap-1.5">
                       <CheckCheck className="size-3.5 text-emerald-400" />
-                      <span>Dữ Liệu QR Đã Giải Mã (Payload Gốc):</span>
+                      <span>Dữ Liệu Mã QR Đã Giải Mã (Payload Gốc):</span>
                     </span>
                     <button
                       type="button"
@@ -917,19 +654,15 @@ export default function ArtQRStudioPage() {
               )}
 
               {/* Actions Bar */}
-              {getActiveDataUrl() && (
+              {result?.dataUrl && (
                 <div className="flex flex-wrap gap-2.5 pt-2">
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="flex-1 min-w-[200px] py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition-all"
+                    className="flex-1 min-w-[200px] py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.99] transition-all"
                   >
                     <Download className="size-4" />
-                    <span>
-                      {activePreview === 'intermediate' && intermediate
-                        ? `Tải PNG Rút Gọn (${intermediateDim}×${intermediateDim}) Trong Suốt`
-                        : 'Tải PNG Gốc Trong Suốt'}
-                    </span>
+                    <span>Tải Ảnh PNG Trong Suốt (RGBA)</span>
                   </button>
 
                   <button
@@ -947,7 +680,7 @@ export default function ArtQRStudioPage() {
                     className="py-3 px-4 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 flex items-center justify-center gap-2 active:scale-[0.99] transition-all"
                   >
                     {copiedDataUrl ? <Check className="size-3.5 text-emerald-400" /> : <FileCheck className="size-3.5 text-amber-400" />}
-                    <span>{copiedDataUrl ? 'Đã chép Base64' : 'Chép Base64 Data URL'}</span>
+                    <span>{copiedDataUrl ? 'Đã chép Base64' : 'Chép Base64'}</span>
                   </button>
                 </div>
               )}

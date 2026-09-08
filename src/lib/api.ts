@@ -464,58 +464,6 @@ export interface QRTransOptions {
   validate?: boolean;
 }
 
-export interface IntermediateQRData {
-  success?: boolean;
-  error?: string;
-  id?: string;
-  slug: string;
-  shortUrl: string;
-  targetUrl: string;
-  qrVersion: number;
-  originalDimension: number;
-  reducedDimension: number;
-  moduleCount: number;
-  originalModules: number;
-  reductionPercent: number;
-  dataUrl: string;
-  cleanDataUrl?: string;
-}
-
-export function normalizeIntermediateQR(raw: Record<string, unknown> | null | undefined): IntermediateQRData | null {
-  if (!raw) return null;
-  const dataUrl = (raw.data_url || raw.dataUrl || raw.transparent_data_url || raw.transparentDataUrl || '') as string;
-  const shortUrl = (raw.short_url || raw.shortUrl || '') as string;
-  const targetUrl = (raw.target_url || raw.targetUrl || raw.original_payload || raw.originalPayload || '') as string;
-  const slug = (raw.slug || raw.id || '') as string;
-  const reducedDimension = Number(raw.reduced_dimension || raw.reducedDimension || raw.reduced_modules || raw.reducedModules || 21);
-  const originalDimension = Number(raw.original_dimension || raw.originalDimension || Math.round(Math.sqrt(Number(raw.original_modules || 2809))) || 53);
-  const moduleCount = Number(raw.module_count || raw.moduleCount || (reducedDimension * reducedDimension));
-  const originalModules = Number(raw.original_modules || raw.originalModules || (originalDimension * originalDimension));
-  const reductionPercent = raw.reduction_percent !== undefined
-    ? Number(raw.reduction_percent)
-    : (raw.reduction_pct !== undefined
-      ? Number(raw.reduction_pct)
-      : (raw.reductionPercent !== undefined ? Number(raw.reductionPercent) : 0));
-  const qrVersion = Number(raw.qr_version || raw.qrVersion || (reducedDimension === 21 ? 1 : Math.ceil((reducedDimension - 17) / 4)));
-
-  return {
-    success: raw.success !== false,
-    error: raw.error as string | undefined,
-    id: slug,
-    slug,
-    shortUrl,
-    targetUrl,
-    qrVersion,
-    originalDimension,
-    reducedDimension,
-    moduleCount,
-    originalModules,
-    reductionPercent,
-    dataUrl,
-    cleanDataUrl: (raw.clean_data_url || raw.cleanDataUrl || '') as string,
-  };
-}
-
 export interface QRTransResponse {
   success: boolean;
   error?: string;
@@ -530,7 +478,6 @@ export interface QRTransResponse {
   executionTimeMs?: number;
   dataUrl?: string;
   qrBounds?: { minX: number; minY: number; maxX: number; maxY: number };
-  intermediate?: IntermediateQRData | null;
 }
 
 export async function processQRTransparency(
@@ -554,41 +501,7 @@ export async function processQRTransparency(
     headers,
     body: form,
   });
-  const data = await res.json();
-  if (data && data.intermediate) {
-    data.intermediate = normalizeIntermediateQR(data.intermediate);
-  }
-  return data;
-}
-
-export async function createIntermediateQR(
-  payloadOrFile: string | File | Blob
-): Promise<IntermediateQRData> {
-  let res: Response;
-  if (typeof payloadOrFile === 'string') {
-    res = await fetch(`${API_BASE}/api/art-qr/intermediate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payload: payloadOrFile }),
-    });
-  } else {
-    const form = new FormData();
-    form.append('image', payloadOrFile);
-    res = await fetch(`${API_BASE}/api/art-qr/intermediate`, {
-      method: 'POST',
-      body: form,
-    });
-  }
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Tạo mã QR trung gian thất bại');
-  }
-  const norm = normalizeIntermediateQR(data);
-  if (!norm) {
-    throw new Error('Dữ liệu mã QR trung gian không hợp lệ');
-  }
-  return norm;
+  return await res.json();
 }
 
 export async function getSampleQR(
