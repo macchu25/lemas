@@ -2344,24 +2344,24 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2">
                         <ImageIcon className="size-4 text-amber-400" />
                         <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                          1A. Ảnh Mẫu Cho User Xem (Showcase Preview)
+                          1A. Ảnh Mẫu Cho Khách Xem
                         </h4>
                       </div>
                       <span className="text-[10px] text-amber-400/90 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                        Hiển thị ở Catalog & Studio
+                        Hiển thị ở Catalog
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Ảnh tác phẩm hoàn chỉnh (có Art QR mẫu) để khách xem và chọn phong cách.
+                      Ảnh tác phẩm hoàn chỉnh (có Art QR mẫu) để khách ngắm và chọn phong cách.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-3 items-start">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
                       {/* Preview Box */}
-                      <div className="size-24 sm:size-28 rounded-2xl overflow-hidden border border-amber-500/30 bg-black/60 shrink-0 relative shadow-lg">
+                      <label className="group relative size-28 sm:size-32 rounded-2xl overflow-hidden border-2 border-dashed border-amber-500/40 hover:border-amber-400 bg-black/60 shrink-0 cursor-pointer shadow-lg transition-all flex items-center justify-center">
                         <img
                           src={getPresetAssetUrl(editingPreset.preview_url)}
                           alt="User Preview"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
@@ -2369,44 +2369,43 @@ export default function AdminPage() {
                             }
                           }}
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-amber-300 text-[10px] font-bold">
+                          <Upload className="size-4" />
+                          <span>Đổi ảnh</span>
+                        </div>
                         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/80 text-amber-300">
                           Khách Xem
                         </span>
-                      </div>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          disabled={uploadingPreview}
+                          onChange={handleUploadPreviewFile}
+                        />
+                      </label>
 
-                      <div className="flex-1 min-w-0 space-y-2.5 w-full">
-                        {/* Upload Button */}
-                        <div>
-                          <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer transition-all">
-                            <Upload className="size-3.5" />
-                            <span>{uploadingPreview ? 'Đang tải...' : '📁 TẢI ẢNH MẪU CHO KHÁCH XEM'}</span>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp"
-                              className="hidden"
-                              disabled={uploadingPreview}
-                              onChange={handleUploadPreviewFile}
-                            />
-                          </label>
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-semibold text-slate-300 block mb-1">
-                            Hoặc URL Ảnh Mẫu:
-                          </label>
+                      <div className="flex-1 min-w-0 space-y-2 w-full">
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer transition-all">
+                          <Upload className="size-4" />
+                          <span>{uploadingPreview ? 'Đang tải lên...' : '📁 TẢI ẢNH MẪU TỪ THIẾT BỊ'}</span>
                           <input
-                            type="text"
-                            value={editingPreset.preview_url || ''}
-                            onChange={(e) =>
-                              setEditingPreset({
-                                ...editingPreset,
-                                preview_url: e.target.value,
-                              })
-                            }
-                            placeholder="/presets/doraemon_bread_scene.jpg hoặc link HTTPS"
-                            className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#0d0712] text-[11px] font-mono text-amber-200 focus:border-amber-400 focus:outline-none"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            disabled={uploadingPreview}
+                            onChange={handleUploadPreviewFile}
                           />
-                        </div>
+                        </label>
+                        <p className="text-[10px] text-slate-400">
+                          {editingPreset.preview_url ? (
+                            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                              ✓ Đã có ảnh mẫu cho khách xem
+                            </span>
+                          ) : (
+                            <span>Hỗ trợ JPG, PNG, WebP (Ảnh vuông 1024x1024 đẹp nhất)</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2417,24 +2416,24 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2">
                         <Sparkles className="size-4 text-pink-400" />
                         <h4 className="text-xs font-bold text-pink-300 uppercase tracking-wider">
-                          1B. Ảnh Phôi Tham Chiếu Cho AI Gen (Scene Base)
+                          1B. Ảnh Phôi Tham Chiếu Cho AI Gen
                         </h4>
                       </div>
                       <span className="text-[10px] text-pink-400/90 font-semibold px-2 py-0.5 rounded bg-pink-500/10 border border-pink-500/20">
-                        AI MachGen sử dụng
+                        AI MachGen dùng
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Ảnh phôi nền cảnh gốc (chưa có QR) để AI hòa quyện mã QR của người dùng vào.
+                      Ảnh phôi nền cảnh gốc (chưa có QR) để AI hòa quyện mã QR của khách vào.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-3 items-start">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
                       {/* Reference Scene Box */}
-                      <div className="size-24 sm:size-28 rounded-2xl overflow-hidden border border-pink-500/30 bg-black/60 shrink-0 relative shadow-lg">
+                      <label className="group relative size-28 sm:size-32 rounded-2xl overflow-hidden border-2 border-dashed border-pink-500/40 hover:border-pink-400 bg-black/60 shrink-0 cursor-pointer shadow-lg transition-all flex items-center justify-center">
                         <img
                           src={getPresetAssetUrl(editingPreset.reference_image_url)}
                           alt="AI Reference Scene"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             const target = e.target as HTMLElement;
                             if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
@@ -2442,44 +2441,43 @@ export default function AdminPage() {
                             }
                           }}
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity text-pink-300 text-[10px] font-bold">
+                          <Upload className="size-4" />
+                          <span>Đổi ảnh</span>
+                        </div>
                         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/80 text-pink-300">
                           AI Dùng
                         </span>
-                      </div>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          disabled={uploadingScene}
+                          onChange={handleUploadSceneFile}
+                        />
+                      </label>
 
-                      <div className="flex-1 min-w-0 space-y-2.5 w-full">
-                        {/* Upload Button */}
-                        <div>
-                          <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white shadow-md shadow-pink-600/20 cursor-pointer transition-all">
-                            <Upload className="size-3.5" />
-                            <span>{uploadingScene ? 'Đang tải...' : '📁 TẢI ẢNH PHÔI CHO AI GEN'}</span>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp"
-                              className="hidden"
-                              disabled={uploadingScene}
-                              onChange={handleUploadSceneFile}
-                            />
-                          </label>
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-semibold text-slate-300 block mb-1">
-                            Hoặc URL Ảnh Phôi:
-                          </label>
+                      <div className="flex-1 min-w-0 space-y-2 w-full">
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white shadow-md shadow-pink-600/20 cursor-pointer transition-all">
+                          <Upload className="size-4" />
+                          <span>{uploadingScene ? 'Đang tải lên...' : '📁 TẢI ẢNH PHÔI TỪ THIẾT BỊ'}</span>
                           <input
-                            type="text"
-                            value={editingPreset.reference_image_url || ''}
-                            onChange={(e) =>
-                              setEditingPreset({
-                                ...editingPreset,
-                                reference_image_url: e.target.value,
-                              })
-                            }
-                            placeholder="/presets/doraemon_bread_scene.jpg hoặc link HTTPS"
-                            className="w-full h-8 px-2.5 rounded-lg border border-white/10 bg-[#0d0712] text-[11px] font-mono text-pink-200 focus:border-pink-500 focus:outline-none"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            disabled={uploadingScene}
+                            onChange={handleUploadSceneFile}
                           />
-                        </div>
+                        </label>
+                        <p className="text-[10px] text-slate-400">
+                          {editingPreset.reference_image_url ? (
+                            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                              ✓ Đã có ảnh phôi nền cho AI gen
+                            </span>
+                          ) : (
+                            <span>Hỗ trợ JPG, PNG, WebP (Ảnh phôi cảnh sạch chưa có QR)</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
