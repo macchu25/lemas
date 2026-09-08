@@ -435,6 +435,7 @@ export default function WavyQRControlNet({
         const effectiveAmp = amplitude * Math.max(0.3, regionalAmpWeight);
 
         if (waveStyle === 'sine_stream') {
+          // 1. SÓNG SIN DÒNG CHẢY
           const waveOffsetY =
             effectiveAmp *
             Math.sin((cx / canvasSize) * frequency * Math.PI * 2 + phaseRad + r * 0.2);
@@ -465,6 +466,7 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         } else if (waveStyle === 'silk_ribbon') {
+          // 2. RUY BĂNG LỤA BEZIER
           const waveX = effectiveAmp * Math.sin((cy / canvasSize) * frequency * Math.PI + phaseRad);
           const waveY = effectiveAmp * Math.cos((cx / canvasSize) * frequency * Math.PI + phaseRad);
 
@@ -496,13 +498,35 @@ export default function WavyQRControlNet({
             );
             ctx.stroke();
           }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + waveX * 0.5,
+              cy + cellSize * 0.5 + waveY * 0.5,
+              below.x - waveX * 0.5,
+              below.y - cellSize * 0.5 - waveY * 0.5,
+              below.x,
+              below.y
+            );
+            ctx.stroke();
+          }
         } else if (waveStyle === 'radial_ripple') {
+          // 3. GỢN SÓNG LAN TỎA
           const dist = Math.sqrt((cx - qrCenter) ** 2 + (cy - qrCenter) ** 2);
           const rippleAmp = effectiveAmp * Math.sin((dist / canvasSize) * frequency * Math.PI * 2 + phaseRad);
 
           ctx.beginPath();
           ctx.arc(cx, cy, Math.max(2, fillRadius + rippleAmp * 0.4), 0, Math.PI * 2);
           ctx.fill();
+
+          // Concentric ripple arc
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(2, strokeWidth * 0.6);
+          ctx.arc(cx, cy, fillRadius * 1.35 + Math.abs(rippleAmp) * 0.25, phaseRad, phaseRad + Math.PI * 1.2);
+          ctx.stroke();
 
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
@@ -512,24 +536,332 @@ export default function WavyQRControlNet({
             ctx.lineTo(next.x, next.y);
             ctx.stroke();
           }
-        } else {
-          // Default organic wavy ribbons
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.1;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(below.x, below.y);
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'topographic') {
+          // 4. ĐƯỜNG NÉT ĐỊA HÌNH (CONTOUR ELEVATION)
+          const elevation =
+            Math.sin((cx / 80) * (frequency / 4) + phaseRad) *
+            Math.cos((cy / 80) * (frequency / 4) + phaseRad);
+          const topoShift = elevation * effectiveAmp * 0.8;
+
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(2, strokeWidth * 0.7);
+          ctx.arc(cx + topoShift * 0.3, cy + topoShift * 0.3, fillRadius * 1.3, 0, Math.PI * 2);
+          ctx.stroke();
+
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
-            const wobble = effectiveAmp * Math.sin((c + r) * 0.7 + phaseRad);
+            const midElev =
+              Math.sin(((cx + next.x) / 160) * (frequency / 4) + phaseRad) *
+              Math.cos((cy / 80) * (frequency / 4) + phaseRad);
+            const midShift = midElev * effectiveAmp;
+
             ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.lineWidth = strokeWidth * 1.1;
             ctx.moveTo(cx, cy);
-            ctx.quadraticCurveTo((cx + next.x) / 2, (cy + next.y) / 2 + wobble, next.x, next.y);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.35,
+              cy + midShift,
+              next.x - cellSize * 0.35,
+              next.y + midShift,
+              next.x,
+              next.y
+            );
             ctx.stroke();
           }
           if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
             const below = getModuleCenter(c, r + 1);
-            const wobble = effectiveAmp * Math.cos((c + r) * 0.7 + phaseRad);
+            const midElev =
+              Math.sin((cx / 80) * (frequency / 4) + phaseRad) *
+              Math.cos(((cy + below.y) / 160) * (frequency / 4) + phaseRad);
+            const midShift = midElev * effectiveAmp;
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.1;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + midShift,
+              cy + cellSize * 0.35,
+              below.x + midShift,
+              below.y - cellSize * 0.35,
+              below.x,
+              below.y
+            );
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'cyber_circuit') {
+          // 5. MẠCH SÓNG BO CONG (PCB CIRCUIT & TRACES)
+          // Circular solder via ring
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(2, strokeWidth * 0.6);
+          ctx.arc(cx, cy, fillRadius * 1.4, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // 45° / 90° PCB Dogleg Routing
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            const bendOffset = (r % 2 === 0 ? 1 : -1) * (effectiveAmp * 0.35);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.15;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + cellSize * 0.35, cy + bendOffset);
+            ctx.lineTo(next.x - cellSize * 0.35, cy + bendOffset);
+            ctx.lineTo(next.x, next.y);
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            const bendOffset = (c % 2 === 0 ? 1 : -1) * (effectiveAmp * 0.35);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.15;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + bendOffset, cy + cellSize * 0.35);
+            ctx.lineTo(cx + bendOffset, below.y - cellSize * 0.35);
+            ctx.lineTo(below.x, below.y);
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'liquid_drops') {
+          // 6. GIỌT NƯỚC HỮU CƠ (ORGANIC METABALL BRIDGES)
+          const dropPulsate = Math.sin((c * 1.5 + r * 1.5) * (frequency / 5) + phaseRad) * (effectiveAmp * 0.2);
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, Math.max(3, fillRadius * 1.05 + dropPulsate), 0, Math.PI * 2);
+          ctx.fill();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            const waist = Math.max(strokeWidth * 0.7, fillRadius * 0.7);
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - fillRadius * 0.75);
+            ctx.quadraticCurveTo((cx + next.x) / 2, cy - waist * 0.4, next.x, next.y - fillRadius * 0.75);
+            ctx.lineTo(next.x, next.y + fillRadius * 0.75);
+            ctx.quadraticCurveTo((cx + next.x) / 2, cy + waist * 0.4, cx, cy + fillRadius * 0.75);
+            ctx.closePath();
+            ctx.fill();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            const waist = Math.max(strokeWidth * 0.7, fillRadius * 0.7);
+
+            ctx.beginPath();
+            ctx.moveTo(cx - fillRadius * 0.75, cy);
+            ctx.quadraticCurveTo(cx - waist * 0.4, (cy + below.y) / 2, below.x - fillRadius * 0.75, below.y);
+            ctx.lineTo(below.x + fillRadius * 0.75, below.y);
+            ctx.quadraticCurveTo(cx + waist * 0.4, (cy + below.y) / 2, cx + fillRadius * 0.75, cy);
+            ctx.closePath();
+            ctx.fill();
+          }
+        } else if (waveStyle === 'vortex_spiral') {
+          // 7. XOÁY NƯỚC VORTEX (FIBONACCI SPIRAL SWIRL)
+          const angle = Math.atan2(cy - qrCenter, cx - qrCenter);
+          const dist = Math.sqrt((cx - qrCenter) ** 2 + (cy - qrCenter) ** 2);
+          const swirlFactor = (dist / qrCenter) * (frequency / 4);
+          const tangentAngle = angle + Math.PI / 2 + phaseRad;
+          const swirlX = Math.cos(tangentAngle) * effectiveAmp * (1 + swirlFactor * 0.5);
+          const swirlY = Math.sin(tangentAngle) * effectiveAmp * (1 + swirlFactor * 0.5);
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.25;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo(
+              (cx + next.x) / 2 + swirlX * 0.6,
+              (cy + next.y) / 2 + swirlY * 0.6,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.25;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo(
+              (cx + below.x) / 2 + swirlX * 0.6,
+              (cy + below.y) / 2 + swirlY * 0.6,
+              below.x,
+              below.y
+            );
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'botanical_vines') {
+          // 8. DÂY LEO THẢO MỘC (ORGANIC PLANT TENDRILS)
+          const stemSway = Math.sin((c * 0.8 + r * 0.8) * (frequency / 3) + phaseRad) * effectiveAmp;
+
+          // Tiny bud sprout node
+          ctx.beginPath();
+          ctx.arc(cx + stemSway * 0.3, cy - stemSway * 0.3, Math.max(2, fillRadius * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
             ctx.lineWidth = strokeWidth * 1.2;
             ctx.moveTo(cx, cy);
-            ctx.quadraticCurveTo((cx + below.x) / 2 + wobble, (cy + below.y) / 2, below.x, below.y);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.35,
+              cy + stemSway * 0.7,
+              next.x - cellSize * 0.35,
+              next.y - stemSway * 0.7,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx - stemSway * 0.7,
+              cy + cellSize * 0.35,
+              below.x + stemSway * 0.7,
+              below.y - cellSize * 0.35,
+              below.x,
+              below.y
+            );
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'isometric_weave') {
+          // 9. ĐAN LƯỚI DỆT CHIẾU (3D ISOMETRIC INTERLACE)
+          const isOver = (c + r) % 2 === 0;
+          const weaveShift = (isOver ? 1 : -1) * (effectiveAmp * 0.4);
+
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 1.3;
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + (isOver ? weaveShift : 0));
+            ctx.lineTo(next.x, next.y + (isOver ? weaveShift : 0));
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.moveTo(cx + (!isOver ? weaveShift : 0), cy);
+            ctx.lineTo(below.x + (!isOver ? weaveShift : 0), below.y);
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'audio_waveform') {
+          // 10. SÓNG ÂM EQUALIZER (AUDIO SPECTRUM FREQUENCY BARS)
+          const freqMod = Math.abs(Math.sin((c * 0.7) * (frequency / 3) + phaseRad));
+          const barHeight = Math.min(cellSize * 0.45, (effectiveAmp * 0.7 + fillRadius * 0.6) * (freqMod + 0.4));
+
+          // Vertical harmonic equalizer spine
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(3, strokeWidth * 0.9);
+          ctx.moveTo(cx, cy - barHeight);
+          ctx.lineTo(cx, cy + barHeight);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            const nextFreqMod = Math.abs(Math.sin(((c + 1) * 0.7) * (frequency / 3) + phaseRad));
+            const nextBarH = Math.min(cellSize * 0.45, (effectiveAmp * 0.7 + fillRadius * 0.6) * (nextFreqMod + 0.4));
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.1;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo((cx + next.x) / 2, cy - (barHeight + nextBarH) * 0.3);
+            ctx.lineTo(next.x, next.y);
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.1;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(below.x, below.y);
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'cosmic_orbits') {
+          // 11. QUỸ ĐẠO THIÊN THỂ (CELESTIAL ORBITS & PLANETARY ARCS)
+          const orbitTilt = (Math.PI / 6) + (phaseRad * 0.3);
+          const ringR1 = fillRadius * 1.35;
+          const ringR2 = fillRadius * 0.7;
+
+          // Planetary ring ellipse
+          ctx.beginPath();
+          ctx.lineWidth = Math.max(2, strokeWidth * 0.65);
+          ctx.ellipse(cx, cy, ringR1, ringR2, orbitTilt, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            const orbitBow = effectiveAmp * Math.sin(orbitTilt);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.15;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo((cx + next.x) / 2, (cy + next.y) / 2 - orbitBow, next.x, next.y);
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            const orbitBow = effectiveAmp * Math.cos(orbitTilt);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.15;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo((cx + below.x) / 2 + orbitBow, (cy + below.y) / 2, below.x, below.y);
+            ctx.stroke();
+          }
+        } else if (waveStyle === 'ink_calligraphy') {
+          // 12. THƯ PHÁP THỦY MẶC (BRUSH CALLIGRAPHY STROKES)
+          const calligAngle = Math.PI / 4; // 45 degree brush nib
+          const brushDrift = Math.sin((c + r) * 0.6 + phaseRad) * (effectiveAmp * 0.5);
+
+          // Tapered nib blotch
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(calligAngle);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, fillRadius * 1.25, fillRadius * 0.75, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.4;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.4,
+              cy + brushDrift,
+              next.x - cellSize * 0.3,
+              next.y - brushDrift * 0.5,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.4;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + brushDrift * 0.5,
+              cy + cellSize * 0.4,
+              below.x - brushDrift,
+              below.y - cellSize * 0.3,
+              below.x,
+              below.y
+            );
             ctx.stroke();
           }
         }
