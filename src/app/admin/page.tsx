@@ -167,9 +167,9 @@ export default function AdminPage() {
   const [machgenKey, setMachgenKey] = useState('');
   const [machgenKeyName, setMachgenKeyName] = useState('');
   const [machgenShowKey, setMachgenShowKey] = useState(false);
-  const [machgenBaseURL, setMachgenBaseURL] = useState('https://image.pollinations.ai');
-  const [machgenModel, setMachgenModel] = useState('flux');
-  const [machgenProvider, setMachgenProvider] = useState('MachGen Studio');
+  const [machgenBaseURL, setMachgenBaseURL] = useState('https://apigiare.vn/v1');
+  const [machgenModel, setMachgenModel] = useState('gpt-image-2');
+  const [machgenProvider, setMachgenProvider] = useState('apigiare.vn');
   const [machgenTesting, setMachgenTesting] = useState(false);
   const [machgenTestResult, setMachgenTestResult] = useState<{
     success: boolean;
@@ -182,8 +182,9 @@ export default function AdminPage() {
 
   // Helper to distinguish xKiro vs MachGen keys
   const isMachGenKey = (k: any) =>
-    (k.provider && k.provider.toLowerCase().includes('machgen')) ||
-    (k.base_url && (k.base_url.includes('pollinations') || k.base_url.includes('replicate')));
+    (k.provider && (k.provider.toLowerCase().includes('machgen') || k.provider.toLowerCase().includes('apigiare'))) ||
+    (k.base_url && (k.base_url.includes('apigiare') || k.base_url.includes('machgen') || k.base_url.includes('replicate'))) ||
+    (k.model && (k.model.includes('gpt') || k.model.includes('image')));
 
   // --- Handlers for xKiro (Chat AI) ---
   const handleTestXkiroKey = async () => {
@@ -1782,15 +1783,15 @@ export default function AdminPage() {
               <div className="flex flex-wrap gap-2">
                 {[
                   {
-                    name: 'MachGen Studio (Pollinations FLUX Free)',
-                    url: 'https://image.pollinations.ai',
-                    model: 'flux',
-                    provider: 'MachGen Studio',
+                    name: 'apigiare.vn (GPT-Image-2)',
+                    url: 'https://apigiare.vn/v1',
+                    model: 'gpt-image-2',
+                    provider: 'apigiare.vn',
                   },
                   {
-                    name: 'MachGen Turbo (Pollinations Turbo Free)',
-                    url: 'https://image.pollinations.ai',
-                    model: 'turbo',
+                    name: 'MachGen Studio (GPT-Image-2)',
+                    url: 'https://api.machgen.ai/v1',
+                    model: 'gpt-image-2',
                     provider: 'MachGen Studio',
                   },
                   {
@@ -1798,12 +1799,6 @@ export default function AdminPage() {
                     url: 'https://api.replicate.com/v1',
                     model: 'black-forest-labs/flux-schnell',
                     provider: 'MachGen Replicate',
-                  },
-                  {
-                    name: 'Hugging Face FLUX.1',
-                    url: 'https://api-inference.huggingface.co/models',
-                    model: 'black-forest-labs/FLUX.1-dev',
-                    provider: 'MachGen HuggingFace',
                   },
                 ].map((preset) => (
                   <button
@@ -1851,7 +1846,7 @@ export default function AdminPage() {
                     type="text"
                     value={machgenBaseURL}
                     onChange={(e) => setMachgenBaseURL(e.target.value)}
-                    placeholder="https://image.pollinations.ai"
+                    placeholder="https://apigiare.vn/v1"
                     className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-300 focus:border-amber-400 focus:outline-none"
                   />
                 </div>
@@ -1862,7 +1857,7 @@ export default function AdminPage() {
                   <label className="text-xs font-semibold text-slate-300">
                     Model Mặc Định
                   </label>
-                  <span className="text-[10px] text-amber-400 font-medium">User tự chọn ở Studio</span>
+                  <span className="text-[10px] text-amber-400 font-medium">gpt-image-2</span>
                 </div>
                 <div className="relative">
                   <Server className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
@@ -1870,7 +1865,7 @@ export default function AdminPage() {
                     type="text"
                     value={machgenModel}
                     onChange={(e) => setMachgenModel(e.target.value)}
-                    placeholder="flux"
+                    placeholder="gpt-image-2"
                     className="w-full h-10 pl-9 pr-3 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-300 focus:border-amber-400 focus:outline-none"
                   />
                 </div>
@@ -1884,7 +1879,7 @@ export default function AdminPage() {
                   type="text"
                   value={machgenProvider}
                   onChange={(e) => setMachgenProvider(e.target.value)}
-                  placeholder="MachGen Studio"
+                  placeholder="apigiare.vn / MachGen"
                   className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-bold text-white focus:border-amber-400 focus:outline-none"
                 />
               </div>
@@ -1895,7 +1890,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <Key className="size-3.5 text-amber-400" />
-                  <span>API Token MachGen (Nếu dùng Replicate: r8_... | Nếu dùng Pollinations Free: có thể để trống)</span>
+                  <span>API Key (apigiare.vn / MachGen cho model gpt-image-2)</span>
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
                   <ShieldCheck className="size-3" />
@@ -1907,7 +1902,7 @@ export default function AdminPage() {
                   type={machgenShowKey ? 'text' : 'password'}
                   value={machgenKey}
                   onChange={(e) => setMachgenKey(e.target.value)}
-                  placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxx (hoặc để trống nếu dùng Pollinations Free Engine)"
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxx (API Key cho gpt-image-2)"
                   className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-200 placeholder-slate-600 focus:border-amber-400 focus:outline-none"
                 />
                 <button
@@ -2050,7 +2045,7 @@ export default function AdminPage() {
                   {machgenKeys.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-xs text-slate-500">
-                        Chưa có key MachGen tùy chỉnh nào. Hệ thống mặc định đang dùng Free Engine Pollinations. Hãy thêm cấu hình ở trên nếu muốn thêm token Replicate!
+                        Chưa có key GPT-Image-2 (apigiare / MachGen) nào trong hệ thống. Hãy thêm cấu hình ở trên!
                       </td>
                     </tr>
                   ) : (
@@ -2067,13 +2062,13 @@ export default function AdminPage() {
                           </td>
                           <td className="py-3 px-4 font-mono font-bold text-white">
                             <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-amber-300">
-                              {k.key_masked || 'Free Engine (No Key)'}
+                              {k.key_masked || 'sk-••••••••'}
                             </span>
                           </td>
                           <td className="py-3 px-4">
-                            <div className="font-semibold text-slate-200">{k.provider || 'MachGen Studio'}</div>
+                            <div className="font-semibold text-slate-200">{k.provider || 'apigiare.vn'}</div>
                             <div className="text-[10px] font-mono text-slate-500 truncate max-w-xs">
-                              {k.base_url || 'https://image.pollinations.ai'}
+                              {k.base_url || 'https://apigiare.vn/v1'}
                             </div>
                           </td>
                           <td className="py-3 px-4">
