@@ -25,6 +25,7 @@ import {
   Coins,
   Cpu,
   Palette,
+  Lock,
 } from 'lucide-react';
 import {
   processQRTransparency,
@@ -193,9 +194,7 @@ export default function ArtQRStudioPage() {
 
     try {
       const res = await generateArtQRSync(selectedFile, {
-        referenceFile: referenceFile,
         presetId: selectedPresetId,
-        customPrompt: customPrompt,
       });
 
       if (res && res.success) {
@@ -375,8 +374,8 @@ export default function ArtQRStudioPage() {
               </button>
             </div>
 
-            {/* Presets Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Presets List: Mỗi phong cách là 1 dòng riêng biệt (Full-width Banner Row) */}
+            <div className="flex flex-col space-y-4">
               {presets.map((preset) => {
                 const isSelected = selectedPresetId === preset.id || selectedPresetId === preset.slug;
                 const price = preset.price_credits !== undefined ? preset.price_credits : 5;
@@ -386,71 +385,98 @@ export default function ArtQRStudioPage() {
                   <div
                     key={preset.id}
                     onClick={() => handleSelectPresetAndProceed(preset)}
-                    className={`group relative rounded-2xl border bg-[#0c1017]/90 overflow-hidden cursor-pointer transition-all duration-300 flex flex-col justify-between hover:scale-[1.02] hover:shadow-2xl ${
+                    className={`group relative rounded-3xl border bg-[#0c1017]/90 p-4 sm:p-5 overflow-hidden cursor-pointer transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-5 hover:border-amber-500/60 hover:shadow-2xl hover:shadow-amber-500/10 ${
                       isSelected
-                        ? 'border-amber-500/80 shadow-xl shadow-amber-500/10 ring-1 ring-amber-500/50'
-                        : 'border-slate-800/80 hover:border-slate-700'
+                        ? 'border-amber-500/80 shadow-xl shadow-amber-500/15 ring-1 ring-amber-500/50 bg-[#121620]'
+                        : 'border-slate-800/80 hover:bg-[#0f1420]'
                     }`}
                   >
-                    <div>
-                      {/* Image Preview Header */}
-                      <div className="relative h-48 w-full overflow-hidden bg-black/50">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={previewImg}
-                          alt={preset.name}
-                          className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-transparent to-black/30" />
+                    {/* Left: Big Preview Image with Badges */}
+                    <div className="relative w-full md:w-64 h-48 sm:h-52 rounded-2xl overflow-hidden bg-black/60 shrink-0 border border-white/10 group-hover:border-amber-500/40 transition-all">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewImg}
+                        alt={preset.name}
+                        className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-                        {/* Price Badge */}
-                        <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-amber-500/30 text-amber-300 text-xs font-extrabold shadow-lg">
-                          <Coins className="size-3.5 text-amber-400" />
-                          <span>{price > 0 ? `${price} Xu / lần` : 'Miễn Phí'}</span>
-                        </div>
-
-                        {/* Highlight Tag */}
+                      {/* Top Badges */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-md">
+                          Ảnh Mẫu Tham Khảo
+                        </span>
                         {preset.id === 'bread_toast' && (
-                          <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
                             ★ Khuyên Dùng
-                          </div>
+                          </span>
                         )}
                       </div>
 
-                      {/* Content Body */}
-                      <div className="p-4 space-y-2">
-                        <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors flex items-center justify-between">
-                          <span>{preset.name}</span>
-                          <ArrowRight className="size-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all" />
-                        </h3>
-                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                          {preset.description || 'Chất liệu tự nhiên, khóa cứng ma trận module quét 100%'}
-                        </p>
-
-                        {/* Attributes tags */}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-medium">
-                            Vật liệu: {preset.material || 'Toasted'}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] text-emerald-400 font-medium">
-                            ✓ Khóa Ma Trận
-                          </span>
+                      {/* Price on Image Bottom */}
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/85 backdrop-blur-md border border-amber-500/40 text-amber-300 text-xs font-black shadow-lg">
+                          <Coins className="size-3.5 text-amber-400" />
+                          <span>{price > 0 ? `${price} Xu / lần` : 'Miễn Phí'}</span>
                         </div>
+                        {preset.price_vnd ? (
+                          <span className="px-2 py-1 rounded-xl bg-black/85 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-[11px] font-bold">
+                            {preset.price_vnd.toLocaleString('vi-VN')} đ
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
-                    {/* Bottom Card Action */}
-                    <div className="p-4 pt-0">
+                    {/* Center: Details & Attributes */}
+                    <div className="flex-1 min-w-0 space-y-2.5 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-black text-white group-hover:text-amber-300 transition-colors">
+                          {preset.name}
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                          {preset.material || 'Tự Nhiên'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {preset.description || 'Chất liệu hòa quyện tự nhiên, khóa cứng ma trận module QR chuẩn xác quét 100%'}
+                      </p>
+
+                      {/* Badges row */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="size-3.5 text-emerald-400" />
+                          <span>Chuẩn Quét 100% (Deterministic Restoration)</span>
+                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-[11px] text-cyan-300 font-semibold">
+                          Tự động bóc tách nền QR (qrtrans)
+                        </span>
+                        <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-[10px] text-slate-400 font-mono">
+                          Màu tối: {preset.dark_color || '#1e140d'}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 italic flex items-center gap-1">
+                        <Lock className="size-3 text-slate-500" />
+                        <span>Ảnh mẫu tham chiếu và Prompt đã được Quản trị viên (Admin) cấu hình chuẩn xác cho phong cách này.</span>
+                      </p>
+                    </div>
+
+                    {/* Right: Big CTA Button */}
+                    <div className="w-full md:w-auto shrink-0 pt-2 md:pt-0">
                       <button
                         type="button"
-                        className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                        className={`w-full md:w-auto px-6 py-3.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg ${
                           isSelected
-                            ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                            : 'bg-slate-800/80 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-200'
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-amber-500/30 ring-2 ring-amber-300'
+                            : 'bg-gradient-to-r from-amber-500 to-rose-500 group-hover:from-amber-400 group-hover:to-rose-400 text-slate-950 shadow-amber-500/20'
                         }`}
                       >
-                        <Sparkles className="size-3.5" />
-                        <span>Chọn Phong Cách Này & Tạo QR</span>
+                        <Sparkles className="size-4 text-slate-950" />
+                        <span>Chọn Phong Cách Này & Tạo QR →</span>
                       </button>
                     </div>
                   </div>
@@ -616,68 +642,58 @@ export default function ArtQRStudioPage() {
                   </div>
                 </div>
 
-                {/* 2. Custom Prompt & Scene reference */}
-                <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-4">
+                {/* 2. Style & Reference Display (Managed by Admin, read-only on User side) */}
+                <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="size-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[11px] font-bold flex items-center justify-center">
                         2
                       </span>
                       <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                        Khung Cảnh & Mô Tả Bổ Sung
+                        Phong Cách & Ảnh Mẫu (Do Admin Thiết Lập)
                       </h2>
                     </div>
-                  </div>
-
-                  {/* Scene Reference Upload */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="size-8 rounded-lg overflow-hidden border border-slate-700 shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={referencePreview}
-                          alt="Scene Reference"
-                          className="size-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-200">
-                          {referenceFile ? referenceFile.name : 'Ảnh tham chiếu phong cách'}
-                        </p>
-                        <p className="text-[10px] text-slate-400">Cung cấp làm Reference Image 1 cho MachGen</p>
-                      </div>
-                    </div>
-
-                    <input
-                      type="file"
-                      ref={refInputRef}
-                      onChange={handleReferenceChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
 
                     <button
                       type="button"
-                      onClick={() => refInputRef.current?.click()}
-                      className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20"
+                      onClick={() => setViewMode('catalog')}
+                      className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
                     >
-                      Đổi cảnh nền
+                      <span>Đổi phong cách</span>
+                      <ArrowRight className="size-3" />
                     </button>
                   </div>
 
-                  {/* Optional Custom Prompt */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-400">Ghi chú bổ sung (Prompt):</span>
-                      <span className="text-[10px] text-slate-500">Mặc định dùng prompt hệ thống</span>
+                  {/* Reference Scene Preview Display (Read-Only) */}
+                  <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-3.5">
+                    <div className="size-16 rounded-xl overflow-hidden border border-amber-500/30 shrink-0 bg-black/60 relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={selectedPreset?.reference_image_url || selectedPreset?.preview_url || '/presets/doraemon_bread_scene.jpg'}
+                        alt="Scene Reference"
+                        className="size-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                        }}
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
-                      placeholder="VD: Slightly darker toasted edges, rich butter glaze..."
-                      className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50"
-                    />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-bold text-white truncate">
+                          {selectedPreset?.name || 'Bánh Mì Nướng Doraemon'}
+                        </p>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                          {selectedPreset?.price_credits !== undefined ? `${selectedPreset.price_credits} Xu / lần` : '5 Xu'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                        {selectedPreset?.description || 'Giữ nguyên ma trận module QR, nướng vàng toasting tự nhiên'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 flex items-center gap-1 pt-0.5">
+                        <Lock className="size-3 text-slate-400 shrink-0" />
+                        <span>Ảnh tham chiếu và Prompt đã được Admin tối ưu khóa cứng ma trận 100% quét được.</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
 
