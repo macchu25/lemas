@@ -902,6 +902,16 @@ export default function ArtQRStudioPage() {
                     </div>
                   )}
 
+                  {/* Fallback Auto-Swap Notification */}
+                  {artQRResult?.fallback_mode && (
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs shadow-sm">
+                      <Zap className="size-4 text-amber-400 shrink-0 animate-pulse" />
+                      <span>
+                        <strong className="font-bold text-amber-200">Đã tự động chuyển đổi:</strong> API chính (apigiare) tạm hết hạn ngạch/số dư, hệ thống đã tự động swap sang <strong className="text-amber-200 font-bold">MachGen FLUX Engine</strong> để hoàn tất Art QR chuẩn xác!
+                      </span>
+                    </div>
+                  )}
+
                   {/* Decoded Payload Box */}
                   {(artQRResult?.decoded_payload || cleanQRResult?.outputPayload) && (
                     <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-1.5">
