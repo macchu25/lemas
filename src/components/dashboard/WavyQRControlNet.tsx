@@ -22,8 +22,12 @@ import {
   Wand2,
   AlertTriangle,
   Link as LinkIcon,
-  QrCode,
-  SlidersHorizontal,
+  Compass,
+  Feather,
+  Disc,
+  Activity,
+  TreeDeciduous,
+  Grid,
 } from 'lucide-react';
 import { processQRTransparency, getSampleQR } from '@/lib/api';
 
@@ -40,7 +44,13 @@ export type WaveStyle =
   | 'radial_ripple'
   | 'topographic'
   | 'cyber_circuit'
-  | 'liquid_drops';
+  | 'liquid_drops'
+  | 'vortex_spiral'
+  | 'botanical_vines'
+  | 'isometric_weave'
+  | 'audio_waveform'
+  | 'cosmic_orbits'
+  | 'ink_calligraphy';
 
 export type ColorPreset =
   | 'controlnet_bw'
@@ -49,7 +59,10 @@ export type ColorPreset =
   | 'cyber_cyan'
   | 'gold_silk'
   | 'emerald_nature'
-  | 'sunset_coral';
+  | 'sunset_coral'
+  | 'sakura_pink'
+  | 'midnight_indigo'
+  | 'matrix_green';
 
 export type FinderStyle = 'rounded_rings' | 'organic_circles' | 'classic' | 'flowing';
 
@@ -102,13 +115,91 @@ export default function WavyQRControlNet({
   // Preview & output
   const [previewTab, setPreviewTab] = useState<'wavy' | 'split' | 'simulation'>('wavy');
   const [splitPos, setSplitPos] = useState<number>(50);
-  const [simBackground, setSimBackground] = useState<'wave_ocean' | 'gold_silk' | 'cyber_neon' | 'marble'>('wave_ocean');
+  const [simBackground, setSimBackground] = useState<
+    'wave_ocean' | 'gold_silk' | 'cyber_neon' | 'marble' | 'sakura_garden' | 'aurora_space'
+  >('wave_ocean');
   const [outputDataUrl, setOutputDataUrl] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
 
   // Canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 12 Curated Wave Algorithms
+  const waveStylesList = [
+    {
+      id: 'sine_stream',
+      title: 'Sóng Sin Dòng Chảy',
+      desc: 'Dải sóng uốn lượn mượt mà bảo toàn tâm module',
+      icon: Waves,
+    },
+    {
+      id: 'silk_ribbon',
+      title: 'Ruy Băng Lụa Bezier',
+      desc: 'Đường cong hữu cơ mềm mại nối các khối QR',
+      icon: Sparkles,
+    },
+    {
+      id: 'radial_ripple',
+      title: 'Gợn Sóng Lan Tỏa',
+      desc: 'Sóng tròn đồng tâm tỏa từ tâm mã QR',
+      icon: RotateCw,
+    },
+    {
+      id: 'topographic',
+      title: 'Đường Nét Địa Hình',
+      desc: 'Đường đồng mức uốn lượn cao độ đa tầng',
+      icon: Layers,
+    },
+    {
+      id: 'cyber_circuit',
+      title: 'Mạch Sóng Bo Cong',
+      desc: 'Nét bo cong 45°/90° phong cách vi mạch',
+      icon: Zap,
+    },
+    {
+      id: 'liquid_drops',
+      title: 'Giọt Nước Hữu Cơ',
+      desc: 'Khối tròn giọt nước lỏng liên kết tự nhiên',
+      icon: Sliders,
+    },
+    {
+      id: 'vortex_spiral',
+      title: 'Xoáy Nước Vortex',
+      desc: 'Đường xoắn ốc Fibonacci uốn lượn hút mắt',
+      icon: Disc,
+    },
+    {
+      id: 'botanical_vines',
+      title: 'Dây Leo Thảo Mộc',
+      desc: 'Nhánh cây & dây leo uốn lượn hữu cơ',
+      icon: TreeDeciduous,
+    },
+    {
+      id: 'isometric_weave',
+      title: 'Đan Lưới Dệt Chiếu',
+      desc: 'Nét đan chéo uốn lượn hình học 3D',
+      icon: Grid,
+    },
+    {
+      id: 'audio_waveform',
+      title: 'Sóng Âm Equalizer',
+      desc: 'Tần số âm thanh dao động hài hòa',
+      icon: Activity,
+    },
+    {
+      id: 'cosmic_orbits',
+      title: 'Quỹ Đạo Thiên Thể',
+      desc: 'Cung elip quỹ đạo hành tinh uốn cong',
+      icon: Compass,
+    },
+    {
+      id: 'ink_calligraphy',
+      title: 'Thư Pháp Thủy Mặc',
+      desc: 'Nét bút lông đậm nhạt mềm mại',
+      icon: Feather,
+    },
+  ];
 
   // Prompt suggestions based on wavy style
   const promptSuggestions = [
@@ -131,6 +222,26 @@ export default function WavyQRControlNet({
       label: 'Topographic Emerald Terraces',
       style: 'topographic',
       prompt: 'aerial view of terraced emerald rice fields and winding mountain river contours, misty morning fog, sunlight rays piercing through bamboo forest, photorealistic landscape',
+    },
+    {
+      label: 'Botanical Emerald Rainforest',
+      style: 'botanical_vines',
+      prompt: 'lush tropical botanical garden, curling emerald vines and blooming orchids, morning dew on leaves, soft volumetric sunlight filtering through forest canopy, 8k nature photography',
+    },
+    {
+      label: 'Vortex Galaxy Nebula',
+      style: 'vortex_spiral',
+      prompt: 'stunning deep space galactic vortex, swirling cosmic dust nebula in violet and cyan, millions of glowing stars, celestial gravitational waves, Hubble telescope photography',
+    },
+    {
+      label: 'Oriental Sumi-e Calligraphy',
+      style: 'ink_calligraphy',
+      prompt: 'masterpiece Chinese sumi-e ink wash calligraphy, flowing dynamic black ink strokes with subtle pink cherry blossom petals on aged rice paper, zen minimalist',
+    },
+    {
+      label: 'Matrix Cyberpunk Circuit Grid',
+      style: 'cyber_circuit',
+      prompt: 'futuristic holographic quantum motherboard, glowing emerald and cyan light pulses along curved optic fiber pathways, sleek obsidian metal finish, octane render',
     },
   ];
 
@@ -165,7 +276,6 @@ export default function WavyQRControlNet({
   const handleFileUpload = async (file: File) => {
     setIsProcessingSource(true);
     try {
-      // 1. Attempt transparency processing
       const res = await processQRTransparency(file, {
         crop_mode: 'crop',
         threshold: 215,
@@ -175,7 +285,6 @@ export default function WavyQRControlNet({
       const url = res.dataUrl || URL.createObjectURL(file);
       setSourceDataUrl(url);
 
-      // 2. Decode payload using jsQR directly on the uploaded image
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
@@ -276,6 +385,18 @@ export default function WavyQRControlNet({
         bgColor = '#14080a';
         strokeColor = '#ff5e62';
         break;
+      case 'sakura_pink':
+        bgColor = '#160910';
+        strokeColor = '#f472b6';
+        break;
+      case 'midnight_indigo':
+        bgColor = '#080b18';
+        strokeColor = '#818cf8';
+        break;
+      case 'matrix_green':
+        bgColor = '#040d06';
+        strokeColor = '#4ade80';
+        break;
     }
 
     ctx.clearRect(0, 0, canvasSize, canvasSize);
@@ -306,11 +427,6 @@ export default function WavyQRControlNet({
       return (inTL || inTR || inBL) && !isFinderModule(c, r);
     };
 
-    // Helper: is coordinate in Timing Patterns (Row 6, Col 6)?
-    const isTimingModule = (c: number, r: number): boolean => {
-      return (c === 6 || r === 6) && !isFinderModule(c, r) && !isFinderSeparator(c, r);
-    };
-
     // Module center in canvas space
     const getModuleCenter = (c: number, r: number) => {
       return {
@@ -324,33 +440,30 @@ export default function WavyQRControlNet({
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    const rad = (angleDeg * Math.PI) / 180;
     const phaseRad = (phase * Math.PI) / 180;
     const fillRadius = (cellSize * 0.5 * moduleFillRatio) / 100;
 
-    // --- ALGORITHM 1: SÓNG SIN DÒNG CHẢY (SINE STREAMLINES) ---
-    if (waveStyle === 'sine_stream') {
-      // Horizontal wave ribbons passing directly through each row's module centers
-      for (let r = 0; r < N; r++) {
-        const rowCenterY = (r + quietZone + 0.5) * cellSize;
+    // --- RENDER ALL 12 WAVE ALGORITHMS ---
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
+        if (isFinderSeparator(c, r)) continue;
 
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
+        const isDark = qrMatrix[r]?.[c] === true;
+        if (!isDark) continue;
 
-          const isDark = qrMatrix[r]?.[c] === true;
-          if (!isDark) continue;
+        const { x: cx, y: cy } = getModuleCenter(c, r);
 
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+        // ALWAYS draw the solid anchor at module center to guarantee scanner readability
+        ctx.beginPath();
+        ctx.arc(cx, cy, fillRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 1. SINE STREAM
+        if (waveStyle === 'sine_stream') {
           const waveOffsetY =
             amplitude * Math.sin((cx / canvasSize) * frequency * Math.PI * 2 + phaseRad + r * 0.2);
 
-          // 1. Draw solid module core ensuring scanner threshold center is covered
-          ctx.beginPath();
-          ctx.arc(cx, cy + waveOffsetY * 0.4, fillRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // 2. Draw continuous wavy bridge to right neighbor if active
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             const nextWaveY =
@@ -368,8 +481,6 @@ export default function WavyQRControlNet({
             );
             ctx.stroke();
           }
-
-          // 3. Draw vertical wavy bridge to bottom neighbor if active
           if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
             const below = getModuleCenter(c, r + 1);
             ctx.beginPath();
@@ -379,29 +490,12 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
-      }
-    }
 
-    // --- ALGORITHM 2: RUY BĂNG LỤA BEZIER (FLUID SILK RIBBONS) ---
-    else if (waveStyle === 'silk_ribbon') {
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
-
-          const isDark = qrMatrix[r]?.[c] === true;
-          if (!isDark) continue;
-
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+        // 2. SILK RIBBON
+        else if (waveStyle === 'silk_ribbon') {
           const waveX = amplitude * Math.sin((cy / canvasSize) * frequency * Math.PI + phaseRad);
           const waveY = amplitude * Math.cos((cx / canvasSize) * frequency * Math.PI + phaseRad);
 
-          // Center solid anchor
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius * 0.95, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Organic Bezier wave ribbon
           ctx.beginPath();
           ctx.lineWidth = strokeWidth * 1.3;
           ctx.moveTo(cx - cellSize * 0.45, cy);
@@ -415,7 +509,6 @@ export default function WavyQRControlNet({
           );
           ctx.stroke();
 
-          // Connect to right neighbor
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
@@ -431,8 +524,6 @@ export default function WavyQRControlNet({
             );
             ctx.stroke();
           }
-
-          // Connect to bottom neighbor
           if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
             const below = getModuleCenter(c, r + 1);
             ctx.beginPath();
@@ -442,34 +533,16 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
-      }
-    }
 
-    // --- ALGORITHM 3: GỢN SÓNG LAN TỎA ĐỒNG TÂM (RADIAL RIPPLE) ---
-    else if (waveStyle === 'radial_ripple') {
-      const qrCenter = canvasSize / 2;
-
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
-
-          if (!qrMatrix[r]?.[c]) continue;
-
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+        // 3. RADIAL RIPPLE
+        else if (waveStyle === 'radial_ripple') {
+          const qrCenter = canvasSize / 2;
           const dx = cx - qrCenter;
           const dy = cy - qrCenter;
           const dist = Math.sqrt(dx * dx + dy * dy);
           const angle = Math.atan2(dy, dx);
-
           const ripple = amplitude * 0.6 * Math.sin((dist / canvasSize) * frequency * Math.PI * 4 + phaseRad);
 
-          // Solid center
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Ripple arc
           ctx.beginPath();
           ctx.lineWidth = strokeWidth;
           ctx.arc(
@@ -481,7 +554,6 @@ export default function WavyQRControlNet({
           );
           ctx.stroke();
 
-          // Radial connection
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
@@ -491,34 +563,17 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
-      }
-    }
 
-    // --- ALGORITHM 4: ĐƯỜNG NÉT ĐỊA HÌNH (TOPOGRAPHIC CONTOURS) ---
-    else if (waveStyle === 'topographic') {
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
-
-          if (!qrMatrix[r]?.[c]) continue;
-
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+        // 4. TOPOGRAPHIC
+        else if (waveStyle === 'topographic') {
           const waveElev = amplitude * Math.sin((cx / canvasSize) * frequency * 2 + r * 0.4 + phaseRad);
 
-          // Center dot
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Topographic iso-curve
           ctx.beginPath();
           ctx.lineWidth = strokeWidth;
           ctx.moveTo(cx - cellSize * 0.45, cy + waveElev * 0.3);
           ctx.quadraticCurveTo(cx, cy - waveElev * 0.4, cx + cellSize * 0.45, cy + waveElev * 0.3);
           ctx.stroke();
 
-          // Connect horizontal & vertical neighbors
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
@@ -536,26 +591,9 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
-      }
-    }
 
-    // --- ALGORITHM 5: MẠCH SÓNG BO CONG (CYBER CIRCUIT) ---
-    else if (waveStyle === 'cyber_circuit') {
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
-
-          if (!qrMatrix[r]?.[c]) continue;
-
-          const { x: cx, y: cy } = getModuleCenter(c, r);
-
-          // Center circular node
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Connect with 45/90 deg curved traces
+        // 5. CYBER CIRCUIT
+        else if (waveStyle === 'cyber_circuit') {
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
@@ -572,7 +610,6 @@ export default function WavyQRControlNet({
             ctx.lineTo(below.x, below.y);
             ctx.stroke();
           }
-          // Diagonal bridge with curve
           if (
             c + 1 < N &&
             r + 1 < N &&
@@ -588,27 +625,9 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
-      }
-    }
 
-    // --- ALGORITHM 6: GIỌT NƯỚC HỮU CƠ (LIQUID DROPS) ---
-    else if (waveStyle === 'liquid_drops') {
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
-
-          if (!qrMatrix[r]?.[c]) continue;
-
-          const { x: cx, y: cy } = getModuleCenter(c, r);
-          const dropWave = amplitude * 0.3 * Math.sin((c + r) * 0.6 + phaseRad);
-
-          // Organic round drop
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius + dropWave, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Liquid bridge to right
+        // 6. LIQUID DROPS
+        else if (waveStyle === 'liquid_drops') {
           if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
             const next = getModuleCenter(c + 1, r);
             ctx.beginPath();
@@ -617,7 +636,6 @@ export default function WavyQRControlNet({
             ctx.lineTo(next.x, next.y);
             ctx.stroke();
           }
-          // Liquid bridge to below
           if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
             const below = getModuleCenter(c, r + 1);
             ctx.beginPath();
@@ -627,11 +645,153 @@ export default function WavyQRControlNet({
             ctx.stroke();
           }
         }
+
+        // 7. VORTEX SPIRAL
+        else if (waveStyle === 'vortex_spiral') {
+          const qrCenter = canvasSize / 2;
+          const dx = cx - qrCenter;
+          const dy = cy - qrCenter;
+          const angle = Math.atan2(dy, dx);
+          const spiralOffset = amplitude * Math.sin(angle * 3 + phaseRad);
+
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 1.1;
+          ctx.arc(cx, cy, fillRadius * 1.1, angle, angle + Math.PI + spiralOffset * 0.05);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo((cx + next.x) / 2, (cy + next.y) / 2 + spiralOffset * 0.4, next.x, next.y);
+            ctx.stroke();
+          }
+        }
+
+        // 8. BOTANICAL VINES
+        else if (waveStyle === 'botanical_vines') {
+          const vineWobble = amplitude * 0.5 * Math.sin((c + r) * 0.8 + phaseRad);
+
+          // Vine leaf curl
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 0.8;
+          ctx.ellipse(cx, cy, fillRadius * 1.2, fillRadius * 0.6, Math.PI / 4, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.4 + vineWobble,
+              cy - vineWobble,
+              next.x - cellSize * 0.4 - vineWobble,
+              next.y + vineWobble,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+          }
+          if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.2;
+            ctx.moveTo(cx, cy);
+            ctx.quadraticCurveTo(cx + vineWobble, (cy + below.y) / 2, below.x, below.y);
+            ctx.stroke();
+          }
+        }
+
+        // 9. ISOMETRIC WEAVE
+        else if (waveStyle === 'isometric_weave') {
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 1.1;
+          const isEven = (c + r) % 2 === 0;
+
+          if (isEven && c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(next.x, next.y);
+            ctx.stroke();
+          } else if (!isEven && r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
+            const below = getModuleCenter(c, r + 1);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(below.x, below.y);
+            ctx.stroke();
+          }
+        }
+
+        // 10. AUDIO WAVEFORM
+        else if (waveStyle === 'audio_waveform') {
+          const freqHeight = amplitude * 0.8 * Math.sin(c * 0.9 + phaseRad);
+
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 1.2;
+          ctx.moveTo(cx, cy - freqHeight);
+          ctx.lineTo(cx, cy + freqHeight);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(next.x, next.y);
+            ctx.stroke();
+          }
+        }
+
+        // 11. COSMIC ORBITS
+        else if (waveStyle === 'cosmic_orbits') {
+          const orbitAngle = (c * 15 + r * 10 + phase) * (Math.PI / 180);
+
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 0.9;
+          ctx.ellipse(cx, cy, cellSize * 0.6, cellSize * 0.3, orbitAngle, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.1;
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(next.x, next.y);
+            ctx.stroke();
+          }
+        }
+
+        // 12. INK CALLIGRAPHY
+        else if (waveStyle === 'ink_calligraphy') {
+          const inkSplash = amplitude * 0.4 * Math.sin((cx + cy) * 0.5 + phaseRad);
+
+          ctx.beginPath();
+          ctx.lineWidth = strokeWidth * 1.5;
+          ctx.moveTo(cx - cellSize * 0.4, cy + inkSplash);
+          ctx.quadraticCurveTo(cx, cy - inkSplash * 1.5, cx + cellSize * 0.4, cy + inkSplash);
+          ctx.stroke();
+
+          if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
+            const next = getModuleCenter(c + 1, r);
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.3;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.4,
+              cy - inkSplash,
+              next.x - cellSize * 0.4,
+              next.y + inkSplash,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+          }
+        }
       }
     }
 
     // --- TIMING PATTERNS (Row 6, Col 6) ---
-    // Ensure alternating timing dots are crisp and scannable
     for (let i = 8; i < N - 8; i++) {
       if (qrMatrix[6]?.[i]) {
         const { x, y } = getModuleCenter(i, 6);
@@ -648,7 +808,6 @@ export default function WavyQRControlNet({
     }
 
     // --- FINDER PATTERNS (3 Corners: 7x7 Modules) ---
-    // 1:1:3:1:1 geometric ratio preservation
     const drawFinderPattern = (startCol: number, startRow: number) => {
       const outerSize = 7 * cellSize;
       const cornerRadius = cellSize * 1.4;
@@ -662,7 +821,6 @@ export default function WavyQRControlNet({
       ctx.fillStyle = strokeColor;
 
       if (finderStyle === 'rounded_rings') {
-        // Outer concentric rounded box (7x7 modules)
         ctx.lineWidth = cellSize * 0.95;
         const halfSize = (outerSize - ctx.lineWidth) / 2;
         ctx.beginPath();
@@ -675,7 +833,6 @@ export default function WavyQRControlNet({
         );
         ctx.stroke();
 
-        // Inner solid core (3x3 modules)
         const innerSize = 3 * cellSize;
         ctx.beginPath();
         ctx.roundRect(
@@ -687,18 +844,15 @@ export default function WavyQRControlNet({
         );
         ctx.fill();
       } else if (finderStyle === 'organic_circles') {
-        // Concentric circular waves
         ctx.lineWidth = cellSize * 0.95;
         ctx.beginPath();
         ctx.arc(centerX, centerY, 3 * cellSize, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Inner solid circle
         ctx.beginPath();
         ctx.arc(centerX, centerY, 1.5 * cellSize, 0, Math.PI * 2);
         ctx.fill();
       } else if (finderStyle === 'classic') {
-        // Standard sharp square finders
         ctx.lineWidth = cellSize;
         ctx.strokeRect(originX + cellSize * 0.5, originY + cellSize * 0.5, 6 * cellSize, 6 * cellSize);
         ctx.fillRect(originX + 2 * cellSize, originY + 2 * cellSize, 3 * cellSize, 3 * cellSize);
@@ -712,11 +866,10 @@ export default function WavyQRControlNet({
       drawFinderPattern(0, N - 7); // Bottom-Left
     }
 
-    // 3. RUN REAL-TIME SCANNER VERIFICATION (jsQR on Canvas Buffer)
+    // 3. RUN REAL-TIME SCANNER VERIFICATION
     const finalDataUrl = canvas.toDataURL('image/png');
     setOutputDataUrl(finalDataUrl);
 
-    // Instant verification
     try {
       const imgData = ctx.getImageData(0, 0, canvasSize, canvasSize);
       const scanStart = performance.now();
@@ -731,10 +884,9 @@ export default function WavyQRControlNet({
           scanTimeMs: Math.round(scanEnd - scanStart),
         });
       } else {
-        // If not directly decoded (e.g. Invert / Color / SoftEdge), test on high contrast buffer
         setScanVerif({
           isScanning: false,
-          isValid: colorPreset === 'controlnet_bw' ? false : true, // Color/Invert are for ControlNet
+          isValid: colorPreset === 'controlnet_bw' ? false : true,
           decodedPayload: payloadText,
           scanTimeMs: Math.round(scanEnd - scanStart),
         });
@@ -851,7 +1003,7 @@ export default function WavyQRControlNet({
               )}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Bảo toàn cấu trúc ma trận Reed-Solomon cấp H — Biến đổi sóng hữu cơ chuẩn quét cho ControlNet SD / ComfyUI
+              12 Thuật toán biến đổi sóng hữu cơ • Bảo toàn ma trận Reed-Solomon cấp H • Chuẩn ControlNet SD / ComfyUI
             </p>
           </div>
         </div>
@@ -968,56 +1120,21 @@ export default function WavyQRControlNet({
             </div>
           </div>
 
-          {/* BOX 2: WAVE ALGORITHM CHOICE */}
+          {/* BOX 2: 12 WAVE ALGORITHMS SELECTION */}
           <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-4.5 backdrop-blur-xl space-y-3.5">
-            <div className="flex items-center gap-2">
-              <span className="size-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[11px] font-bold flex items-center justify-center">
-                2
-              </span>
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                Thuật Toán Nét Uốn Lượn (Wave Algorithms)
-              </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="size-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[11px] font-bold flex items-center justify-center">
+                  2
+                </span>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Kho Thuật Toán Nét Uốn Lượn ({waveStylesList.length} phong cách)
+                </h3>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                {
-                  id: 'sine_stream',
-                  title: 'Sóng Sin Dòng Chảy',
-                  desc: 'Dải sóng uốn lượn mượt mà bảo toàn tâm module',
-                  icon: Waves,
-                },
-                {
-                  id: 'silk_ribbon',
-                  title: 'Ruy Băng Lụa Bezier',
-                  desc: 'Đường cong hữu cơ mềm mại nối các khối QR',
-                  icon: Sparkles,
-                },
-                {
-                  id: 'radial_ripple',
-                  title: 'Gợn Sóng Lan Tỏa',
-                  desc: 'Sóng tròn đồng tâm tỏa từ tâm mã QR',
-                  icon: RotateCw,
-                },
-                {
-                  id: 'topographic',
-                  title: 'Đường Nét Địa Hình',
-                  desc: 'Đường đồng mức uốn lượn đa tầng',
-                  icon: Layers,
-                },
-                {
-                  id: 'cyber_circuit',
-                  title: 'Mạch Sóng Bo Cong',
-                  desc: 'Nét bo cong 45°/90° phong cách vi mạch',
-                  icon: Zap,
-                },
-                {
-                  id: 'liquid_drops',
-                  title: 'Giọt Nước Hữu Cơ',
-                  desc: 'Khối tròn giọt nước lỏng liên kết',
-                  icon: Sliders,
-                },
-              ].map((style) => {
+            <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1">
+              {waveStylesList.map((style) => {
                 const Icon = style.icon;
                 const isSelected = waveStyle === style.id;
                 return (
@@ -1033,9 +1150,9 @@ export default function WavyQRControlNet({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`size-4 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
-                      <span className="text-xs font-bold">{style.title}</span>
+                      <span className="text-xs font-bold truncate">{style.title}</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">{style.desc}</p>
+                    <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{style.desc}</p>
                     {isSelected && (
                       <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
                     )}
@@ -1174,10 +1291,10 @@ export default function WavyQRControlNet({
               </div>
             </div>
 
-            {/* Color Schemes */}
+            {/* 10 Color Schemes */}
             <div className="space-y-2 pt-1 border-t border-slate-800/80">
-              <label className="text-xs text-slate-300 font-semibold block">Bảng màu ControlNet</label>
-              <div className="grid grid-cols-4 gap-1.5">
+              <label className="text-xs text-slate-300 font-semibold block">Bảng màu ControlNet (10 phối màu)</label>
+              <div className="grid grid-cols-5 gap-1.5">
                 {[
                   { id: 'controlnet_bw', label: 'B/W Chuẩn', bg: 'bg-white text-black' },
                   { id: 'controlnet_invert', label: 'Đảo âm', bg: 'bg-black text-white border border-slate-700' },
@@ -1186,12 +1303,15 @@ export default function WavyQRControlNet({
                   { id: 'gold_silk', label: 'Vàng Kim', bg: 'bg-amber-500/20 text-amber-300' },
                   { id: 'emerald_nature', label: 'Ngọc Lục', bg: 'bg-emerald-500/20 text-emerald-300' },
                   { id: 'sunset_coral', label: 'San Hô', bg: 'bg-rose-500/20 text-rose-300' },
+                  { id: 'sakura_pink', label: 'Hoa Đào', bg: 'bg-pink-500/20 text-pink-300' },
+                  { id: 'midnight_indigo', label: 'Chàm Đêm', bg: 'bg-indigo-500/20 text-indigo-300' },
+                  { id: 'matrix_green', label: 'Matrix', bg: 'bg-green-500/20 text-green-300' },
                 ].map((col) => (
                   <button
                     key={col.id}
                     type="button"
                     onClick={() => setColorPreset(col.id as ColorPreset)}
-                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold border transition-all text-center ${col.bg} ${
+                    className={`py-1.5 px-1 rounded-lg text-[10px] font-bold border transition-all text-center truncate ${col.bg} ${
                       colorPreset === col.id ? 'ring-2 ring-cyan-400 border-transparent shadow-sm' : 'opacity-70 hover:opacity-100 border-transparent'
                     }`}
                   >
@@ -1305,7 +1425,6 @@ export default function WavyQRControlNet({
               {/* VIEW 2: Interactive Split Slider (Standard QR Grid vs Wavy Conditioning Map) */}
               {previewTab === 'split' && (
                 <div className="relative z-10 w-full max-w-[400px] aspect-square rounded-xl overflow-hidden border border-slate-800 select-none">
-                  {/* Background: Wavy output */}
                   {outputDataUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -1315,12 +1434,10 @@ export default function WavyQRControlNet({
                     />
                   )}
 
-                  {/* Foreground: Standard Crisp QR clipped by splitPos */}
                   <div
                     style={{ width: `${splitPos}%` }}
                     className="absolute inset-0 h-full overflow-hidden border-r-2 border-cyan-400 bg-white z-10"
                   >
-                    {/* Render standard QR representation */}
                     <div className="w-[400px] max-w-none h-full flex items-center justify-center p-6 bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -1360,7 +1477,11 @@ export default function WavyQRControlNet({
                         ? 'bg-gradient-to-br from-amber-950 via-stone-900 to-yellow-950'
                         : simBackground === 'cyber_neon'
                         ? 'bg-gradient-to-br from-purple-950 via-slate-950 to-cyan-950'
-                        : 'bg-gradient-to-br from-emerald-950 via-stone-900 to-teal-950'
+                        : simBackground === 'marble'
+                        ? 'bg-gradient-to-br from-emerald-950 via-stone-900 to-teal-950'
+                        : simBackground === 'sakura_garden'
+                        ? 'bg-gradient-to-br from-pink-950 via-stone-900 to-rose-950'
+                        : 'bg-gradient-to-br from-purple-950 via-indigo-950 to-cyan-950'
                     }`}
                   >
                     <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_60%)]" />
@@ -1379,12 +1500,14 @@ export default function WavyQRControlNet({
                     />
                   )}
 
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 p-1 rounded-xl bg-black/80 backdrop-blur-md border border-white/10">
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 p-1 rounded-xl bg-black/80 backdrop-blur-md border border-white/10 flex-wrap justify-center">
                     {[
                       { id: 'wave_ocean', label: '🌊 Sóng Biển' },
                       { id: 'gold_silk', label: '✨ Lụa Vàng' },
                       { id: 'cyber_neon', label: '⚡ Cyber Neon' },
                       { id: 'marble', label: '🏔️ Địa Hình' },
+                      { id: 'sakura_garden', label: '🌸 Hoa Đào' },
+                      { id: 'aurora_space', label: '🌌 Cực Quang' },
                     ].map((bg) => (
                       <button
                         key={bg.id}
@@ -1404,7 +1527,7 @@ export default function WavyQRControlNet({
               )}
             </div>
 
-            {/* Action Buttons: Download PNG, Copy, Send to Generator */}
+            {/* Action Buttons */}
             <div className="flex flex-wrap gap-2.5 pt-1">
               <button
                 type="button"
