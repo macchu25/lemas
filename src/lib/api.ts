@@ -498,7 +498,7 @@ export interface QRTransResponse {
 export async function processQRTransparency(
   file: File | Blob,
   opts: QRTransOptions,
-  adminToken: string
+  token?: string
 ): Promise<QRTransResponse> {
   const form = new FormData();
   form.append('image', file);
@@ -506,11 +506,14 @@ export async function processQRTransparency(
   if (opts.crop_mode) form.append('crop_mode', opts.crop_mode);
   if (opts.validate !== undefined) form.append('validate', opts.validate.toString());
 
-  const res = await fetch(`${API_BASE}/api/admin/art-qr/isolate-transparent`, {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/api/art-qr/isolate-transparent`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-    },
+    headers,
     body: form,
   });
   return await res.json();
