@@ -537,8 +537,8 @@ export default function AdminPage() {
       slug: defaultId,
       name: '',
       description: 'Phong cách nghệ thuật tùy chỉnh ấn tượng cho Art QR',
-      preview_url: '/presets/doraemon_bread_scene.jpg',
-      reference_image_url: '/presets/doraemon_bread_scene.jpg',
+      preview_url: '',
+      reference_image_url: '',
       price_credits: 5,
       price_vnd: 15000,
       material: 'Sơn dầu & Hòa trộn hoa văn',
@@ -626,9 +626,12 @@ export default function AdminPage() {
     try {
       const res = await uploadSceneImage(file);
       if (res.url) {
-        setEditingPreset({
-          ...editingPreset,
-          preview_url: res.url,
+        setEditingPreset((prev: any) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            preview_url: res.url,
+          };
         });
       }
     } catch (err: any) {
@@ -645,9 +648,15 @@ export default function AdminPage() {
     try {
       const res = await uploadSceneImage(file);
       if (res.url) {
-        setEditingPreset({
-          ...editingPreset,
-          reference_image_url: res.url,
+        setEditingPreset((prev: any) => {
+          if (!prev) return null;
+          const wasDefaultPreview = !prev.preview_url || prev.preview_url === prev.reference_image_url || prev.preview_url.includes('doraemon_bread');
+          return {
+            ...prev,
+            reference_image_url: res.url,
+            // If preview_url was empty or default Doraemon or identical to old reference, sync preview_url
+            preview_url: wasDefaultPreview ? res.url : prev.preview_url,
+          };
         });
       }
     } catch (err: any) {

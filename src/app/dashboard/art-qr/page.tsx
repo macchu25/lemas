@@ -106,11 +106,18 @@ export default function ArtQRStudioPage() {
   // When user selects a preset from the Style Gallery
   const handleSelectPresetAndProceed = (preset: ArtQRPreset) => {
     setSelectedPresetId(preset.id);
+    setReferenceFile(null);
     if (preset.reference_image_url || preset.preview_url) {
       setReferencePreview(preset.reference_image_url || preset.preview_url);
     }
     setViewMode('generator');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCustomRefUpload = (file: File) => {
+    setReferenceFile(file);
+    const objUrl = URL.createObjectURL(file);
+    setReferencePreview(objUrl);
   };
 
   // Process uploaded QR file - AUTOMATICALLY runs existing QR background removal immediately
@@ -208,6 +215,7 @@ export default function ArtQRStudioPage() {
     try {
       const res = await generateArtQRSync(uploadFile, {
         presetId: selectedPresetId,
+        referenceFile: referenceFile,
       });
 
       if (res && res.success) {
@@ -677,35 +685,72 @@ export default function ArtQRStudioPage() {
                     </button>
                   </div>
 
-                  {/* Reference Scene Preview Display (Read-Only) */}
+                  {/* Hidden Custom Reference Input */}
+                  <input
+                    type="file"
+                    ref={refInputRef}
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) handleCustomRefUpload(e.target.files[0]);
+                    }}
+                  />
+
+                  {/* Reference Scene Preview Display */}
                   <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-3.5">
-                    <div className="size-16 rounded-xl overflow-hidden border border-amber-500/30 shrink-0 bg-black/60 relative">
+                    <div className="size-16 rounded-xl overflow-hidden border border-amber-500/30 shrink-0 bg-black/60 relative shadow-inner">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={selectedPreset?.preview_url || selectedPreset?.reference_image_url || '/presets/doraemon_bread_scene.jpg'}
+                        src={referenceFile ? referencePreview : (selectedPreset?.reference_image_url || selectedPreset?.preview_url || '/presets/doraemon_bread_scene.jpg')}
                         alt="Scene Reference"
                         className="size-full object-cover"
                         onError={(e) => {
                           (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
                         }}
                       />
+                      <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded text-[7px] font-bold bg-black/80 text-amber-300">
+                        {referenceFile ? 'Ảnh Tự Tải' : 'Phôi AI'}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-bold text-white truncate">
-                          {selectedPreset?.name || 'Bánh Mì Nướng Doraemon'}
+                          {referenceFile ? 'Ảnh Phôi Tự Tải Lên (Custom Scene)' : (selectedPreset?.name || 'Bánh Mì Nướng Doraemon')}
                         </p>
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
                           {selectedPreset?.price_credits !== undefined ? `${selectedPreset.price_credits} Xu / lần` : '5 Xu'}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                        {selectedPreset?.description || 'Giữ nguyên ma trận module QR, nướng vàng toasting tự nhiên'}
+                        {referenceFile
+                          ? 'Hệ thống sẽ giữ nguyên ma trận module QR và hòa trộn lên ảnh phôi bạn vừa tải lên.'
+                          : (selectedPreset?.description || 'Giữ nguyên ma trận module QR, hòa trộn tự nhiên vào phôi nền cảnh')}
                       </p>
-                      <p className="text-[10px] text-slate-500 flex items-center gap-1 pt-0.5">
-                        <Lock className="size-3 text-slate-400 shrink-0" />
-                        <span>Ảnh tham chiếu và Prompt đã được Admin tối ưu khóa cứng ma trận 100% quét được.</span>
-                      </p>
+                      
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => refInputRef.current?.click()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10px] font-bold transition-all cursor-pointer"
+                        >
+                          <Upload className="size-3" />
+                          <span>{referenceFile ? 'Đổi ảnh phôi khác' : 'Tùy chọn: Tải ảnh phôi riêng của bạn'}</span>
+                        </button>
+                        {referenceFile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReferenceFile(null);
+                              if (selectedPreset?.reference_image_url || selectedPreset?.preview_url) {
+                                setReferencePreview(selectedPreset.reference_image_url || selectedPreset.preview_url);
+                              }
+                            }}
+                            className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-[10px] transition-all cursor-pointer"
+                          >
+                            Dùng lại mẫu Preset
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
