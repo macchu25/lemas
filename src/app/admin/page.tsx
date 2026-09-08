@@ -50,6 +50,7 @@ import {
   saveArtQRPreset,
   deleteArtQRPreset,
   uploadSceneImage,
+  getPresetAssetUrl,
 } from '@/lib/artqr_api';
 
 interface AdminUser {
@@ -2361,11 +2362,14 @@ export default function AdminPage() {
                       {/* Preview Box */}
                       <div className="size-24 sm:size-28 rounded-2xl overflow-hidden border border-amber-500/30 bg-black/60 shrink-0 relative shadow-lg">
                         <img
-                          src={editingPreset.preview_url || editingPreset.reference_image_url || '/presets/doraemon_bread_scene.jpg'}
+                          src={getPresetAssetUrl(editingPreset.preview_url || editingPreset.reference_image_url)}
                           alt="User Preview"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                            const target = e.target as HTMLElement;
+                            if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
+                              target.setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                            }
                           }}
                         />
                         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/80 text-amber-300">
@@ -2431,11 +2435,14 @@ export default function AdminPage() {
                       {/* Reference Scene Box */}
                       <div className="size-24 sm:size-28 rounded-2xl overflow-hidden border border-pink-500/30 bg-black/60 shrink-0 relative shadow-lg">
                         <img
-                          src={editingPreset.reference_image_url || '/presets/doraemon_bread_scene.jpg'}
+                          src={getPresetAssetUrl(editingPreset.reference_image_url)}
                           alt="AI Reference Scene"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                            const target = e.target as HTMLElement;
+                            if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
+                              target.setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                            }
                           }}
                         />
                         <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/80 text-pink-300">
@@ -2614,11 +2621,14 @@ export default function AdminPage() {
                       <div className="flex gap-4 items-start">
                         <div className="relative size-24 sm:size-28 rounded-2xl overflow-hidden border border-white/15 bg-black/40 shrink-0">
                           <img
-                            src={preset.reference_image_url || preset.preview_url || '/presets/doraemon_bread.png'}
+                            src={getPresetAssetUrl(preset.reference_image_url || preset.preview_url)}
                             alt={preset.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread.png');
+                              const target = e.target as HTMLElement;
+                              if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
+                                target.setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                              }
                             }}
                           />
                           <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/70 text-white/90">

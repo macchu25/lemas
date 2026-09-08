@@ -39,6 +39,7 @@ import {
   submitArtQRGeneration,
   ArtQRPreset,
   ArtQRResult,
+  getPresetAssetUrl,
 } from '@/lib/artqr_api';
 
 export default function ArtQRStudioPage() {
@@ -447,7 +448,7 @@ export default function ArtQRStudioPage() {
               {presets.map((preset) => {
                 const isSelected = selectedPresetId === preset.id || selectedPresetId === preset.slug;
                 const price = preset.price_credits !== undefined ? preset.price_credits : 5;
-                const previewImg = preset.preview_url || preset.reference_image_url || '/presets/doraemon_bread_scene.jpg';
+                const previewImg = getPresetAssetUrl(preset.preview_url || preset.reference_image_url);
 
                 return (
                   <div
@@ -748,11 +749,14 @@ export default function ArtQRStudioPage() {
                     <div className="size-16 rounded-xl overflow-hidden border border-amber-500/30 shrink-0 bg-black/60 relative shadow-inner">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={referenceFile ? referencePreview : (selectedPreset?.reference_image_url || selectedPreset?.preview_url || '/presets/doraemon_bread_scene.jpg')}
+                        src={referenceFile ? referencePreview : getPresetAssetUrl(selectedPreset?.reference_image_url || selectedPreset?.preview_url)}
                         alt="Scene Reference"
                         className="size-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                          const target = e.target as HTMLElement;
+                          if (target.getAttribute('src') !== '/presets/doraemon_bread_scene.jpg') {
+                            target.setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                          }
                         }}
                       />
                       <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded text-[7px] font-bold bg-black/80 text-amber-300">

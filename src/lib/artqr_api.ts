@@ -291,7 +291,37 @@ export async function uploadSceneImage(file: File): Promise<{ url: string; filen
   if (!res.ok) {
     throw new Error(data.error || `HTTP ${res.status}`);
   }
-  return data;
+
+  // Ensure returned URL is absolute if it refers to backend assets
+  let finalUrl = data.url || '';
+  if (finalUrl && !finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.startsWith('data:')) {
+    const clean = finalUrl.startsWith('/') ? finalUrl : `/${finalUrl}`;
+    finalUrl = `${API_BASE}${clean}`;
+  }
+
+  return {
+    url: finalUrl,
+    filename: data.filename,
+  };
+}
+
+/**
+ * Resolves a preset preview or reference scene URL so that uploaded assets
+ * on the backend API server are correctly fetched across domains (e.g. Vercel vs Railway/VPS).
+ */
+export function getPresetAssetUrl(url?: string): string {
+  if (!url) return '/presets/doraemon_bread_scene.jpg';
+  // Absolute URLs or data URLs remain untouched
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  // If it points to an uploaded preset scene or asset on the backend
+  if (url.startsWith('/presets/') || url.startsWith('presets/') || url.startsWith('/assets/')) {
+    const clean = url.startsWith('/') ? url : `/${url}`;
+    // If it's the built-in doraemon scene, both frontend public and backend have it, but API_BASE guarantees load
+    return `${API_BASE}${clean}`;
+  }
+  return url;
 }
 
 
