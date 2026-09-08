@@ -1790,8 +1790,8 @@ export default function AdminPage() {
                   },
                   {
                     name: 'MachGen Studio (GPT-Image-2)',
-                    url: 'https://api.machgen.ai/v1',
-                    model: 'gpt-image-2',
+                    url: 'https://api.machgen.ai',
+                    model: 'GPT-Image-2',
                     provider: 'MachGen Studio',
                   },
                   {
@@ -1901,8 +1901,17 @@ export default function AdminPage() {
                 <input
                   type={machgenShowKey ? 'text' : 'password'}
                   value={machgenKey}
-                  onChange={(e) => setMachgenKey(e.target.value)}
-                  placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxx (API Key cho gpt-image-2)"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setMachgenKey(val);
+                    if (val.trim().startsWith('MGA_')) {
+                      setMachgenBaseURL('https://api.machgen.ai');
+                      setMachgenProvider('MachGen Studio');
+                      setMachgenModel('GPT-Image-2');
+                      setMachgenName('MachGen Studio (GPT-Image-2)');
+                    }
+                  }}
+                  placeholder="MGA_... (MachGen API Key) hoặc sk-... (apigiare.vn)"
                   className="w-full h-11 pl-4 pr-12 rounded-xl border border-white/10 bg-[#0d0905] text-xs font-mono text-amber-200 placeholder-slate-600 focus:border-amber-400 focus:outline-none"
                 />
                 <button
