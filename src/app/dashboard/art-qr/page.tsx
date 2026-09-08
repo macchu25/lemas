@@ -379,7 +379,7 @@ export default function ArtQRStudioPage() {
               {presets.map((preset) => {
                 const isSelected = selectedPresetId === preset.id || selectedPresetId === preset.slug;
                 const price = preset.price_credits !== undefined ? preset.price_credits : 5;
-                const previewImg = preset.reference_image_url || preset.preview_url || '/presets/doraemon_bread_scene.jpg';
+                const previewImg = preset.preview_url || preset.reference_image_url || '/presets/doraemon_bread_scene.jpg';
 
                 return (
                   <div
@@ -669,7 +669,7 @@ export default function ArtQRStudioPage() {
                     <div className="size-16 rounded-xl overflow-hidden border border-amber-500/30 shrink-0 bg-black/60 relative">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={selectedPreset?.reference_image_url || selectedPreset?.preview_url || '/presets/doraemon_bread_scene.jpg'}
+                        src={selectedPreset?.preview_url || selectedPreset?.reference_image_url || '/presets/doraemon_bread_scene.jpg'}
                         alt="Scene Reference"
                         className="size-full object-cover"
                         onError={(e) => {
