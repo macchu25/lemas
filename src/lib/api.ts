@@ -464,19 +464,35 @@ export interface QRTransOptions {
   validate?: boolean;
 }
 
+export interface IntermediateQRData {
+  success?: boolean;
+  error?: string;
+  slug: string;
+  shortUrl: string;
+  targetUrl: string;
+  qrVersion: number;
+  moduleCount: number;
+  originalModules: number;
+  reductionPercent: number;
+  dataUrl: string;
+  previewUrl: string;
+}
+
 export interface QRTransResponse {
   success: boolean;
   error?: string;
+  inputPayload?: string;
+  outputPayload?: string;
   width?: number;
   height?: number;
   qrValid?: boolean;
-  inputPayload?: string;
-  outputPayload?: string;
+  cropMode?: string;
   thresholdUsed?: number;
   retries?: number;
   executionTimeMs?: number;
   dataUrl?: string;
   qrBounds?: { minX: number; minY: number; maxX: number; maxY: number };
+  intermediate?: IntermediateQRData;
 }
 
 export async function processQRTransparency(
@@ -500,6 +516,35 @@ export async function processQRTransparency(
   return await res.json();
 }
 
+export async function createIntermediateQR(
+  payloadOrFile: string | File | Blob
+): Promise<IntermediateQRData> {
+  if (typeof payloadOrFile === 'string') {
+    const res = await fetch(`${API_BASE}/api/art-qr/intermediate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload: payloadOrFile }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Tạo mã QR trung gian thất bại');
+    }
+    return data;
+  } else {
+    const form = new FormData();
+    form.append('image', payloadOrFile);
+    const res = await fetch(`${API_BASE}/api/art-qr/intermediate`, {
+      method: 'POST',
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Tạo mã QR trung gian thất bại');
+    }
+    return data;
+  }
+}
+
 export async function getSampleQR(
   text?: string,
   size?: number
@@ -510,4 +555,5 @@ export async function getSampleQR(
   const res = await fetch(`${API_BASE}/api/art-qr/sample-qr?${params.toString()}`);
   return await res.json();
 }
+
 

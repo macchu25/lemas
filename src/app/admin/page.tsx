@@ -99,7 +99,23 @@ export default function AdminPage() {
   const [newGiftTokens, setNewGiftTokens] = useState(10000);
   const [newGiftMaxUses, setNewGiftMaxUses] = useState(10);
   const [giftCreating, setGiftCreating] = useState(false);
-  const [adminTab, setAdminTab] = useState<'xkiro' | 'machgen' | 'users' | 'giftcodes' | 'rotator'>('xkiro');
+  const [adminTab, setAdminTabState] = useState<'xkiro' | 'machgen' | 'users' | 'giftcodes' | 'rotator'>('xkiro');
+
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('lemas_admin_tab');
+      if (savedTab && ['xkiro', 'machgen', 'users', 'giftcodes', 'rotator'].includes(savedTab)) {
+        setAdminTabState(savedTab as any);
+      }
+    } catch (_) {}
+  }, []);
+
+  const setAdminTab = (tab: 'xkiro' | 'machgen' | 'users' | 'giftcodes' | 'rotator') => {
+    setAdminTabState(tab);
+    try {
+      localStorage.setItem('lemas_admin_tab', tab);
+    } catch (_) {}
+  };
 
   // Adjust modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -314,8 +330,15 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteUpstreamKey = async (id: string, masked: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa key ${masked} khỏi hệ thống?`)) return;
+  const handleDeleteUpstreamKey = async (id: string, masked: string, name?: string) => {
+    const label = name ? `[${name}] ${masked}` : masked;
+    if (
+      !confirm(
+        `⚠️ XÁC NHẬN XÓA KEY VĨNH VIỄN:\n\nBạn có chắc chắn muốn xóa key ${label} khỏi cơ sở dữ liệu MongoDB và hệ thống không?\n\n• Key này sẽ bị gỡ bỏ ngay lập tức khỏi bể xoay tua.\n• Dữ liệu được lưu vĩnh viễn trên MongoDB, sau khi xóa sẽ KHÔNG bị hoàn lại khi F5 tải lại trang.`
+      )
+    ) {
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/admin/rotator/keys/delete`, {
         method: 'POST',
@@ -324,12 +347,13 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        alert(`✅ Đã xóa vĩnh viễn key ${label} khỏi cơ sở dữ liệu thành công!`);
         await loadAdminData();
       } else {
-        alert(data.error || 'Xóa key thất bại');
+        alert(`❌ Lỗi khi xóa key: ${data.error || 'Xóa key thất bại'}`);
       }
     } catch {
-      alert('Lỗi kết nối khi xóa key');
+      alert('❌ Lỗi kết nối máy chủ khi xóa key');
     }
   };
 
@@ -1364,23 +1388,29 @@ export default function AdminPage() {
                               {k.error_count} lỗi
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleToggleUpstreamKey(k.id || String(k.index), k.is_active)}
-                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                                  k.is_active
+                                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 hover:bg-amber-500/30'
+                                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30'
+                                }`}
+                                title={k.is_active ? 'Tạm dừng key này' : 'Kích hoạt lại key này'}
                               >
-                                {k.is_active ? 'Tạm Dừng' : 'Bật Lại'}
+                                <span>{k.is_active ? '⏸️ Tạm Dừng' : '▶️ Bật Lại'}</span>
                               </button>
 
                               <button
                                 type="button"
-                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                                title="Xóa key này khỏi bể xoay tua"
+                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked, k.name)}
+                                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-500/10 cursor-pointer inline-flex items-center gap-1.5"
+                                title="Xóa vĩnh viễn key này khỏi MongoDB và hệ thống"
                               >
-                                <Trash className="size-4" />
+                                <Trash className="size-3.5" />
+                                <span>Xóa Vĩnh Viễn</span>
                               </button>
                             </div>
                           </td>
@@ -1808,23 +1838,29 @@ export default function AdminPage() {
                               {k.error_count} lỗi
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleToggleUpstreamKey(k.id || String(k.index), k.is_active)}
-                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1 ${
+                                  k.is_active
+                                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300 hover:bg-amber-500/30'
+                                    : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30'
+                                }`}
+                                title={k.is_active ? 'Tạm dừng cấu hình này' : 'Kích hoạt lại cấu hình này'}
                               >
-                                {k.is_active ? 'Tạm Dừng' : 'Bật Lại'}
+                                <span>{k.is_active ? '⏸️ Tạm Dừng' : '▶️ Bật Lại'}</span>
                               </button>
 
                               <button
                                 type="button"
-                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                                title="Xóa key này khỏi hệ thống"
+                                onClick={() => handleDeleteUpstreamKey(k.id || String(k.index), k.key_masked || 'Free Engine', k.name)}
+                                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600 hover:text-white transition-all shadow-sm shadow-rose-500/10 cursor-pointer inline-flex items-center gap-1.5"
+                                title="Xóa vĩnh viễn cấu hình này khỏi MongoDB và hệ thống"
                               >
-                                <Trash className="size-4" />
+                                <Trash className="size-3.5" />
+                                <span>Xóa Vĩnh Viễn</span>
                               </button>
                             </div>
                           </td>
