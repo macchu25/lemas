@@ -853,6 +853,20 @@ export default function ArtQRStudioPage() {
                           </span>
                         </div>
                       </div>
+                    ) : artQRError ? (
+                      <div className="text-center space-y-4 max-w-md p-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 mx-auto shadow-xl">
+                        <div className="size-16 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto text-rose-400 border border-rose-500/30">
+                          <AlertCircle className="size-8" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-black text-rose-200 uppercase tracking-wide">
+                            Hệ Thống Tạm Thời Gián Đoạn
+                          </p>
+                          <p className="text-xs text-rose-300/90 leading-relaxed font-medium">
+                            {artQRError}
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-center space-y-3 max-w-xs">
                         <div className="size-16 rounded-3xl bg-slate-900/80 border border-slate-800 flex items-center justify-center mx-auto text-slate-500">
@@ -861,7 +875,7 @@ export default function ArtQRStudioPage() {
                         <div>
                           <p className="text-xs font-bold text-slate-300">Chưa có kết quả Art QR</p>
                           <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                            Tải lên ảnh mã QR bên trái và bấm nút Tạo Art QR để bắt đầu quy trình MachGen + khôi phục module bất biến.
+                            Tải lên ảnh mã QR bên trái và bấm nút Tạo Art QR để bắt đầu quy trình hòa trộn AI gpt-image-2 chuẩn xác.
                           </p>
                         </div>
                       </div>
