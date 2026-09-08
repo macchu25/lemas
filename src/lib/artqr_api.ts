@@ -201,7 +201,7 @@ export async function generateArtQRSync(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 110000); // 110s client-side timeout
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 phút client-side timeout
 
   let res: Response;
   try {
@@ -214,7 +214,7 @@ export async function generateArtQRSync(
   } catch (err: unknown) {
     clearTimeout(timeoutId);
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('Hết thời gian chờ phản hồi từ máy chủ (>110 giây). Vui lòng thử lại.');
+      throw new Error('Hết thời gian chờ phản hồi từ máy chủ (>5 phút). Vui lòng thử lại.');
     }
     throw new Error('Không thể kết nối đến máy chủ Art QR. Kiểm tra mạng hoặc thử lại sau.');
   }
