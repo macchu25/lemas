@@ -205,9 +205,9 @@ export default function ArtQRStudioPage() {
     const timer3 = setTimeout(() => setCurrentStep(4), 1200);
 
     let uploadFile = selectedFile;
-    if (cleanQRResult?.pngData) {
+    if (cleanQRResult?.dataUrl?.includes(',')) {
       try {
-        const binStr = atob(cleanQRResult.pngData);
+        const binStr = atob(cleanQRResult.dataUrl.split(',', 2)[1]);
         const len = binStr.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
@@ -256,8 +256,8 @@ export default function ArtQRStudioPage() {
             success: true,
             image: img.data_url || img.url,
             expected_payload: job.original_payload,
-            decoded_payload: img.decoded_payload || job.decoded_payload || job.original_payload,
-            qr_valid: img.verified ?? true,
+            decoded_payload: img.decoded_payload || job.decoded_payload || '',
+            qr_valid: img.verified === true,
             preset: job.preset_id || selectedPresetId,
             background_removed: job.background_removed ?? false,
             fallback_mode: job.fallback_mode ?? false,
@@ -844,14 +844,14 @@ export default function ArtQRStudioPage() {
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="size-4 text-emerald-400" />
                       <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                        Kết Quả Art QR & Kiểm Định Quét ZXing
+                        {artQRResult?.qr_valid ? 'Kết Quả Art QR & Kiểm Định Quét ZXing' : 'Kết Quả Art QR từ AI'}
                       </h2>
                     </div>
 
                     {artQRResult && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
-                        <CheckCircle2 className="size-3.5 text-emerald-400" />
-                        <span>Payload Trùng Khớp 100%</span>
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold ${artQRResult.qr_valid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`}>
+                        {artQRResult.qr_valid ? <CheckCircle2 className="size-3.5 text-emerald-400" /> : <AlertCircle className="size-3.5 text-amber-400" />}
+                        <span>{artQRResult.qr_valid ? 'Payload Trùng Khớp 100%' : 'Bản AI chưa kiểm định quét'}</span>
                       </div>
                     )}
                   </div>
@@ -885,7 +885,7 @@ export default function ArtQRStudioPage() {
                             </div>
                             <div className={`flex items-center gap-2 ${currentStep >= 5 ? 'text-emerald-400' : 'text-slate-500'}`}>
                               {currentStep >= 5 ? <Check className="size-3.5" /> : <span className="size-3.5 rounded-full border border-slate-600" />}
-                              <span>5. Khôi phục module và kiểm định quét ZXing</span>
+                              <span>5. Nhận nguyên ảnh AI (không chèn thêm QR)</span>
                             </div>
                           </div>
                         </div>
@@ -900,8 +900,8 @@ export default function ArtQRStudioPage() {
                         />
 
                         <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500 text-slate-950 shadow-md">
-                            ✓ ĐÃ KIỂM ĐỊNH QUÉT
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold shadow-md ${artQRResult.qr_valid ? 'bg-emerald-500 text-slate-950' : 'bg-amber-400 text-slate-950'}`}>
+                            {artQRResult.qr_valid ? '✓ ĐÃ KIỂM ĐỊNH QUÉT' : 'ẢNH AI NGUYÊN BẢN'}
                           </span>
                         </div>
                       </div>
@@ -940,8 +940,10 @@ export default function ArtQRStudioPage() {
                       <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-center">
                         <p className="text-[10px] text-slate-400 font-semibold uppercase">Kiểm Định Quét</p>
                         <div className="mt-1 inline-flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5 text-emerald-400" />
-                          <span className="text-xs font-extrabold text-emerald-400">100% Hợp Lệ</span>
+                          {artQRResult.qr_valid ? <CheckCircle2 className="size-3.5 text-emerald-400" /> : <AlertCircle className="size-3.5 text-amber-400" />}
+                          <span className={`text-xs font-extrabold ${artQRResult.qr_valid ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {artQRResult.qr_valid ? '100% Hợp Lệ' : 'Chưa kiểm định'}
+                          </span>
                         </div>
                       </div>
 
@@ -984,7 +986,7 @@ export default function ArtQRStudioPage() {
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-slate-400 flex items-center gap-1.5">
                           <CheckCheck className="size-3.5 text-emerald-400" />
-                          <span>Dữ Liệu Mã QR Giải Mã Được (Expected Payload):</span>
+                          <span>{artQRResult?.qr_valid ? 'Dữ liệu giải mã từ ảnh kết quả:' : 'Payload từ mã QR đầu vào:'}</span>
                         </span>
                         <button
                           type="button"
@@ -1122,7 +1124,7 @@ export default function ArtQRStudioPage() {
                 {cleanQRResult?.dataUrl && (
                   <button
                     type="button"
-                    onClick={() => handleDownloadOutput(cleanQRResult.dataUrl, `transparent_qr_${Date.now()}.png`)}
+                    onClick={() => handleDownloadOutput(cleanQRResult.dataUrl as string, `transparent_qr_${Date.now()}.png`)}
                     className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2"
                   >
                     <Download className="size-4" />

@@ -1906,7 +1906,7 @@ export default function AdminPage() {
                       setMachgenBaseURL('https://api.machgen.ai');
                       setMachgenProvider('MachGen Studio');
                       setMachgenModel('GPT-Image-2');
-                      setMachgenName('MachGen Studio (GPT-Image-2)');
+                      setMachgenKeyName('MachGen Studio (GPT-Image-2)');
                     }
                   }}
                   placeholder="MGA_... (MachGen API Key) hoặc sk-... (apigiare.vn)"
