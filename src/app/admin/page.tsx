@@ -824,265 +824,300 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#06080f] text-[#f1f5f9] p-4 sm:p-8 space-y-8">
-      {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-cyan-400 text-white shadow-lg shadow-indigo-500/25">
-            <ShieldAlert className="size-5.5" />
+    <div className="min-h-screen bg-[#05070e] text-[#f1f5f9] flex flex-col lg:flex-row">
+      {/* ========================================================================= */}
+      {/* SIDEBAR NAVIGATION BÊN TRÁI (TRANG 1, 2, 3...)                            */}
+      {/* ========================================================================= */}
+      <aside className="w-full lg:w-72 xl:w-80 bg-[#070a14] border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between shrink-0 lg:min-h-screen lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+        <div className="p-4 sm:p-5 space-y-5">
+          {/* Logo & Brand Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-cyan-400 text-white shadow-lg shadow-indigo-500/25 shrink-0">
+                <ShieldAlert className="size-5.5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-black text-white tracking-wide truncate">Lemas Admin</h1>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                    Super
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">Bảng Điều Khiển Quản Trị</p>
+              </div>
+            </div>
+
+            <button
+              onClick={loadAdminData}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer shrink-0"
+              title="Làm mới dữ liệu"
+            >
+              <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-white">Lemas.AI Admin Central</h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Super Admin
+
+          {/* Quick Metrics Bar in Sidebar */}
+          <div className="p-3.5 rounded-2xl bg-[#0b0f1e] border border-white/5 space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Users className="size-3.5 text-cyan-400" />
+                <span>Người dùng:</span>
+              </span>
+              <span className="font-bold text-white font-mono">{overview?.total_users || 0}</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Key className="size-3.5 text-indigo-400" />
+                <span>Keys Upstream:</span>
+              </span>
+              <span className="font-bold text-indigo-300 font-mono">
+                {overview?.upstream_stats?.active_keys ?? 0}/{overview?.upstream_stats?.total_keys ?? 8}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Quản lý tài khoản, kiểm soát số key hoạt động & tổng lượng token tiêu tốn theo thời gian thực
-            </p>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Coins className="size-3.5 text-purple-400" />
+                <span>Tổng Tokens:</span>
+              </span>
+              <span className="font-bold text-purple-300 font-mono text-[10px]">
+                {(overview?.total_tokens_used || 0).toLocaleString()}
+              </span>
+            </div>
           </div>
+
+          {/* Sidebar Menu Pages (Trang 1 -> 6) */}
+          <nav className="space-y-1.5">
+            <p className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
+              Menu Các Trang Quản Trị
+            </p>
+
+            {/* Trang 1: xKiro */}
+            <button
+              onClick={() => setAdminTab('xkiro')}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'xkiro'
+                  ? 'bg-cyan-500/15 border border-cyan-500/40 text-white shadow-lg shadow-cyan-500/10'
+                  : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'xkiro' ? 'bg-cyan-500 text-slate-950 font-black' : 'bg-white/5 text-cyan-400'}`}>
+                  <Bot className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-bold truncate ${adminTab === 'xkiro' ? 'text-cyan-300 font-extrabold' : 'text-slate-200'}`}>
+                    Trang 1: API xKiro
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Chat AI & Xoay Tua Keys</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'xkiro' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-black/40 text-slate-400'}`}>
+                {xkiroKeys.length}
+              </span>
+            </button>
+
+            {/* Trang 2: MachGen */}
+            <button
+              onClick={() => setAdminTab('machgen')}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'machgen'
+                  ? 'bg-amber-500/15 border border-amber-500/40 text-white shadow-lg shadow-amber-500/10'
+                  : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'machgen' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-white/5 text-amber-400'}`}>
+                  <Cpu className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-bold truncate ${adminTab === 'machgen' ? 'text-amber-300 font-extrabold' : 'text-slate-200'}`}>
+                    Trang 2: API MachGen
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Replicate & Pollinations</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'machgen' ? 'bg-amber-400/20 text-amber-300' : 'bg-black/40 text-slate-400'}`}>
+                {machgenKeys.length}
+              </span>
+            </button>
+
+            {/* Trang 3: Art QR Studio */}
+            <button
+              onClick={() => {
+                setAdminTab('artqr');
+                loadArtQRPresets();
+              }}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'artqr'
+                  ? 'bg-gradient-to-r from-pink-600/20 to-rose-600/20 border border-pink-500/50 text-white shadow-lg shadow-pink-500/15 ring-1 ring-pink-500/40'
+                  : 'hover:bg-pink-500/10 text-pink-300/80 hover:text-pink-200 border border-pink-500/20'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'artqr' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black' : 'bg-pink-500/10 text-pink-400'}`}>
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-black truncate ${adminTab === 'artqr' ? 'text-pink-300' : 'text-pink-300/90'}`}>
+                    Trang 3: Sửa Art QR
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Prompt, Giá, Ảnh Mẫu & Phôi</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'artqr' ? 'bg-pink-500/30 text-pink-300' : 'bg-black/40 text-pink-300/60'}`}>
+                {artqrPresets.length}
+              </span>
+            </button>
+
+            {/* Trang 4: Users */}
+            <button
+              onClick={() => setAdminTab('users')}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'users'
+                  ? 'bg-indigo-500/15 border border-indigo-500/40 text-white shadow-lg shadow-indigo-500/10'
+                  : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'users' ? 'bg-indigo-500 text-white font-black' : 'bg-white/5 text-indigo-400'}`}>
+                  <Users className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-bold truncate ${adminTab === 'users' ? 'text-indigo-300 font-extrabold' : 'text-slate-200'}`}>
+                    Trang 4: Người Dùng
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Quản lý số dư & Phân quyền</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'users' ? 'bg-indigo-400/20 text-indigo-300' : 'bg-black/40 text-slate-400'}`}>
+                {users.length}
+              </span>
+            </button>
+
+            {/* Trang 5: Giftcodes */}
+            <button
+              onClick={() => setAdminTab('giftcodes')}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'giftcodes'
+                  ? 'bg-purple-500/15 border border-purple-500/40 text-white shadow-lg shadow-purple-500/10'
+                  : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'giftcodes' ? 'bg-purple-500 text-white font-black' : 'bg-white/5 text-purple-400'}`}>
+                  <Gift className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-bold truncate ${adminTab === 'giftcodes' ? 'text-purple-300 font-extrabold' : 'text-slate-200'}`}>
+                    Trang 5: Giftcodes
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Mã khuyến mãi nạp token</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'giftcodes' ? 'bg-purple-400/20 text-purple-300' : 'bg-black/40 text-slate-400'}`}>
+                {giftcodes.length}
+              </span>
+            </button>
+
+            {/* Trang 6: Live Diagnostics */}
+            <button
+              onClick={() => setAdminTab('rotator')}
+              className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                adminTab === 'rotator'
+                  ? 'bg-emerald-500/15 border border-emerald-500/40 text-white shadow-lg shadow-emerald-500/10'
+                  : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`p-2 rounded-xl shrink-0 ${adminTab === 'rotator' ? 'bg-emerald-500 text-slate-950 font-black' : 'bg-white/5 text-emerald-400'}`}>
+                  <Activity className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-xs font-bold truncate ${adminTab === 'rotator' ? 'text-emerald-300 font-extrabold' : 'text-slate-200'}`}>
+                    Trang 6: Giám Sát Lõi
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Live Ping & Health Matrix</p>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold shrink-0 ${adminTab === 'rotator' ? 'bg-emerald-400/20 text-emerald-300' : 'bg-black/40 text-slate-400'}`}>
+                Ping
+              </span>
+            </button>
+          </nav>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={loadAdminData}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Làm mới</span>
-          </button>
-
+        {/* Sidebar Bottom Actions */}
+        <div className="p-4 sm:p-5 border-t border-white/10 space-y-2 bg-black/20">
           <Link
             href="/dashboard"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white text-xs font-bold hover:opacity-90 transition-all shadow-md shadow-cyan-500/20"
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all"
           >
-            <Cpu className="size-3.5" />
+            <Cpu className="size-4 text-cyan-400" />
             <span>Vào User Dashboard</span>
-            <ArrowUpRight className="size-3.5" />
+            <ArrowUpRight className="size-3.5 ml-auto text-slate-400" />
           </Link>
 
           <Link
             href="/dashboard/art-qr"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all"
+            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-all"
           >
-            <QrCode className="size-3.5 text-amber-400" />
-            <span>Art QR & Tách Nền Studio</span>
+            <QrCode className="size-4 text-amber-400" />
+            <span>Art QR Studio</span>
+            <ArrowUpRight className="size-3.5 ml-auto text-amber-400" />
           </Link>
 
           <button
             onClick={handleAdminLogout}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
-            title="Đăng xuất và khóa quyền Admin"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
           >
-            <LogOut className="size-3.5" />
-            <span>Khóa Admin</span>
+            <LogOut className="size-4 text-rose-400" />
+            <span>Đăng Xuất Admin</span>
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* 4 Primary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Users */}
-        <div className="p-6 rounded-3xl border border-white/10 bg-[#0a0d18] space-y-3 relative overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Tổng Người Dùng</span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
-              <Users className="size-4.5" />
-            </div>
-          </div>
-          <div className="text-3xl font-black text-white">{overview?.total_users || 0}</div>
-          <div className="flex items-center gap-1 text-[11px] text-cyan-400 font-semibold">
-            <CheckCircle2 className="size-3.5" />
-            <span>Đồng bộ qua MongoDB Atlas</span>
-          </div>
-        </div>
-
-        {/* Total Active Keys */}
-        <div className="p-6 rounded-3xl border border-white/10 bg-[#0a0d18] space-y-3 relative overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Tổng API Keys Đang Chạy</span>
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
-              <Key className="size-4.5" />
-            </div>
-          </div>
-          <div className="text-3xl font-black text-indigo-300">
-            {overview?.total_active_keys || 0}
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-indigo-400 font-semibold">
-            <Zap className="size-3.5" />
-            <span>Xác thực Autonomous Agents</span>
-          </div>
-        </div>
-
-        {/* Total Tokens Consumed */}
-        <div className="p-6 rounded-3xl border border-white/10 bg-[#0a0d18] space-y-3 relative overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Tổng Tokens Đã Tiêu Tốn</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-              <Coins className="size-4.5" />
-            </div>
-          </div>
-          <div className="text-3xl font-black text-purple-300">
-            {(overview?.total_tokens_used || 0).toLocaleString()}
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400">
-            <span>Tổng lượt gọi: </span>
-            <span className="font-bold text-white">{overview?.total_requests || 0} requests</span>
-          </div>
-        </div>
-
-        {/* Upstream Health */}
-        <div
-          className={`p-6 rounded-3xl border space-y-3 relative overflow-hidden shadow-xl ${
-            (overview?.upstream_stats?.active_keys ?? 0) === 0
-              ? 'border-rose-500/40 bg-[#180a0f]'
-              : 'border-emerald-500/30 bg-[#071317]'
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span
-              className={
-                (overview?.upstream_stats?.active_keys ?? 0) === 0
-                  ? 'text-rose-400'
-                  : 'text-emerald-400'
-              }
-            >
-              Bể Xoay Tua Lõi (Rotator)
-            </span>
-            <div
-              className={`p-2 rounded-xl ${
-                (overview?.upstream_stats?.active_keys ?? 0) === 0
-                  ? 'bg-rose-500/20 text-rose-400'
-                  : 'bg-emerald-500/20 text-emerald-400'
-              }`}
-            >
-              <Activity className="size-4.5" />
-            </div>
-          </div>
-          <div
-            className={`text-3xl font-black ${
-              (overview?.upstream_stats?.active_keys ?? 0) === 0
-                ? 'text-rose-400'
-                : 'text-emerald-300'
-            }`}
-          >
-            {overview?.upstream_stats?.active_keys ?? 0} /{' '}
-            {overview?.upstream_stats?.total_keys ?? 8} Keys
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-semibold">
-            {(overview?.upstream_stats?.active_keys ?? 0) === 0 ? (
-              <span className="text-rose-400 flex items-center gap-1">
-                <AlertTriangle className="size-3.5" />
-                <span>Toàn bộ Keys lỗi / hết hạn!</span>
+      {/* ========================================================================= */}
+      {/* KHU VỰC NỘI DUNG CHÍNH (MAIN CONTENT - CÁI GÌ CỦA TRANG NÀO HIỆN TRANG ĐÓ) */}
+      {/* ========================================================================= */}
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+        {/* Main Content Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-1">
+              <span>Admin Portal</span>
+              <span>/</span>
+              <span className="text-white font-bold">
+                {adminTab === 'xkiro' && 'Trang 1: API Keys xKiro (Chat AI)'}
+                {adminTab === 'machgen' && 'Trang 2: API Keys MachGen (Ảnh & Art QR)'}
+                {adminTab === 'artqr' && 'Trang 3: Sửa Prompt, Giá & 2 Ảnh Mẫu Art QR'}
+                {adminTab === 'users' && 'Trang 4: Quản Lý Người Dùng & Số Dư'}
+                {adminTab === 'giftcodes' && 'Trang 5: Quản Lý Mã Giftcode'}
+                {adminTab === 'rotator' && 'Trang 6: Giám Sát Lõi & Ma Trận Ping Keys'}
               </span>
-            ) : (
-              <span className="text-emerald-400 flex items-center gap-1">
-                <span className="size-2 rounded-full bg-emerald-400 animate-ping mr-1" />
-                <span>Hoạt Động Bình Thường</span>
-              </span>
-            )}
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              {adminTab === 'xkiro' && '💬 Quản Lý API Keys xKiro (Chat AI & Xoay Tua)'}
+              {adminTab === 'machgen' && '⚡ Cấu Hình API MachGen (Ảnh & Art QR)'}
+              {adminTab === 'artqr' && '🎨 Cấu Hình Prompt, Giá & 2 Ảnh Mẫu Art QR'}
+              {adminTab === 'users' && '👥 Danh Sách Người Dùng & Phân Bổ Tokens'}
+              {adminTab === 'giftcodes' && '🎁 Quản Lý Mã Giftcode & Khuyến Mãi'}
+              {adminTab === 'rotator' && '📡 Diagnostics Matrix (Kiểm Tra Live Trạng Thái Keys)'}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={loadAdminData}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+            >
+              <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Làm Mới Dữ Liệu</span>
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Interactive Admin Tabs */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/[0.03] border border-white/10 overflow-x-auto">
-        <button
-          onClick={() => setAdminTab('xkiro')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'xkiro'
-              ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 ring-1 ring-cyan-400'
-              : 'text-cyan-300 hover:text-white hover:bg-cyan-500/10'
-          }`}
-        >
-          <Bot className="size-4" />
-          <span>💬 Trang 1: API xKiro (Chat AI)</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-cyan-200">
-            {xkiroKeys.length} Keys
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setAdminTab('machgen');
-          }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'machgen'
-              ? 'bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-lg shadow-amber-500/40 ring-1 ring-amber-400'
-              : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
-          }`}
-        >
-          <Cpu className="size-4" />
-          <span>⚡ Trang 2: API Keys MachGen</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-amber-200">
-            {machgenKeys.length} Keys
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setAdminTab('artqr');
-            loadArtQRPresets();
-          }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'artqr'
-              ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-lg shadow-pink-600/50 ring-2 ring-pink-400 animate-pulse'
-              : 'text-pink-300 hover:text-white hover:bg-pink-500/20 border border-pink-500/30'
-          }`}
-        >
-          <Sparkles className="size-4 text-pink-300" />
-          <span>🎨 Trang 3: SỬA PROMPT, GIÁ & ẢNH MẪU ART QR</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/60 font-mono text-pink-200">
-            {artqrPresets.length} styles
-          </span>
-        </button>
-
-        <button
-          onClick={() => setAdminTab('users')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'users'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Users className="size-4" />
-          <span>👥 Người Dùng & Token</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono">
-            {users.length} users
-          </span>
-        </button>
-
-        <button
-          onClick={() => setAdminTab('giftcodes')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'giftcodes'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-              : 'text-purple-300 hover:text-white hover:bg-purple-500/10'
-          }`}
-        >
-          <Gift className="size-4" />
-          <span>🎁 Quản Lý Giftcode</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono">
-            {giftcodes.length} mã
-          </span>
-        </button>
-
-        <button
-          onClick={() => setAdminTab('rotator')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-            adminTab === 'rotator'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Activity className="size-4" />
-          <span>⚡ Diagnostics Matrix (Live Ping)</span>
-        </button>
-      </div>
-
-      {/* Internal Diagnostics Matrix (Visible to Admin Only) */}
-      {adminTab === 'rotator' && overview?.upstream_stats?.keys && (
+        {/* Internal Diagnostics Matrix (Trang 6) */}
+        {adminTab === 'rotator' && overview?.upstream_stats?.keys && (
         <div
           className={`p-6 rounded-3xl border space-y-4 shadow-xl ${
             (overview?.upstream_stats?.active_keys ?? 0) === 0
@@ -2994,6 +3029,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      </main>
 
       {/* Adjust Modal */}
       {selectedUser && (
