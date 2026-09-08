@@ -39,6 +39,8 @@ import {
   Anchor,
   Shield,
   Palette,
+  Network,
+  Maximize,
 } from 'lucide-react';
 import { processQRTransparency, getSampleQR } from '@/lib/api';
 
@@ -104,7 +106,7 @@ export default function WavyQRControlNet({
   onSendToGenerator,
   onBackToGallery,
 }: WavyQRControlNetProps) {
-  // Engine Mode: ControlNet Monster (Cành cây, Hoa lá, Hình xăm, Phù điêu) vs Wave Ribbons (Sóng & Nét uốn)
+  // Engine Mode
   const [engineCategory, setEngineCategory] = useState<EngineCategory>('monster_organic');
 
   // QR Payload & Matrix Configuration
@@ -124,17 +126,21 @@ export default function WavyQRControlNet({
   const [matrixSize, setMatrixSize] = useState<number>(29);
   const [calculatedCellSize, setCalculatedCellSize] = useState<number>(30.1);
 
-  // Adaptive Matrix Mode (Tự động thích ứng ma trận)
+  // Adaptive Matrix Mode
   const [adaptiveMatrixMode, setAdaptiveMatrixMode] = useState<boolean>(true);
+
+  // Cluster Synthesis & Polyomino Morphing Mode (Hợp nhất cụm module liền kề)
+  const [enableClusterSynthesis, setEnableClusterSynthesis] = useState<boolean>(true);
+  const [megaMotifScale, setMegaMotifScale] = useState<number>(105); // 80% - 130%
+  const [textureRichness, setTextureRichness] = useState<number>(85); // 0% - 100%
 
   // Monster Organic Engine Parameters
   const [monsterStyle, setMonsterStyle] = useState<MonsterStyle>('botanical_foliage');
   const [foliageDensity, setFoliageDensity] = useState<number>(85); // 20% - 100%
   const [branchCurvature, setBranchCurvature] = useState<number>(14); // 0 - 30px
-  const [camouflageBlend, setCamouflageBlend] = useState<number>(90); // 50% - 100%
   const [enableSprouts, setEnableSprouts] = useState<boolean>(true); // Sprout leaves / tattoo hooks
 
-  // Wave Parameters (For wave ribbons mode)
+  // Wave Parameters
   const [waveStyle, setWaveStyle] = useState<WaveStyle>('sine_stream');
   const [amplitude, setAmplitude] = useState<number>(10); // 0 - 30px
   const [frequency, setFrequency] = useState<number>(6); // 1 - 20
@@ -158,7 +164,7 @@ export default function WavyQRControlNet({
   });
 
   // Active parameter tab
-  const [paramTab, setParamTab] = useState<'monster' | 'wave' | 'matrix_zones' | 'color_style'>('monster');
+  const [paramTab, setParamTab] = useState<'monster' | 'clusters' | 'matrix_zones' | 'color_style'>('clusters');
 
   // Preview & output
   const [previewTab, setPreviewTab] = useState<'wavy' | 'split' | 'simulation'>('wavy');
@@ -178,56 +184,56 @@ export default function WavyQRControlNet({
     {
       id: 'botanical_foliage',
       title: '🌿 Cành Cây & Hoa Lá',
-      desc: 'Cành nhánh, lá non & dây leo đan kết thành khối mã QR',
+      desc: 'Cụm 2x2 thành Đóa Hoa Sen/Hồng lớn • Cụm dài thành Thân Cây Cổ Thụ & Chùm Lá',
       icon: Leaf,
-      badge: 'Monster Hot',
+      badge: 'Cluster Pro',
     },
     {
       id: 'tribal_tattoo',
-      title: '🐉 Hình Xăm Tribal & Irezumi',
-      desc: 'Họa tiết xăm Celtic, Maori & vảy rồng uốn lượn sắc nét',
+      title: '🐉 Hình Xăm Tribal & Dragon',
+      desc: 'Cụm 2x2 thành Đầu Rồng / Mặt Quỷ Oni • Cụm dài thành Thân Rồng Vẩy Giáp',
       icon: Flame,
-      badge: 'Tattoo Art',
+      badge: 'Tattoo Master',
     },
     {
       id: 'sakura_petals',
-      title: '🌸 Hoa Anh Đào & Cánh Bay',
-      desc: 'Đóa hoa 5 cánh nở rộ & cụm cánh hoa rơi bồng bềnh',
+      title: '🌸 Hoa Anh Đào & Cành Đào',
+      desc: 'Cụm 2x2 thành Chùm Hoa Nở Bung • Cụm dài thành Cành Đào Bonsai Khẳng Khiu',
       icon: Flower2,
-      badge: 'Floral Art',
+      badge: 'Bonsai Art',
     },
     {
       id: 'vintage_clouds',
-      title: '☁️ Vân Mây Cổ & Sóng Rồng',
-      desc: 'Vân mây hoàng gia cuộn xoáy & mào sóng cổ điển Đông Á',
+      title: '☁️ Vân Mây Cổ & Mào Sóng',
+      desc: 'Cụm 2x2 thành Cuộn Mây Hoàng Cung • Cụm dài thành Dải Khói Rồng Uốn Lượn',
       icon: Compass,
-      badge: 'Oriental',
+      badge: 'Royal Cloud',
     },
     {
       id: 'feather_wings',
-      title: '🦅 Lông Vũ & Đôi Cánh',
-      desc: 'Phiến lông vũ thiên thần & cánh chim uốn lượn mềm mại',
+      title: '🦅 Lông Vũ & Cánh Đại Bàng',
+      desc: 'Cụm 2x2 thành Cánh Chim Mở Rộng • Cụm dài thành Dải Lông Vũ Xếp Lớp',
       icon: Feather,
-      badge: 'Angelic',
+      badge: 'Wings Art',
     },
     {
       id: 'ocean_coral',
-      title: '🪸 San Hô & Thủy Quái',
-      desc: 'Rạn san hô biển sâu & xúc tu Kraken uốn lượn huyền ảo',
+      title: '🪸 San Hô & Xúc Tu Kraken',
+      desc: 'Cụm 2x2 thành Thủy Quái Biển Sâu • Cụm dài thành Xúc Tu Bạch Tuộc Giác Hút',
       icon: Anchor,
-      badge: 'Marine Monster',
+      badge: 'Ocean Beast',
     },
     {
       id: 'baroque_filigree',
       title: '🏛️ Phù Điêu Hoàng Gia Baroque',
-      desc: 'Hoa văn lá Acanthus mạ vàng & phù điêu Rococo quý tộc',
+      desc: 'Cụm 2x2 thành Huy Hiệu Vương Miện • Cụm dài thành Phào Chỉ Lá Acanthus',
       icon: Crown,
-      badge: 'Royal Gold',
+      badge: 'Gilded Crest',
     },
     {
       id: 'biomech_cyber',
       title: '⚙️ Vi Mạch Sinh Học Biomech',
-      desc: 'Ống dẫn sinh học H.R. Giger & cáp thần kinh tương lai',
+      desc: 'Cụm 2x2 thành Lõi Lò Phản Ứng Cyber • Cụm dài thành Bó Cáp Thần Kinh',
       icon: Cpu,
       badge: 'Biomechanical',
     },
@@ -312,34 +318,34 @@ export default function WavyQRControlNet({
   // ControlNet Monster Specialized Prompts
   const monsterPromptSuggestions = [
     {
-      label: '🌿 Rừng Cây & Hoa Lá Nhiệt Đới (Botanical Monster)',
+      label: '🌿 Rừng Cây & Hoa Lá (Botanical Tree & Giant Blooming Rose)',
       style: 'botanical_foliage',
-      prompt: 'masterpiece, lush enchanted forest canopy with intertwined oak tree branches and blooming green monstera leaves naturally forming a mystical hidden pattern, morning sunlight piercing through dew droplets, hyper-detailed nature photography, 8k',
+      prompt: 'masterpiece, enchanted botanical forest canopy, thick gnarled oak branches and giant blooming roses naturally merging into a secret mystical pattern, morning sunbeams shining through dewdrops, 8k national geographic nature photography',
     },
     {
-      label: '🐉 Hình Xăm Blackwork & Rồng Phương Đông (Irezumi Tattoo)',
+      label: '🐉 Rồng Đông Á & Hình Xăm Irezumi (Dragon Sleeve Tattoo)',
       style: 'tribal_tattoo',
-      prompt: 'masterpiece, intricate blackwork tattoo sleeve on human skin, Japanese Irezumi dragon scales, bold flowing Celtic knot filigree, sharp linework, studio lighting, award-winning body art photography',
+      prompt: 'masterpiece, majestic Japanese Irezumi dragon tattoo sleeve on skin, flowing dragon scales, sharp horns, Oni demon mask medallion, intricate blackwork filigree linework, studio body art photography',
     },
     {
-      label: '🌸 Vườn Hoa Anh Đào Nở Rộ (Sakura Blossom)',
+      label: '🌸 Cành Đào Bonsai & Chùm Hoa Nở Bung (Sakura Blossom Cluster)',
       style: 'sakura_petals',
-      prompt: 'masterpiece, traditional Japanese cherry blossom garden, blooming pink sakura petals floating on clear river ripples, Mount Fuji in misty sunset background, breathtaking ukiyo-e aesthetic',
+      prompt: 'masterpiece, antique Japanese bonsai tree with thick aged bark and large blooming cherry blossom clusters, pink petals drifting over a zen stone garden, soft sunset backlight, ukiyo-e fine art',
     },
     {
-      label: '🏛️ Phù Điêu Hoàng Gia Baroque Mạ Vàng 24K',
+      label: '🏛️ Phù Điêu Hoàng Gia Baroque Dát Vàng & Vương Miện',
       style: 'baroque_filigree',
-      prompt: 'masterpiece, ancient imperial palace wall relief, 24k gold gilded baroque acanthus leaves and rococo scrolls on black polished marble, dramatic side museum spotlighting, luxury 8k octane render',
+      prompt: 'masterpiece, imperial French palace wall relief, 24k gold gilded royal crown medallion surrounded by flowing acanthus leaf scrolls and rococo carvings on polished black marble, luxury 8k octane render',
     },
     {
       label: '🪸 Thủy Quái Kraken & Rạn San Hô Biển Sâu',
       style: 'ocean_coral',
-      prompt: 'masterpiece, underwater mythical abyssal kingdom, glowing bioluminescent coral reef branches and mysterious kraken tentacles forming organic ocean waves, deep sea aquatic photography, national geographic award',
+      prompt: 'masterpiece, abyssal marine coral reef and mythical Kraken tentacles with glowing bioluminescent suction cups, deep ocean photography, intricate underwater world',
     },
     {
-      label: '🦅 Đôi Cánh Thiên Thần Lông Vũ Trắng Muốt',
+      label: '🦅 Đôi Cánh Đại Bàng & Lông Vũ Thiên Thần',
       style: 'feather_wings',
-      prompt: 'masterpiece, majestic angelic wings with layered pure white and golden plumes, delicate floating downy feathers, heavenly golden hour light rays, cinematic atmospheric concept art',
+      prompt: 'masterpiece, giant majestic eagle wings spread wide with detailed layered plumage and angel downy feathers, dramatic golden hour rays, high resolution concept art',
     },
   ];
 
@@ -446,7 +452,7 @@ export default function WavyQRControlNet({
     }
   };
 
-  // 2. RENDER ENGINE: PROCEDURAL CONTROLNET MONSTER & WAVE CONDITIONING
+  // 2. RENDER ENGINE: CONNECTED CLUSTER & POLYOMINO SYNTHESIS (HỢP NHẤT CỤM MODULE LIỀN KỀ)
   const renderWavyQR = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !qrMatrix || qrMatrix.length === 0) return;
@@ -558,269 +564,170 @@ export default function WavyQRControlNet({
     const qrCenter = canvasSize / 2;
 
     // =========================================================================
-    // MODE A: ADVANCED CONTROLNET MONSTER ORGANIC ENGINE (CÀNH CÂY, HOA LÁ, HÌNH XĂM)
+    // STEP 1: CLUSTER RECOGNITION (Nhận diện cụm 2x2, Hàng ngang dài, Cột dọc dài)
     // =========================================================================
-    if (engineCategory === 'monster_organic') {
-      const branchAmp = branchCurvature;
-      const detailScale = foliageDensity / 100;
+    const processed2x2: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
 
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
+    // =========================================================================
+    // STEP 2: RENDER 2x2 MEGA-CLUSTERS (Đóa hoa khổng lồ / Đầu rồng / Huy hiệu)
+    // =========================================================================
+    if (enableClusterSynthesis && engineCategory === 'monster_organic') {
+      const motifR = cellSize * (megaMotifScale / 100);
 
-          const isDark = qrMatrix[r]?.[c] === true;
-          if (!isDark) continue;
+      for (let r = 0; r < N - 1; r++) {
+        for (let c = 0; c < N - 1; c++) {
+          if (
+            qrMatrix[r]?.[c] &&
+            qrMatrix[r]?.[c + 1] &&
+            qrMatrix[r + 1]?.[c] &&
+            qrMatrix[r + 1]?.[c + 1] &&
+            !isFinderModule(c, r) &&
+            !isFinderModule(c + 1, r + 1) &&
+            !processed2x2[r][c] &&
+            !processed2x2[r][c + 1] &&
+            !processed2x2[r + 1][c] &&
+            !processed2x2[r + 1][c + 1]
+          ) {
+            // Mark as 2x2 mega-cluster
+            processed2x2[r][c] = true;
+            processed2x2[r][c + 1] = true;
+            processed2x2[r + 1][c] = true;
+            processed2x2[r + 1][c + 1] = true;
 
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+            // Center of the 2x2 block
+            const center2x2X = (c + quietZone + 1.0) * cellSize;
+            const center2x2Y = (r + quietZone + 1.0) * cellSize;
 
-          // 1. SOLID SCANNABLE CORE ANCHOR
-          // Ensures the scanner's threshold sampler registers 100% dark
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius * 0.95, 0, Math.PI * 2);
-          ctx.fill();
-
-          // 2. PROCEDURAL ORGANIC ELEMENT TRANSFORMATIONS
-
-          // THEME 1: BOTANICAL FOLIAGE (Cành cây, Lá non, Dây leo)
-          if (monsterStyle === 'botanical_foliage') {
-            const seed = (c * 17 + r * 31) % 360;
-            const leafAngle = (seed * Math.PI) / 180;
-            const leafLen = cellSize * 0.7 * detailScale;
-
-            // Sprout leaves on module perimeter
-            if (enableSprouts) {
+            // 1. Draw solid cores for all 4 modules so scanner reads all 4 bits perfectly
+            [
+              getModuleCenter(c, r),
+              getModuleCenter(c + 1, r),
+              getModuleCenter(c, r + 1),
+              getModuleCenter(c + 1, r + 1),
+            ].forEach((pt) => {
               ctx.beginPath();
-              ctx.ellipse(
-                cx + leafLen * Math.cos(leafAngle) * 0.6,
-                cy + leafLen * Math.sin(leafAngle) * 0.6,
-                leafLen * 0.6,
-                leafLen * 0.28,
-                leafAngle,
-                0,
-                Math.PI * 2
-              );
+              ctx.arc(pt.x, pt.y, fillRadius * 0.95, 0, Math.PI * 2);
+              ctx.fill();
+            });
+
+            // 2. SYNTHESIZE LARGE MEGA-MOTIF SPANNING THE 2x2 BLOCK
+
+            // CLUSTER THEME 1: BOTANICAL — GIANT BLOOMING ROSE / LOTUS FLOWER
+            if (monsterStyle === 'botanical_foliage') {
+              const petalLayers = 3;
+              for (let layer = 0; layer < petalLayers; layer++) {
+                const count = 6 + layer * 2;
+                const radLayer = motifR * (1 - layer * 0.22);
+                for (let p = 0; p < count; p++) {
+                  const pAng = (p * 2 * Math.PI) / count + (layer * 0.3) + phaseRad;
+                  const px = center2x2X + radLayer * 0.5 * Math.cos(pAng);
+                  const py = center2x2Y + radLayer * 0.5 * Math.sin(pAng);
+                  ctx.beginPath();
+                  ctx.ellipse(px, py, radLayer * 0.5, radLayer * 0.28, pAng, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
+              // Center floral pistil
+              ctx.beginPath();
+              ctx.arc(center2x2X, center2x2Y, cellSize * 0.35, 0, Math.PI * 2);
               ctx.fill();
             }
 
-            // Organic branching stems to neighbors
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              const branchWobble = branchAmp * Math.sin((c + r) * 0.7 + phaseRad);
+            // CLUSTER THEME 2: TRIBAL TATTOO — DRAGON SEAL CREST / ONI TOTEM
+            else if (monsterStyle === 'tribal_tattoo') {
+              // Outer spiked mandala ring
               ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.35;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(
-                cx + cellSize * 0.4,
-                cy + branchWobble,
-                next.x - cellSize * 0.4,
-                next.y - branchWobble,
-                next.x,
-                next.y
-              );
-              ctx.stroke();
-            }
-            if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
-              const below = getModuleCenter(c, r + 1);
-              const branchWobble = branchAmp * Math.cos((c + r) * 0.7 + phaseRad);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.35;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(
-                cx + branchWobble,
-                cy + cellSize * 0.4,
-                below.x - branchWobble,
-                below.y - cellSize * 0.4,
-                below.x,
-                below.y
-              );
-              ctx.stroke();
-            }
-          }
-
-          // THEME 2: TRIBAL TATTOO & IREZUMI (Hình xăm Maori, Celtic, Vẩy Rồng)
-          else if (monsterStyle === 'tribal_tattoo') {
-            const hookAngle = ((c * 23 + r * 41) % 4) * (Math.PI / 2);
-            const hookRadius = cellSize * 0.55 * detailScale;
-
-            // Sharp tribal spike hook
-            if (enableSprouts) {
-              ctx.beginPath();
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(cx + hookRadius * Math.cos(hookAngle), cy + hookRadius * Math.sin(hookAngle));
-              ctx.lineTo(
-                cx + hookRadius * 0.6 * Math.cos(hookAngle + 0.5),
-                cy + hookRadius * 0.6 * Math.sin(hookAngle + 0.5)
-              );
+              ctx.lineWidth = strokeWidth * 1.5;
+              for (let a = 0; a <= Math.PI * 2; a += 0.2) {
+                const spR = motifR * (1 + 0.2 * Math.sin(a * 6 + phaseRad));
+                const px = center2x2X + spR * Math.cos(a);
+                const py = center2x2Y + spR * Math.sin(a);
+                if (a === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              }
               ctx.closePath();
+              ctx.stroke();
+
+              // Dragon Horns & Crest
+              ctx.beginPath();
+              ctx.arc(center2x2X, center2x2Y, motifR * 0.45, 0, Math.PI * 2);
               ctx.fill();
             }
 
-            // Intricate Celtic knot connections
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
+            // CLUSTER THEME 3: SAKURA — 3-BLOSSOM CLUSTER BOUQUET
+            else if (monsterStyle === 'sakura_petals') {
+              [
+                { ox: -cellSize * 0.35, oy: -cellSize * 0.35 },
+                { ox: cellSize * 0.35, oy: -cellSize * 0.2 },
+                { ox: 0, oy: cellSize * 0.35 },
+              ].forEach((offset) => {
+                const subX = center2x2X + offset.ox;
+                const subY = center2x2Y + offset.oy;
+                for (let i = 0; i < 5; i++) {
+                  const a = (i * 2 * Math.PI) / 5 + phaseRad;
+                  ctx.beginPath();
+                  ctx.ellipse(
+                    subX + cellSize * 0.3 * Math.cos(a),
+                    subY + cellSize * 0.3 * Math.sin(a),
+                    cellSize * 0.32,
+                    cellSize * 0.18,
+                    a,
+                    0,
+                    Math.PI * 2
+                  );
+                  ctx.fill();
+                }
+              });
+            }
+
+            // CLUSTER THEME 4: BAROQUE — ROYAL GILDED MEDALLION CREST
+            else if (monsterStyle === 'baroque_filigree') {
+              // Intricate royal rosette medallion
               ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.4;
-              ctx.moveTo(cx, cy);
-              ctx.quadraticCurveTo((cx + next.x) / 2, (cy + next.y) / 2 - branchAmp * 0.8, next.x, next.y);
+              ctx.lineWidth = strokeWidth * 1.6;
+              ctx.arc(center2x2X, center2x2Y, motifR * 0.85, 0, Math.PI * 2);
+              ctx.stroke();
+
+              // 8-point Royal Star
+              ctx.beginPath();
+              for (let i = 0; i < 8; i++) {
+                const a = (i * Math.PI) / 4;
+                ctx.moveTo(center2x2X, center2x2Y);
+                ctx.lineTo(center2x2X + motifR * 0.75 * Math.cos(a), center2x2Y + motifR * 0.75 * Math.sin(a));
+              }
               ctx.stroke();
             }
-            if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
-              const below = getModuleCenter(c, r + 1);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.4;
-              ctx.moveTo(cx, cy);
-              ctx.quadraticCurveTo((cx + below.x) / 2 + branchAmp * 0.8, (cy + below.y) / 2, below.x, below.y);
-              ctx.stroke();
-            }
-          }
 
-          // THEME 3: SAKURA BLOSSOM & PETALS (Hoa Anh Đào 5 cánh)
-          else if (monsterStyle === 'sakura_petals') {
-            const petalCount = 5;
-            const petalLen = fillRadius * 1.15 * detailScale;
-
-            // Draw 5 floral petals
-            for (let i = 0; i < petalCount; i++) {
-              const pAngle = (i * 2 * Math.PI) / petalCount + (c * 0.2 + r * 0.3);
-              const px = cx + petalLen * 0.5 * Math.cos(pAngle);
-              const py = cy + petalLen * 0.5 * Math.sin(pAngle);
+            // CLUSTER THEME 5: OCEAN CORAL — KRAKEN MONSTER EYE / ABYSSAL MEDUSA
+            else if (monsterStyle === 'ocean_coral') {
               ctx.beginPath();
-              ctx.ellipse(px, py, petalLen * 0.55, petalLen * 0.32, pAngle, 0, Math.PI * 2);
+              ctx.arc(center2x2X, center2x2Y, motifR * 0.7, 0, Math.PI * 2);
               ctx.fill();
+
+              // 8 radiating tentacles
+              for (let t = 0; t < 8; t++) {
+                const tAng = (t * 2 * Math.PI) / 8 + phaseRad;
+                ctx.beginPath();
+                ctx.lineWidth = strokeWidth * 1.3;
+                ctx.moveTo(center2x2X, center2x2Y);
+                ctx.quadraticCurveTo(
+                  center2x2X + motifR * Math.cos(tAng + 0.3),
+                  center2x2Y + motifR * Math.sin(tAng + 0.3),
+                  center2x2X + motifR * 1.2 * Math.cos(tAng),
+                  center2x2Y + motifR * 1.2 * Math.sin(tAng)
+                );
+                ctx.stroke();
+              }
             }
 
-            // Petal drift stream connections
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
+            // CLUSTER THEME 6: BIOMECHANICAL — CYBERNETIC CORE ENGINE
+            else {
               ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.2;
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(next.x, next.y);
-              ctx.stroke();
-            }
-            if (r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1)) {
-              const below = getModuleCenter(c, r + 1);
+              ctx.lineWidth = strokeWidth * 1.5;
+              ctx.strokeRect(center2x2X - motifR * 0.7, center2x2Y - motifR * 0.7, motifR * 1.4, motifR * 1.4);
               ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.2;
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(below.x, below.y);
-              ctx.stroke();
-            }
-          }
-
-          // THEME 4: VINTAGE AUSPICIOUS CLOUDS (Vân Mây Cổ Điển)
-          else if (monsterStyle === 'vintage_clouds') {
-            const cloudR = fillRadius * 0.85;
-            const scrollOffset = branchAmp * Math.sin((c + r) * 0.5 + phaseRad);
-
-            // Auspicious cloud curl
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.1;
-            ctx.arc(cx, cy, cloudR * 1.2, 0, Math.PI * 1.6);
-            ctx.stroke();
-
-            // Cloud whorl tail
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.3;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(
-                cx + cellSize * 0.5,
-                cy - scrollOffset,
-                next.x - cellSize * 0.5,
-                next.y + scrollOffset,
-                next.x,
-                next.y
-              );
-              ctx.stroke();
-            }
-          }
-
-          // THEME 5: FEATHER WINGS (Lông Vũ & Cánh Thiên Thần)
-          else if (monsterStyle === 'feather_wings') {
-            const fAngle = Math.PI / 4 + ((c % 3) - 1) * 0.2;
-            const fLen = fillRadius * 1.3 * detailScale;
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 0.9;
-            ctx.moveTo(cx - fLen * Math.cos(fAngle), cy - fLen * Math.sin(fAngle));
-            ctx.lineTo(cx + fLen * Math.cos(fAngle), cy + fLen * Math.sin(fAngle));
-            ctx.stroke();
-
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.2;
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(next.x, next.y);
-              ctx.stroke();
-            }
-          }
-
-          // THEME 6: OCEAN CORAL (Rạn San Hô & Thủy Quái)
-          else if (monsterStyle === 'ocean_coral') {
-            const tentacleWave = branchAmp * Math.sin((c * 3 + r * 2) * 0.4 + phaseRad);
-
-            if (enableSprouts) {
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 0.9;
-              ctx.moveTo(cx, cy);
-              ctx.quadraticCurveTo(cx + tentacleWave, cy - cellSize * 0.5, cx + tentacleWave * 1.5, cy - cellSize * 0.6);
-              ctx.stroke();
-            }
-
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.3;
-              ctx.moveTo(cx, cy);
-              ctx.quadraticCurveTo((cx + next.x) / 2, (cy + next.y) / 2 + tentacleWave, next.x, next.y);
-              ctx.stroke();
-            }
-          }
-
-          // THEME 7: BAROQUE FILIGREE (Phù Điêu Hoàng Gia Acanthus)
-          else if (monsterStyle === 'baroque_filigree') {
-            const scrollR = fillRadius * 0.9;
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.2;
-            ctx.arc(cx, cy, scrollR, 0, Math.PI * 1.5);
-            ctx.stroke();
-
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.35;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(
-                cx + cellSize * 0.4,
-                cy - branchAmp * 0.6,
-                next.x - cellSize * 0.4,
-                next.y + branchAmp * 0.6,
-                next.x,
-                next.y
-              );
-              ctx.stroke();
-            }
-          }
-
-          // THEME 8: BIOMECHANICAL CYBER (Ống dẫn sinh học Giger)
-          else if (monsterStyle === 'biomech_cyber') {
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.2;
-            ctx.rect(cx - fillRadius * 0.8, cy - fillRadius * 0.8, fillRadius * 1.6, fillRadius * 1.6);
-            ctx.stroke();
-
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.4;
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(next.x, next.y);
-              ctx.stroke();
+              ctx.arc(center2x2X, center2x2Y, motifR * 0.45, 0, Math.PI * 2);
+              ctx.fill();
             }
           }
         }
@@ -828,28 +735,134 @@ export default function WavyQRControlNet({
     }
 
     // =========================================================================
-    // MODE B: MATHEMATICAL WAVE RIBBONS ENGINE (DẢI SÓNG HÌNH HỌC)
+    // STEP 3: RENDER REGULAR MODULES, CONNECTED RUNS & SHAPES
     // =========================================================================
-    else {
-      for (let r = 0; r < N; r++) {
-        for (let c = 0; c < N; c++) {
-          if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
-          if (isFinderSeparator(c, r)) continue;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (isFinderModule(c, r) && finderStyle !== 'flowing') continue;
+        if (isFinderSeparator(c, r)) continue;
+        if (processed2x2[r][c]) continue; // Already rendered as part of 2x2 mega-cluster
 
-          const isDark = qrMatrix[r]?.[c] === true;
-          if (!isDark) continue;
+        const isDark = qrMatrix[r]?.[c] === true;
+        if (!isDark) continue;
 
-          const { x: cx, y: cy } = getModuleCenter(c, r);
+        const { x: cx, y: cy } = getModuleCenter(c, r);
 
+        // Core solid anchor
+        ctx.beginPath();
+        ctx.arc(cx, cy, fillRadius * 0.95, 0, Math.PI * 2);
+        ctx.fill();
+
+        // -------------------------------------------------------------
+        // MONSTER ORGANIC RUNS & SHAPE MORPHING
+        // -------------------------------------------------------------
+        if (engineCategory === 'monster_organic') {
+          const detailScale = foliageDensity / 100;
+          const branchAmp = branchCurvature;
+
+          // Check connectivity
+          const hasRight = c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r);
+          const hasLeft = c - 1 >= 0 && qrMatrix[r]?.[c - 1] && !isFinderModule(c - 1, r);
+          const hasDown = r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1);
+          const hasUp = r - 1 >= 0 && qrMatrix[r - 1]?.[c] && !isFinderModule(c, r - 1);
+
+          const isHorizontalRun = (hasRight || hasLeft) && !hasDown && !hasUp;
+          const isVerticalRun = (hasDown || hasUp) && !hasRight && !hasLeft;
+          const isIsolated = !hasRight && !hasLeft && !hasDown && !hasUp;
+
+          // 1. ISOLATED SINGLE MODULE (Nụ hoa đơn / Chiếc lá bay / Ngôi sao xăm)
+          if (isIsolated && enableSprouts) {
+            if (monsterStyle === 'botanical_foliage') {
+              // Delicate sprouting leaf pair
+              ctx.beginPath();
+              ctx.ellipse(cx, cy - cellSize * 0.45, cellSize * 0.4, cellSize * 0.2, 0, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (monsterStyle === 'sakura_petals') {
+              // Single blossom
+              ctx.beginPath();
+              ctx.arc(cx, cy, fillRadius * 1.1, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (monsterStyle === 'tribal_tattoo') {
+              // 4-point tribal star
+              ctx.beginPath();
+              ctx.moveTo(cx, cy - cellSize * 0.5);
+              ctx.lineTo(cx + cellSize * 0.15, cy - cellSize * 0.15);
+              ctx.lineTo(cx + cellSize * 0.5, cy);
+              ctx.lineTo(cx + cellSize * 0.15, cy + cellSize * 0.15);
+              ctx.lineTo(cx, cy + cellSize * 0.5);
+              ctx.lineTo(cx - cellSize * 0.15, cy + cellSize * 0.15);
+              ctx.lineTo(cx - cellSize * 0.5, cy);
+              ctx.lineTo(cx - cellSize * 0.15, cy - cellSize * 0.15);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+
+          // 2. HORIZONTAL BRANCH RUN (Cành cây ngang / Thân rồng ngang / Dải phào chỉ)
+          if (hasRight) {
+            const next = getModuleCenter(c + 1, r);
+            const branchWobble = branchAmp * Math.sin((c + r) * 0.7 + phaseRad);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.35;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + cellSize * 0.4,
+              cy + branchWobble,
+              next.x - cellSize * 0.4,
+              next.y - branchWobble,
+              next.x,
+              next.y
+            );
+            ctx.stroke();
+
+            // Sprout leaves along branch
+            if (enableSprouts && monsterStyle === 'botanical_foliage') {
+              const midX = (cx + next.x) / 2;
+              const midY = (cy + next.y) / 2 + branchWobble * 0.5;
+              ctx.beginPath();
+              ctx.ellipse(midX, midY - cellSize * 0.35, cellSize * 0.35 * detailScale, cellSize * 0.18, -0.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          // 3. VERTICAL TRUNK RUN (Thân cây dọc / Cột trụ / Dây leo rễ)
+          if (hasDown) {
+            const below = getModuleCenter(c, r + 1);
+            const branchWobble = branchAmp * Math.cos((c + r) * 0.7 + phaseRad);
+
+            ctx.beginPath();
+            ctx.lineWidth = strokeWidth * 1.35;
+            ctx.moveTo(cx, cy);
+            ctx.bezierCurveTo(
+              cx + branchWobble,
+              cy + cellSize * 0.4,
+              below.x - branchWobble,
+              below.y - cellSize * 0.4,
+              below.x,
+              below.y
+            );
+            ctx.stroke();
+
+            if (enableSprouts && monsterStyle === 'botanical_foliage') {
+              const midX = (cx + below.x) / 2 + branchWobble * 0.5;
+              const midY = (cy + below.y) / 2;
+              ctx.beginPath();
+              ctx.ellipse(midX + cellSize * 0.35, midY, cellSize * 0.35 * detailScale, cellSize * 0.18, 0.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // -------------------------------------------------------------
+        // GEOMETRIC WAVE RIBBONS MODE
+        // -------------------------------------------------------------
+        else {
           const dx = (cx - qrCenter) / qrCenter;
           const dy = (cy - qrCenter) / qrCenter;
           const distRatio = Math.sqrt(dx * dx + dy * dy);
           const regionalAmpWeight = (centerWaveDecay / 100) * (1 - distRatio * 0.3);
           const effectiveAmp = amplitude * Math.max(0.3, regionalAmpWeight);
-
-          ctx.beginPath();
-          ctx.arc(cx, cy, fillRadius, 0, Math.PI * 2);
-          ctx.fill();
 
           if (waveStyle === 'sine_stream') {
             const waveOffsetY =
@@ -911,40 +924,6 @@ export default function WavyQRControlNet({
                 next.x,
                 next.y
               );
-              ctx.stroke();
-            }
-          } else if (waveStyle === 'radial_ripple') {
-            const deltaX = cx - qrCenter;
-            const deltaY = cy - qrCenter;
-            const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const angle = Math.atan2(deltaY, deltaX);
-            const ripple = effectiveAmp * 0.6 * Math.sin((dist / canvasSize) * frequency * Math.PI * 4 + phaseRad);
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth;
-            ctx.arc(
-              qrCenter,
-              qrCenter,
-              dist + ripple,
-              angle - (cellSize / (dist + 1)) * 0.6,
-              angle + (cellSize / (dist + 1)) * 0.6
-            );
-            ctx.stroke();
-          } else if (waveStyle === 'topographic') {
-            const waveElev = effectiveAmp * Math.sin((cx / canvasSize) * frequency * 2 + r * 0.4 + phaseRad);
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth;
-            ctx.moveTo(cx - cellSize * 0.45, cy + waveElev * 0.3);
-            ctx.quadraticCurveTo(cx, cy - waveElev * 0.4, cx + cellSize * 0.45, cy + waveElev * 0.3);
-            ctx.stroke();
-
-            if (c + 1 < N && qrMatrix[r]?.[c + 1] && !isFinderModule(c + 1, r)) {
-              const next = getModuleCenter(c + 1, r);
-              ctx.beginPath();
-              ctx.lineWidth = strokeWidth * 1.2;
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(next.x, next.y);
               ctx.stroke();
             }
           }
@@ -1063,6 +1042,9 @@ export default function WavyQRControlNet({
     quietZone,
     engineCategory,
     monsterStyle,
+    enableClusterSynthesis,
+    megaMotifScale,
+    textureRichness,
     foliageDensity,
     branchCurvature,
     enableSprouts,
@@ -1090,7 +1072,7 @@ export default function WavyQRControlNet({
     if (!outputDataUrl) return;
     const a = document.createElement('a');
     a.href = outputDataUrl;
-    a.download = `artqr_${engineCategory}_${engineCategory === 'monster_organic' ? monsterStyle : waveStyle}_${Date.now()}.png`;
+    a.download = `artqr_clusters_${engineCategory === 'monster_organic' ? monsterStyle : waveStyle}_${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1129,7 +1111,7 @@ export default function WavyQRControlNet({
     for (let i = 0; i < len; i++) {
       bytes[i] = binStr.charCodeAt(i);
     }
-    const file = new File([bytes], `monster_controlnet_${Date.now()}.png`, { type: 'image/png' });
+    const file = new File([bytes], `cluster_monster_controlnet_${Date.now()}.png`, { type: 'image/png' });
 
     let matchingPrompt =
       'masterpiece, lush botanical forest branches forming organic hidden pattern, morning sunlight, macro nature photography, 8k';
@@ -1151,11 +1133,11 @@ export default function WavyQRControlNet({
       <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500/25 via-cyan-500/20 to-amber-500/25 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10 shrink-0">
-            <Sparkles className="size-6 animate-pulse text-amber-400" />
+            <Network className="size-6 animate-pulse text-emerald-400" />
           </div>
           <div>
             <h2 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-              <span>ControlNet Monster Studio • Ngụy Trang Cành Cây, Hoa Lá & Hình Xăm</span>
+              <span>Hợp Nhất Cụm Module Liền Kề • ControlNet Monster Synthesis</span>
               {scanVerif.isValid ? (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shadow-emerald-950">
                   <CheckCircle2 className="size-3.5 text-emerald-400" />
@@ -1169,7 +1151,7 @@ export default function WavyQRControlNet({
               )}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Biến module thành cành nhánh tự nhiên, cụm hoa nở rộ, nét xăm Tribal & phù điêu hoàng gia bảo toàn mã quét
+              Cụm 2x2 biến thành <strong className="text-amber-300">Đóa Hoa Nở / Đầu Rồng</strong> • Cụm dài thành <strong className="text-emerald-300">Thân Cây Gỗ / Thân Rồng Vẩy Giáp</strong>
             </p>
           </div>
         </div>
@@ -1202,7 +1184,7 @@ export default function WavyQRControlNet({
           type="button"
           onClick={() => {
             setEngineCategory('monster_organic');
-            setParamTab('monster');
+            setParamTab('clusters');
           }}
           className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
             engineCategory === 'monster_organic'
@@ -1210,8 +1192,8 @@ export default function WavyQRControlNet({
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Leaf className="size-4" />
-          <span>✨ ControlNet Monster (Cành Cây, Hoa Lá, Hình Xăm)</span>
+          <Network className="size-4" />
+          <span>✨ Hợp Nhất Cụm Module (Hoa, Cành, Rồng)</span>
         </button>
 
         <button
@@ -1351,11 +1333,11 @@ export default function WavyQRControlNet({
                 {engineCategory === 'monster_organic' ? (
                   <button
                     type="button"
-                    onClick={() => setParamTab('monster')}
+                    onClick={() => setParamTab('clusters')}
                     className="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold shadow-md flex items-center gap-1.5"
                   >
-                    <Leaf className="size-3.5" />
-                    <span>Chủ Đề Monster</span>
+                    <Network className="size-3.5" />
+                    <span>Hợp Nhất Cụm</span>
                   </button>
                 ) : (
                   <button
@@ -1367,6 +1349,19 @@ export default function WavyQRControlNet({
                     <span>Thuật Toán Sóng</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setParamTab('monster')}
+                  className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                    paramTab === 'monster'
+                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Leaf className="size-3.5" />
+                  <span>Chủ Đề</span>
+                </button>
 
                 <button
                   type="button"
@@ -1391,14 +1386,82 @@ export default function WavyQRControlNet({
                   }`}
                 >
                   <SlidersHorizontal className="size-3.5" />
-                  <span>Màu & Tinh Chỉnh</span>
+                  <span>Màu & Nét</span>
                 </button>
               </div>
             </div>
 
-            {/* TAB 1A: CONTROLNET MONSTER STYLES */}
-            {paramTab === 'monster' && engineCategory === 'monster_organic' && (
+            {/* TAB 1: CLUSTER SYNTHESIS CONTROLS */}
+            {paramTab === 'clusters' && engineCategory === 'monster_organic' && (
               <div className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                      <Network className="size-4 text-emerald-400" />
+                      <span>Thuật Toán Hợp Nhất Cụm Polyomino</span>
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-emerald-300">
+                      <input
+                        type="checkbox"
+                        checked={enableClusterSynthesis}
+                        onChange={(e) => setEnableClusterSynthesis(e.target.checked)}
+                        className="rounded accent-emerald-500"
+                      />
+                      <span>BẬT Cụm</span>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Tự động phân tích các khối module liền kề: Cụm <strong>2×2 (4 ô)</strong> biến thành đóa hoa hồng/đầu rồng lớn, cụm <strong>1×N / N×1</strong> biến thành cành gỗ/thân rồng dài uốn lượn.
+                  </p>
+
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-300">Kích thước Đóa Hoa / Đầu Rồng (Cụm 2x2)</span>
+                      <span className="font-mono text-emerald-400 font-bold">{megaMotifScale}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="80"
+                      max="130"
+                      step="5"
+                      value={megaMotifScale}
+                      onChange={(e) => setMegaMotifScale(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Theme Selector for Cluster Morphing */}
+                <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                  {monsterStylesList.map((style) => {
+                    const Icon = style.icon;
+                    const isSelected = monsterStyle === style.id;
+                    return (
+                      <button
+                        key={style.id}
+                        type="button"
+                        onClick={() => setMonsterStyle(style.id as MonsterStyle)}
+                        className={`p-3 rounded-xl border text-left transition-all relative ${
+                          isSelected
+                            ? 'border-emerald-500 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 text-white shadow-md shadow-emerald-950/40'
+                            : 'border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon className={`size-4 ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                          <span className="text-xs font-bold truncate">{style.title}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{style.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: MONSTER THEMES */}
+            {paramTab === 'monster' && (
+              <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
                   {monsterStylesList.map((style) => {
                     const Icon = style.icon;
@@ -1427,88 +1490,25 @@ export default function WavyQRControlNet({
                   })}
                 </div>
 
-                {/* Monster Specific Fine-Tuning */}
-                <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-300">Thông Số Ngụy Trang Monster</span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={enableSprouts}
-                        onChange={(e) => setEnableSprouts(e.target.checked)}
-                        className="rounded accent-emerald-500"
-                      />
-                      <span>Đính kèm nụ hoa / lá non / móc xăm</span>
-                    </label>
+                <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300">Độ uốn lượn cành nhánh</span>
+                    <span className="font-mono text-emerald-400 font-bold">{branchCurvature}px</span>
                   </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-300">Mật độ hoa lá / chi tiết xăm</span>
-                      <span className="font-mono text-emerald-400 font-bold">{foliageDensity}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="30"
-                      max="100"
-                      step="5"
-                      value={foliageDensity}
-                      onChange={(e) => setFoliageDensity(Number(e.target.value))}
-                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-300">Độ cong uốn lượn cành nhánh</span>
-                      <span className="font-mono text-emerald-400 font-bold">{branchCurvature}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="4"
-                      max="24"
-                      step="1"
-                      value={branchCurvature}
-                      onChange={(e) => setBranchCurvature(Number(e.target.value))}
-                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                    />
-                  </div>
+                  <input
+                    type="range"
+                    min="4"
+                    max="24"
+                    step="1"
+                    value={branchCurvature}
+                    onChange={(e) => setBranchCurvature(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                  />
                 </div>
               </div>
             )}
 
-            {/* TAB 1B: WAVE STYLES */}
-            {paramTab === 'wave' && engineCategory === 'wave_ribbons' && (
-              <div className="grid grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-1">
-                {waveStylesList.map((style) => {
-                  const Icon = style.icon;
-                  const isSelected = waveStyle === style.id;
-                  return (
-                    <button
-                      key={style.id}
-                      type="button"
-                      onClick={() => setWaveStyle(style.id as WaveStyle)}
-                      className={`p-3 rounded-xl border text-left transition-all relative ${
-                        isSelected
-                          ? 'border-cyan-500 bg-gradient-to-br from-cyan-500/15 to-blue-500/10 text-white shadow-md shadow-cyan-950/40'
-                          : 'border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Icon className={`size-4 ${isSelected ? 'text-cyan-400' : 'text-slate-400'}`} />
-                        <span className="text-xs font-bold truncate">{style.title}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{style.desc}</p>
-                      {isSelected && (
-                        <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* TAB 2: PER-ZONE MATRIX CUSTOMIZATION */}
+            {/* TAB 3: MATRIX ZONES */}
             {paramTab === 'matrix_zones' && (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2.5">
@@ -1567,26 +1567,10 @@ export default function WavyQRControlNet({
                     className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
                   />
                 </div>
-
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-300 font-semibold">3. Lề Viền An Toàn (Quiet Zone)</span>
-                    <span className="font-mono text-emerald-400 font-bold">{quietZone} modules</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="4"
-                    step="0.5"
-                    value={quietZone}
-                    onChange={(e) => setQuietZone(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                  />
-                </div>
               </div>
             )}
 
-            {/* TAB 3: COLOR, CONTRAST & FINE TUNING */}
+            {/* TAB 4: COLOR & STYLE */}
             {paramTab === 'color_style' && (
               <div className="space-y-4">
                 <div className="space-y-3">
@@ -1641,7 +1625,6 @@ export default function WavyQRControlNet({
                   </div>
                 </div>
 
-                {/* 10 Color Schemes */}
                 <div className="space-y-2 pt-2 border-t border-slate-800/80">
                   <label className="text-xs text-slate-300 font-semibold block">Bảng màu ControlNet (10 phối màu)</label>
                   <div className="grid grid-cols-5 gap-1.5">
@@ -1730,7 +1713,6 @@ export default function WavyQRControlNet({
                   <button
                     type="button"
                     onClick={() => {
-                      setFoliageDensity(85);
                       setBranchCurvature(10);
                       setModuleFillRatio(90);
                       setFinderStyle('rounded_rings');
@@ -1759,7 +1741,7 @@ export default function WavyQRControlNet({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={outputDataUrl}
-                        alt="Monster QR Output"
+                        alt="Cluster Monster QR Output"
                         className="max-h-[380px] max-w-full object-contain rounded-xl shadow-2xl border border-slate-800/80 bg-white"
                       />
                       <div className="absolute bottom-2 left-2 right-2 p-2 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 text-[11px] text-slate-300 flex items-center justify-between">
@@ -1772,7 +1754,7 @@ export default function WavyQRControlNet({
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <RefreshCw className="size-4 animate-spin" />
-                      <span>Đang tính toán cành lá & hoa văn...</span>
+                      <span>Đang tổng hợp cụm hoa lá & hình xăm...</span>
                     </div>
                   )}
                 </div>
@@ -1808,7 +1790,7 @@ export default function WavyQRControlNet({
                   </div>
 
                   <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-amber-400 text-[10px] font-bold border border-amber-500/40 z-0">
-                    Ngụy Trang Monster
+                    Hợp Nhất Cụm Monster
                   </span>
 
                   <input
@@ -1914,12 +1896,12 @@ export default function WavyQRControlNet({
             </div>
           </div>
 
-          {/* BOX 4: PROMPTS OPTIMIZED FOR CONTROLNET MONSTER */}
+          {/* BOX 4: PROMPTS OPTIMIZED FOR CONTROLNET MONSTER CLUSTERS */}
           <div className="bg-[#0c1017]/80 border border-slate-800/80 rounded-2xl p-4.5 backdrop-blur-xl space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                 <Sparkles className="size-3.5 text-amber-400" />
-                <span>Prompt ControlNet Monster Tối Ưu (Cành Cây, Hoa Lá, Hình Xăm)</span>
+                <span>Prompt ControlNet Monster Hợp Nhất Cụm (Hoa Lớn, Thân Rồng, Cành Cây)</span>
               </h3>
               <span className="text-[10px] text-slate-500">Bấm để sao chép prompt</span>
             </div>
