@@ -66,8 +66,8 @@ export default function ArtQRStudioPage() {
   const [cleanQRResult, setCleanQRResult] = useState<QRTransResponse | null>(null);
   const [transparencyProcessing, setTransparencyProcessing] = useState<boolean>(false);
 
-  // Transparency tool extra settings
-  const [cropMode, setCropMode] = useState<'none' | 'crop' | 'mask'>('none');
+  // Transparency tool extra settings (Tự động cắt sát viền QR)
+  const [cropMode, setCropMode] = useState<'none' | 'crop' | 'mask'>('crop');
   const [useOtsu, setUseOtsu] = useState<boolean>(true);
   const [threshold, setThreshold] = useState<number>(215);
   const [validateQR, setValidateQR] = useState<boolean>(true);
@@ -121,12 +121,12 @@ export default function ArtQRStudioPage() {
     setArtQRError('');
     setArtQRResult(null);
 
-    // Mandatory Step: Execute existing QR background removal automatically
+    // Mandatory Step: Execute existing QR background removal and tight crop automatically
     setTransparencyProcessing(true);
     try {
       const opts = {
         threshold: useOtsu ? 0 : threshold,
-        crop_mode: cropMode,
+        crop_mode: 'crop' as const,
         validate: validateQR,
       };
       const res = await processQRTransparency(file, opts);
@@ -192,8 +192,21 @@ export default function ArtQRStudioPage() {
     const timer2 = setTimeout(() => setCurrentStep(3), 600);
     const timer3 = setTimeout(() => setCurrentStep(4), 1200);
 
+    let uploadFile = selectedFile;
+    if (cleanQRResult?.pngData) {
+      try {
+        const binStr = atob(cleanQRResult.pngData);
+        const len = binStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binStr.charCodeAt(i);
+        }
+        uploadFile = new File([bytes], 'clean_cropped_qr.png', { type: 'image/png' });
+      } catch (_) {}
+    }
+
     try {
-      const res = await generateArtQRSync(selectedFile, {
+      const res = await generateArtQRSync(uploadFile, {
         presetId: selectedPresetId,
       });
 
@@ -537,7 +550,7 @@ export default function ArtQRStudioPage() {
                         1
                       </span>
                       <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                        Mã QR Đầu Vào (Tự Động Bóc Tách Nền)
+                        Mã QR Đầu Vào (Tự Động Cắt Sát & Bóc Tách Nền)
                       </h2>
                     </div>
 
@@ -605,11 +618,11 @@ export default function ArtQRStudioPage() {
                               ) : transparencyProcessing ? (
                                 <RefreshCw className="size-4 animate-spin text-amber-400" />
                               ) : (
-                                <span className="text-[9px] text-slate-500">Đang tách...</span>
+                                <span className="text-[9px] text-slate-500">Đang cắt...</span>
                               )}
                             </div>
                             <span className="text-[9px] text-emerald-400 font-semibold mt-1 block">
-                              Tách Nền Xong
+                              Đã Cắt Sát & Tách Nền
                             </span>
                           </div>
                         </div>
@@ -620,7 +633,7 @@ export default function ArtQRStudioPage() {
                           </p>
                           <p className="text-[11px] text-emerald-400 font-semibold mt-0.5 flex items-center justify-center gap-1">
                             <CheckCircle2 className="size-3 text-emerald-400" />
-                            <span>Đã tự động gọi hàm bóc tách nền chuẩn (qrtrans)</span>
+                            <span>Đã tự động cắt sát viền mã QR và loại bỏ viền trắng thừa xung quanh (qrtrans)</span>
                           </p>
                         </div>
                       </div>
