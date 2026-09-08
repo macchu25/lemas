@@ -27,6 +27,7 @@ import {
   Palette,
   Lock,
   Upload,
+  Waves,
 } from 'lucide-react';
 import {
   processQRTransparency,
@@ -41,13 +42,14 @@ import {
   ArtQRResult,
   getPresetAssetUrl,
 } from '@/lib/artqr_api';
+import WavyQRControlNet from '@/components/dashboard/WavyQRControlNet';
 
 export default function ArtQRStudioPage() {
   // Prevent hydration mismatch
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // View mode: 'catalog' (Trang chọn phong cách) | 'generator' (Trang tạo mã) | 'transparency_tool' (Bóc tách nền)
-  const [viewMode, setViewMode] = useState<'catalog' | 'generator' | 'transparency_tool'>('catalog');
+  // View mode: 'catalog' (Trang chọn phong cách) | 'generator' (Trang tạo mã) | 'wavy_controlnet' (Nét uốn lượn ControlNet) | 'transparency_tool' (Bóc tách nền)
+  const [viewMode, setViewMode] = useState<'catalog' | 'generator' | 'wavy_controlnet' | 'transparency_tool'>('catalog');
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -379,7 +381,7 @@ export default function ArtQRStudioPage() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-semibold shrink-0">
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-semibold shrink-0 flex-wrap gap-1">
             <button
               type="button"
               onClick={() => setViewMode('catalog')}
@@ -406,6 +408,18 @@ export default function ArtQRStudioPage() {
             </button>
             <button
               type="button"
+              onClick={() => setViewMode('wavy_controlnet')}
+              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                viewMode === 'wavy_controlnet'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                  : 'text-cyan-400 hover:text-white'
+              }`}
+            >
+              <Waves className="size-3.5" />
+              <span>Uốn Lượn ControlNet</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setViewMode('transparency_tool')}
               className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                 viewMode === 'transparency_tool'
@@ -413,7 +427,7 @@ export default function ArtQRStudioPage() {
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Layers className="size-3.5 text-cyan-400" />
+              <Layers className="size-3.5 text-slate-300" />
               <span>Tách Nền QR</span>
             </button>
           </div>
@@ -1122,18 +1136,51 @@ export default function ArtQRStudioPage() {
                 </div>
 
                 {cleanQRResult?.dataUrl && (
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadOutput(cleanQRResult.dataUrl as string, `transparent_qr_${Date.now()}.png`)}
-                    className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2"
-                  >
-                    <Download className="size-4" />
-                    <span>Tải Ảnh PNG Trong Suốt</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadOutput(cleanQRResult.dataUrl as string, `transparent_qr_${Date.now()}.png`)}
+                      className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-700"
+                    >
+                      <Download className="size-4" />
+                      <span>Tải Ảnh PNG Trong Suốt</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('wavy_controlnet');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                    >
+                      <Waves className="size-4" />
+                      <span>Chuyển Sang Uốn Lượn ControlNet</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
           </div>
+        )}
+
+        {/* VIEW 4: TRANG BIẾN ĐỔI NÉT UỐN LƯỢN CHO QR CONTROLNET */}
+        {viewMode === 'wavy_controlnet' && (
+          <WavyQRControlNet
+            initialQRUrl={cleanQRResult?.dataUrl || previewURL}
+            initialPayload={cleanQRResult?.outputPayload || cleanQRResult?.inputPayload || ''}
+            onBackToGallery={() => {
+              setViewMode('catalog');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSendToGenerator={(file, dataUrl, prompt) => {
+              setSelectedFile(file);
+              setPreviewURL(dataUrl);
+              if (prompt) setCustomPrompt(prompt);
+              setViewMode('generator');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         )}
       </div>
     </div>
