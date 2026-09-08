@@ -145,19 +145,62 @@ export async function submitArtQRGeneration(
   return { jobId: data.jobId, status: 'queued', progress: 5 };
 }
 
-// Fetch Art QR Job status by ID
-export async function getArtQRJob(jobId: string, signal?: AbortSignal): Promise<ArtQRJobResponse> {
+export interface ArtQRResult {
+  success: boolean;
+  image: string;
+  expected_payload: string;
+  decoded_payload: string;
+  qr_valid: boolean;
+  preset: string;
+  background_removed: boolean;
+  fallback_mode?: boolean;
+  retry_count: number;
+  processing_ms: number;
+  error?: string;
+}
+
+// Generate Art QR synchronously with deterministic scannability guarantee
+export async function generateArtQRSync(
+  qrFile: File,
+  options: {
+    referenceFile?: File | null;
+    presetId?: string;
+    customPrompt?: string;
+    placement?: Placement;
+  }
+): Promise<ArtQRResult> {
   const token = getStoredToken();
+  const formData = new FormData();
+  formData.append('qr_image', qrFile);
+
+  if (options.referenceFile) {
+    formData.append('reference_image', options.referenceFile);
+  }
+  if (options.presetId) {
+    formData.append('preset_id', options.presetId);
+  }
+  if (options.customPrompt) {
+    formData.append('custom_prompt', options.customPrompt);
+  }
+  if (options.placement) {
+    formData.append('placement', JSON.stringify(options.placement));
+  }
+
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const data = await artQRRequest(`${API_BASE}/api/art-qr/jobs/${encodeURIComponent(jobId)}`, {
-    headers, signal,
+  const res = await fetch(`${API_BASE}/api/art-qr/generate?sync=true`, {
+    method: 'POST',
+    headers,
+    body: formData,
   });
-  if (!data || data.job_id !== jobId || typeof data.status !== 'string') {
-    throw new Error('API trả trạng thái Art QR không hợp lệ.');
+
+  const data = await res.json();
+  if (!res.ok && !data.error) {
+    throw new Error(`Server returned HTTP ${res.status}`);
   }
-  return data as unknown as ArtQRJobResponse;
+  return data as ArtQRResult;
 }
+
