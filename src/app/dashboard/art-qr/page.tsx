@@ -32,10 +32,11 @@ import {
   processQRTransparency,
   getSampleQR,
   QRTransResponse,
+  API_BASE,
 } from '@/lib/api';
 import {
   getArtQRPresets,
-  generateArtQRSync,
+  submitArtQRGeneration,
   ArtQRPreset,
   ArtQRResult,
 } from '@/lib/artqr_api';
@@ -214,16 +215,61 @@ export default function ArtQRStudioPage() {
     }
 
     try {
-      const res = await generateArtQRSync(uploadFile, {
+      // Step 1: Submit job (fast, returns jobId immediately)
+      const submission = await submitArtQRGeneration(uploadFile, {
         presetId: selectedPresetId,
         referenceFile: referenceFile,
+        placement: {
+          x: 0.41,
+          y: 0.28,
+          size: 0.30,
+        },
       });
 
-      if (res && res.success) {
-        setCurrentStep(5);
-        setArtQRResult(res);
-      } else {
-        setArtQRError(res?.error || 'Không thể tạo mã Art QR với độ quét hợp lệ.');
+      const jobId = submission.jobId;
+
+      // Step 2: Poll every 3s until completed or failed (max 5 minutes = 100 polls)
+      const maxPolls = 100;
+      let pollCount = 0;
+      let done = false;
+
+      while (!done && pollCount < maxPolls) {
+        await new Promise((r) => setTimeout(r, 3000)); // wait 3s
+        pollCount++;
+
+        const jobRes = await fetch(`${API_BASE}/api/art-qr/jobs/${encodeURIComponent(jobId)}`, {
+          cache: 'no-store',
+        });
+
+        if (!jobRes.ok) continue;
+
+        const job = await jobRes.json();
+
+        if (job.status === 'completed' && job.images?.length > 0) {
+          done = true;
+          const img = job.images[0];
+          setCurrentStep(5);
+          setArtQRResult({
+            success: true,
+            image: img.data_url || img.url,
+            expected_payload: job.original_payload,
+            decoded_payload: img.decoded_payload || job.decoded_payload || job.original_payload,
+            qr_valid: img.verified ?? true,
+            preset: job.preset_id || selectedPresetId,
+            background_removed: job.background_removed ?? false,
+            fallback_mode: job.fallback_mode ?? false,
+            retry_count: job.attempts ?? 0,
+            processing_ms: job.processing_ms ?? 0,
+          });
+        } else if (job.status === 'failed') {
+          done = true;
+          setArtQRError(job.error || 'Tạo Art QR thất bại. Vui lòng thử lại.');
+        }
+        // else: still generating, continue polling
+      }
+
+      if (!done) {
+        setArtQRError('Hết thời gian chờ (5 phút). Hệ thống tạo ảnh AI đang tải. Vui lòng thử lại.');
       }
     } catch (err: unknown) {
       setArtQRError(err instanceof Error ? err.message : 'Lỗi kết nối máy chủ Art QR');
