@@ -110,8 +110,10 @@ export default function ArtQRStudioPage() {
   const handleSelectPresetAndProceed = (preset: ArtQRPreset) => {
     setSelectedPresetId(preset.id);
     setReferenceFile(null);
-    if (preset.reference_image_url || preset.preview_url) {
-      setReferencePreview(preset.reference_image_url || preset.preview_url);
+    if (preset.reference_image_url) {
+      setReferencePreview(getPresetAssetUrl(preset.reference_image_url));
+    } else if (preset.preview_url) {
+      setReferencePreview(getPresetAssetUrl(preset.preview_url));
     }
     setViewMode('generator');
     window.scrollTo({ top: 0, behavior: 'smooth' });

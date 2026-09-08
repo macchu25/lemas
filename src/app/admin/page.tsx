@@ -652,12 +652,9 @@ export default function AdminPage() {
       if (res.url) {
         setEditingPreset((prev: any) => {
           if (!prev) return null;
-          const wasDefaultPreview = !prev.preview_url || prev.preview_url === prev.reference_image_url || prev.preview_url.includes('doraemon_bread');
           return {
             ...prev,
             reference_image_url: res.url,
-            // If preview_url was empty or default Doraemon or identical to old reference, sync preview_url
-            preview_url: wasDefaultPreview ? res.url : prev.preview_url,
           };
         });
       }
@@ -2362,7 +2359,7 @@ export default function AdminPage() {
                       {/* Preview Box */}
                       <div className="size-24 sm:size-28 rounded-2xl overflow-hidden border border-amber-500/30 bg-black/60 shrink-0 relative shadow-lg">
                         <img
-                          src={getPresetAssetUrl(editingPreset.preview_url || editingPreset.reference_image_url)}
+                          src={getPresetAssetUrl(editingPreset.preview_url)}
                           alt="User Preview"
                           className="w-full h-full object-cover"
                           onError={(e) => {
