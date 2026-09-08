@@ -26,6 +26,7 @@ import {
   Cpu,
   Palette,
   Lock,
+  Upload,
 } from 'lucide-react';
 import {
   processQRTransparency,
