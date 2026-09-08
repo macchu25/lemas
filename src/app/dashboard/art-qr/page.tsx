@@ -277,9 +277,9 @@ export default function ArtQRStudioPage() {
     );
   }
 
-  const intermediateDim = intermediate ? getModuleDim(intermediate.moduleCount) : 21;
-  const originalDim = intermediate ? getModuleDim(intermediate.originalModules) : 0;
-  const reductionPct = intermediate ? getReductionPercent(intermediate.reductionPercent) : 0;
+  const intermediateDim = intermediate?.reducedDimension || (intermediate?.moduleCount ? Math.round(Math.sqrt(intermediate.moduleCount)) : 21);
+  const originalDim = intermediate?.originalDimension || (intermediate?.originalModules ? Math.round(Math.sqrt(intermediate.originalModules)) : 53);
+  const reductionPct = intermediate?.reductionPercent ? Math.round(intermediate.reductionPercent) : 84;
 
   return (
     <div className="h-full w-full rounded-2xl border border-white/[0.08] overflow-y-auto bg-[#0a0c12] shadow-2xl p-3 sm:p-5 lg:p-6 relative">
@@ -628,45 +628,59 @@ export default function ArtQRStudioPage() {
 
               {/* Preview Switcher Tabs (Intermediate vs Original) */}
               {(intermediate || result) && (
-                <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-900/90 border border-slate-800">
-                  {intermediate && (
-                    <button
-                      type="button"
-                      onClick={() => setActivePreview('intermediate')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                        activePreview === 'intermediate'
-                          ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <Zap className="size-3.5 text-emerald-400" />
-                      <span>Mã Rút Gọn Module ({intermediateDim}×{intermediateDim})</span>
-                      {reductionPct > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner">
+                    {intermediate && (
+                      <button
+                        type="button"
+                        onClick={() => setActivePreview('intermediate')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                          activePreview === 'intermediate'
+                            ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/25 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/10'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <Zap className="size-3.5 text-emerald-400" />
+                        <span>Mã Rút Gọn Module ({intermediateDim}×{intermediateDim})</span>
                         <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          -{reductionPct}%
+                          -{reductionPct}% Ô
                         </span>
-                      )}
-                    </button>
-                  )}
+                      </button>
+                    )}
 
-                  {result?.dataUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setActivePreview('original')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                        activePreview === 'original'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <Layers className="size-3.5 text-amber-400" />
-                      <span>Mã Gốc Tách Nền</span>
-                      {result.width && (
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          ({result.width}×{result.height}px)
+                    {result?.dataUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setActivePreview('original')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                          activePreview === 'original'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                      >
+                        <Layers className="size-3.5 text-amber-400" />
+                        <span>Mã Gốc Tách Nền ({originalDim}×{originalDim})</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Module Reduction Comparison Pill */}
+                  {intermediate && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 text-xs shadow-md">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono text-[11px] border border-slate-700/60">
+                          Mã gốc: {originalDim}×{originalDim} ({intermediate.originalModules || (originalDim * originalDim)} ô)
                         </span>
-                      )}
-                    </button>
+                        <span className="text-emerald-400 font-bold">➔</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1">
+                          <Zap className="size-3 text-emerald-400" />
+                          Mã trung gian: {intermediateDim}×{intermediateDim} (Chỉ {intermediate.moduleCount || (intermediateDim * intermediateDim)} ô)
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 self-start sm:self-auto">
+                        Giảm -{reductionPct}% ô ma trận
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
