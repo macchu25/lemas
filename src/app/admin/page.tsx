@@ -514,6 +514,13 @@ export default function AdminPage() {
     try {
       const presets = await getArtQRPresets();
       setArtqrPresets(presets);
+      if (presets.length > 0) {
+        setEditingPreset((prev) => {
+          if (!prev || !prev.id) return { ...presets[0] };
+          const found = presets.find((p) => p.id === prev.id || p.slug === prev.slug);
+          return found ? { ...found } : { ...presets[0] };
+        });
+      }
     } catch (err) {
       console.error('Failed to load Art QR presets:', err);
     } finally {
@@ -528,8 +535,8 @@ export default function AdminPage() {
       slug: defaultId,
       name: '',
       description: 'Phong cách nghệ thuật tùy chỉnh ấn tượng cho Art QR',
-      preview_url: '/presets/doraemon_bread.png',
-      reference_image_url: '/presets/doraemon_bread.png',
+      preview_url: '/presets/doraemon_bread_scene.jpg',
+      reference_image_url: '/presets/doraemon_bread_scene.jpg',
       price_credits: 5,
       price_vnd: 15000,
       material: 'Sơn dầu & Hòa trộn hoa văn',
@@ -547,6 +554,10 @@ export default function AdminPage() {
     setEditingPreset({ ...p });
     setIsCreatingPreset(false);
     setPresetFeedback(null);
+    const editorEl = document.getElementById('artqr-direct-editor');
+    if (editorEl) {
+      editorEl.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleSavePreset = async (e: React.FormEvent) => {
@@ -573,10 +584,9 @@ export default function AdminPage() {
         type: 'success',
         message: `✅ Đã lưu cấu hình phong cách "${presetToSave.name}" thành công!`,
       });
+      setEditingPreset(presetToSave);
+      setIsCreatingPreset(false);
       await loadArtQRPresets();
-      setTimeout(() => {
-        setEditingPreset(null);
-      }, 1000);
     } catch (err: any) {
       setPresetFeedback({
         type: 'error',
@@ -984,8 +994,8 @@ export default function AdminPage() {
               : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
           }`}
         >
-          <Sparkles className="size-4" />
-          <span>🎨 Trang 2: API MachGen (Ảnh & Art QR)</span>
+          <Cpu className="size-4" />
+          <span>⚡ Trang 2: API Keys MachGen</span>
           <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-amber-200">
             {machgenKeys.length} Keys
           </span>
@@ -996,15 +1006,15 @@ export default function AdminPage() {
             setAdminTab('artqr');
             loadArtQRPresets();
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
             adminTab === 'artqr'
-              ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-lg shadow-pink-600/40 ring-1 ring-pink-400'
-              : 'text-pink-300 hover:text-white hover:bg-pink-500/10'
+              ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-lg shadow-pink-600/50 ring-2 ring-pink-400 animate-pulse'
+              : 'text-pink-300 hover:text-white hover:bg-pink-500/20 border border-pink-500/30'
           }`}
         >
-          <QrCode className="size-4" />
-          <span>✨ Trang 3: Phong Cách Art QR</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/40 font-mono text-pink-200">
+          <Sparkles className="size-4 text-pink-300" />
+          <span>🎨 Trang 3: SỬA PROMPT, GIÁ & ẢNH MẪU ART QR</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-black/60 font-mono text-pink-200">
             {artqrPresets.length} styles
           </span>
         </button>
@@ -1657,6 +1667,37 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Direct Link Banner to Trang 3 for Prompt & Reference Image */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-950/60 via-purple-950/60 to-[#1e0d22] border border-pink-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30 shrink-0">
+                <Sparkles className="size-5" />
+              </div>
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-black text-white flex items-center gap-2">
+                  <span>Bạn đang tìm nơi Sửa Prompt, Đổi Giá Xu & Thay Ảnh Mẫu Art QR?</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-500/30 text-pink-300 border border-pink-500/40 uppercase">
+                    Ở Trang 3
+                  </span>
+                </h4>
+                <p className="text-xs text-pink-200/80">
+                  Trang 2 này chỉ quản lý API Key MachGen. Để sửa nội dung <b>Prompt</b>, đổi <b>Giá Tiền</b> hoặc tải lên <b>Ảnh Tham Chiếu</b> (Bánh Mì Doraemon,...), vui lòng bấm nút bên cạnh!
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAdminTab('artqr');
+                loadArtQRPresets();
+              }}
+              className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:brightness-110 text-white shadow-lg shadow-pink-600/40 shrink-0 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Chuyển Sang Trang 3: Sửa Prompt & Ảnh Mẫu Ngay →</span>
+            </button>
+          </div>
+
           {/* Test & Add Form for MachGen */}
           <div className="p-6 rounded-2xl border border-amber-500/20 bg-[#171109] space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
@@ -2123,6 +2164,283 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* BẢNG CHỈNH SỬA TRỰC TIẾP: PROMPT, ẢNH THAM CHIẾU & GIÁ BÁN (ADMIN)         */}
+          {/* ========================================================================= */}
+          <div id="artqr-direct-editor" className="p-6 sm:p-7 rounded-3xl border-2 border-pink-500/50 bg-[#190d20] space-y-6 shadow-2xl relative">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="p-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30">
+                  <Edit className="size-6" />
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2.5 flex-wrap">
+                    <span>🎯 KHU VỰC CHỈNH SỬA PROMPT, GIÁ TIỀN & ẢNH THAM CHIẾU</span>
+                    {editingPreset && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-500/20 text-pink-300 border border-pink-500/40">
+                        Đang chọn: {editingPreset.name || 'Phong cách mới'}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Admin sửa trực tiếp tại đây: Nhập/thay đổi Prompt AI, tải ảnh tham chiếu mới từ máy tính và thiết lập giá bán.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick style switcher buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-slate-400 font-bold">Chọn phong cách sửa:</span>
+                {artqrPresets.map((p) => {
+                  const isCurrent = editingPreset?.id === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleOpenEditPreset(p)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md shadow-pink-600/40 ring-2 ring-pink-300'
+                          : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={handleOpenCreatePreset}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <Plus className="size-3.5" />
+                  <span>+ Thêm Mới</span>
+                </button>
+              </div>
+            </div>
+
+            {editingPreset ? (
+              <form onSubmit={handleSavePreset} className="space-y-5">
+                {/* Row 1: Name, Slug, Enabled */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-200 block mb-1.5">
+                      Tên Phong Cách <span className="text-pink-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingPreset.name}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, name: e.target.value })}
+                      placeholder="Ví dụ: Bánh Mì Trí Nhớ Doraemon"
+                      className="w-full h-10 px-3.5 rounded-xl border border-white/15 bg-[#0d0712] text-xs font-bold text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-200 block mb-1.5">
+                      Mã Định Danh (ID / Slug)
+                    </label>
+                    <input
+                      type="text"
+                      value={editingPreset.id}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, id: e.target.value, slug: e.target.value })}
+                      placeholder="Ví dụ: doraemon_bread"
+                      className="w-full h-10 px-3.5 rounded-xl border border-white/15 bg-[#0d0712] text-xs font-mono text-pink-300 placeholder-slate-500 focus:border-pink-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-200 block mb-1.5">
+                      Trạng Thái Hiển Thị
+                    </label>
+                    <div className="h-10 px-3 rounded-xl border border-white/15 bg-[#0d0712] flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="direct_preset_enabled"
+                        checked={editingPreset.enabled !== false}
+                        onChange={(e) => setEditingPreset({ ...editingPreset, enabled: e.target.checked })}
+                        className="size-4 rounded accent-pink-500 cursor-pointer"
+                      />
+                      <label htmlFor="direct_preset_enabled" className="text-xs font-semibold text-slate-200 cursor-pointer">
+                        {editingPreset.enabled !== false ? '✅ Đang bật hiển thị' : '⏸️ Tạm ẩn khỏi user'}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 2: Reference Image (Mục 1) */}
+                <div className="p-4 sm:p-5 rounded-2xl border border-pink-500/30 bg-pink-500/[0.04] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="size-4 text-pink-400" />
+                      <h4 className="text-xs font-bold text-pink-300 uppercase tracking-wider">
+                        1. Ảnh Tham Chiếu Cảnh (Scene Reference Image - Admin Toàn Quyền Thay Đổi)
+                      </h4>
+                    </div>
+                    <span className="text-[11px] text-slate-400">
+                      MachGen dùng ảnh này để hòa quyện và khóa cứng tỷ lệ quét 100%
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    {/* Preview Box */}
+                    <div className="size-28 sm:size-32 rounded-2xl overflow-hidden border border-white/20 bg-black/60 shrink-0 relative shadow-lg">
+                      <img
+                        src={editingPreset.reference_image_url || editingPreset.preview_url || '/presets/doraemon_bread_scene.jpg'}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread_scene.jpg');
+                        }}
+                      />
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/80 text-white">
+                        Ảnh Xem Trước
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-3 w-full">
+                      {/* Big Upload Button */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white shadow-lg shadow-pink-600/30 cursor-pointer transition-all">
+                          <Upload className="size-4" />
+                          <span>{uploadingScene ? 'Đang tải ảnh lên...' : '📁 BẤM ĐỂ TẢI ẢNH MẪU MỚI TỪ MÁY TÍNH'}</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            disabled={uploadingScene}
+                            onChange={handleUploadSceneFile}
+                          />
+                        </label>
+                        <span className="text-xs text-slate-300 font-medium">
+                          Hỗ trợ PNG, JPG, WebP tối đa 15MB
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Hoặc Nhập Đường Dẫn URL Ảnh Mẫu:
+                        </label>
+                        <input
+                          type="text"
+                          value={editingPreset.reference_image_url || ''}
+                          onChange={(e) =>
+                            setEditingPreset({
+                              ...editingPreset,
+                              reference_image_url: e.target.value,
+                              preview_url: e.target.value,
+                            })
+                          }
+                          placeholder="/presets/doraemon_bread_scene.jpg hoặc link HTTPS"
+                          className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#0d0712] text-xs font-mono text-cyan-300 focus:border-pink-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 3: Prompt Textarea (Mục 2) */}
+                <div className="p-4 sm:p-5 rounded-2xl border border-pink-500/30 bg-pink-500/[0.04] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-pink-300 uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="size-4 text-pink-400" />
+                      <span>2. Nội Dung Prompt MachGen AI (Thay Prompt Tùy Ý Admin)</span>
+                    </label>
+                    <span className="text-[11px] text-pink-400 font-semibold">
+                      Chỉ Admin mới có quyền sửa văn bản này
+                    </span>
+                  </div>
+
+                  <textarea
+                    rows={6}
+                    required
+                    value={editingPreset.prompt}
+                    onChange={(e) => setEditingPreset({ ...editingPreset, prompt: e.target.value })}
+                    placeholder="Nhập prompt chi tiết: Masterpiece photograph, cinematic lighting, realistic textures, seamless integration..."
+                    className="w-full p-3.5 rounded-2xl border border-white/15 bg-[#0d0712] text-xs font-mono text-slate-200 placeholder-slate-500 focus:border-pink-500 focus:outline-none leading-relaxed"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    💡 Gợi ý: Hãy giữ nguyên các câu lệnh bảo toàn ma trận QR và mô tả chi tiết chất liệu, ánh sáng, góc chụp để MachGen tạo ra tác phẩm tinh xảo nhất.
+                  </p>
+                </div>
+
+                {/* Row 4: Pricing & Material */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.03]">
+                  <div>
+                    <label className="text-xs font-bold text-amber-300 block mb-1">
+                      Giá Tiêu Tốn (Xu / Credits mỗi lần tạo)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={editingPreset.price_credits ?? 5}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, price_credits: Number(e.target.value) })}
+                      className="w-full h-10 px-3.5 rounded-xl border border-amber-500/30 bg-[#0d0712] text-xs font-black text-amber-300 focus:border-amber-400 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Số Xu bị trừ khi tạo mã bằng phong cách này</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-emerald-300 block mb-1">
+                      Giá Tiền VNĐ Tham Chiếu (Hiển thị)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={editingPreset.price_vnd ?? 15000}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, price_vnd: Number(e.target.value) })}
+                      className="w-full h-10 px-3.5 rounded-xl border border-emerald-500/30 bg-[#0d0712] text-xs font-bold text-emerald-300 focus:border-emerald-400 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Hiển thị cho khách hàng so sánh (VNĐ)</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Chất Liệu / Phong Thái
+                    </label>
+                    <input
+                      type="text"
+                      value={editingPreset.material || ''}
+                      onChange={(e) => setEditingPreset({ ...editingPreset, material: e.target.value })}
+                      placeholder="Ví dụ: Bánh mì nướng mật ong"
+                      className="w-full h-10 px-3.5 rounded-xl border border-white/15 bg-[#0d0712] text-xs text-white focus:border-pink-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Ghi chú chất liệu hiển thị cho khách</p>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={presetSaving}
+                    className="flex items-center gap-2 px-8 py-3.5 rounded-2xl text-xs font-black bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:brightness-110 text-white shadow-xl shadow-pink-600/40 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {presetSaving ? (
+                      <>
+                        <RefreshCw className="size-4 animate-spin" />
+                        <span>Đang Lưu Thay Đổi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="size-4" />
+                        <span>💾 LƯU CẤU HÌNH (CẬP NHẬT TỨC THÌ VÀO HỆ THỐNG)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-8 text-center text-xs text-slate-400 bg-black/20 rounded-2xl border border-white/10">
+                Hãy chọn một phong cách ở thanh bên trên hoặc bấm "+ Thêm Mới" để bắt đầu chỉnh sửa.
+              </div>
+            )}
+          </div>
+
           {/* Presets List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -2282,335 +2600,6 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-
-          {/* Modal / Editor for Editing or Creating a Preset */}
-          {editingPreset && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-              <div className="relative w-full max-w-2xl my-8 p-6 sm:p-8 rounded-3xl border border-pink-500/40 bg-[#160b1c] text-white shadow-2xl space-y-5">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="p-2 rounded-xl bg-pink-600 text-white">
-                      <Sparkles className="size-5" />
-                    </span>
-                    <div>
-                      <h3 className="text-base font-black text-white">
-                        {isCreatingPreset ? 'Tạo Phong Cách Art QR Mới' : `Chỉnh Sửa Phong Cách: ${editingPreset.name}`}
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Admin toàn quyền chỉnh giá, thay đổi prompt và tải ảnh tham chiếu cảnh
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditingPreset(null)}
-                    className="p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
-                  >
-                    <X className="size-5" />
-                  </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleSavePreset} className="space-y-4">
-                  {/* Row 1: Name & ID */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Tên Phong Cách <span className="text-pink-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={editingPreset.name}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, name: e.target.value })}
-                        placeholder="Ví dụ: Bánh Mì Trí Nhớ Doraemon"
-                        className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0c0710] text-xs font-bold text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Mã Định Danh (Slug / ID)
-                      </label>
-                      <input
-                        type="text"
-                        value={editingPreset.id}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, id: e.target.value, slug: e.target.value })}
-                        placeholder="Ví dụ: doraemon_bread"
-                        className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0c0710] text-xs font-mono text-pink-300 placeholder-slate-500 focus:border-pink-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Pricing (User requirement: admin toàn quyền xử lý hiện giá bao nhiêu) */}
-                  <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Coins className="size-4 text-amber-400" />
-                      <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                        Định Giá Lượt Tạo (Admin Toàn Quyền Thiết Lập)
-                      </h4>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 block mb-1">
-                          Giá Tiêu Tốn (Xu / Credits mỗi lần tạo)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={editingPreset.price_credits ?? 5}
-                          onChange={(e) => setEditingPreset({ ...editingPreset, price_credits: Number(e.target.value) })}
-                          className="w-full h-10 px-3.5 rounded-xl border border-white/15 bg-[#0c0710] text-xs font-black text-amber-300 focus:border-amber-400 focus:outline-none"
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Số Xu người dùng sẽ bị trừ khi chọn phong cách này để tạo QR
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-slate-300 block mb-1">
-                          Giá Tiền VNĐ Tham Chiếu (Hiển thị)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1000"
-                          value={editingPreset.price_vnd ?? 15000}
-                          onChange={(e) => setEditingPreset({ ...editingPreset, price_vnd: Number(e.target.value) })}
-                          className="w-full h-10 px-3.5 rounded-xl border border-white/15 bg-[#0c0710] text-xs font-bold text-emerald-300 focus:border-emerald-400 focus:outline-none"
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Hiển thị VNĐ cho người dùng dễ dàng so sánh gói (Ví dụ: 15.000 đ)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Row 3: Description & Material */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Mô Tả Hiển Thị Cho Khách Hàng
-                      </label>
-                      <input
-                        type="text"
-                        value={editingPreset.description}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, description: e.target.value })}
-                        placeholder="Mô tả vẻ đẹp hoặc điểm nhấn của phong cách"
-                        className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0c0710] text-xs text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                        Chất Liệu / Phong Thái
-                      </label>
-                      <input
-                        type="text"
-                        value={editingPreset.material || ''}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, material: e.target.value })}
-                        placeholder="Ví dụ: Bánh mì nướng mật ong / Sơn mài hoàng gia"
-                        className="w-full h-10 px-3.5 rounded-xl border border-white/10 bg-[#0c0710] text-xs text-white placeholder-slate-500 focus:border-pink-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 4: Reference Scene Image (User requirement: thay ảnh tham chiếu) */}
-                  <div className="p-4 rounded-2xl border border-pink-500/30 bg-pink-500/[0.04] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="size-4 text-pink-400" />
-                        <h4 className="text-xs font-bold text-pink-300 uppercase tracking-wider">
-                          Ảnh Tham Chiếu Cảnh (Scene Reference Image)
-                        </h4>
-                      </div>
-                      <span className="text-[11px] text-slate-400">
-                        MachGen sẽ dùng ảnh này để hòa quyện và giữ 100% tỷ lệ quét
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      {/* Image Preview */}
-                      <div className="size-24 rounded-2xl overflow-hidden border border-white/20 bg-black/60 shrink-0 relative">
-                        <img
-                          src={editingPreset.reference_image_url || editingPreset.preview_url || '/presets/doraemon_bread.png'}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLElement).setAttribute('src', '/presets/doraemon_bread.png');
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex-1 min-w-0 space-y-2 w-full">
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                            Đường Dẫn URL Ảnh Mẫu:
-                          </label>
-                          <input
-                            type="text"
-                            value={editingPreset.reference_image_url || ''}
-                            onChange={(e) =>
-                              setEditingPreset({
-                                ...editingPreset,
-                                reference_image_url: e.target.value,
-                                preview_url: e.target.value,
-                              })
-                            }
-                            placeholder="/presets/doraemon_bread.png hoặc link HTTPS"
-                            className="w-full h-9 px-3 rounded-xl border border-white/10 bg-[#0c0710] text-xs font-mono text-cyan-300 focus:border-pink-500 focus:outline-none"
-                          />
-                        </div>
-
-                        {/* File Upload Button */}
-                        <div className="flex items-center gap-3">
-                          <label className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/15 cursor-pointer transition-all">
-                            <Upload className="size-3.5 text-pink-400" />
-                            <span>{uploadingScene ? 'Đang tải ảnh...' : 'Tải Ảnh Mới Lên Từ Máy Tính'}</span>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp"
-                              className="hidden"
-                              disabled={uploadingScene}
-                              onChange={handleUploadSceneFile}
-                            />
-                          </label>
-                          <span className="text-[11px] text-slate-400">
-                            Hỗ trợ PNG, JPG, WebP tối đa 15MB
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Row 5: Prompt (User requirement: thay promt như nao) */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <Sparkles className="size-3.5 text-pink-400" />
-                        <span>Prompt MachGen AI (Thay Đổi Prompt Tùy Ý)</span>
-                      </label>
-                      <span className="text-[10px] text-pink-400">
-                        Admin có toàn quyền chỉnh sửa chi tiết văn bản tạo ảnh
-                      </span>
-                    </div>
-
-                    <textarea
-                      rows={4}
-                      required
-                      value={editingPreset.prompt}
-                      onChange={(e) => setEditingPreset({ ...editingPreset, prompt: e.target.value })}
-                      placeholder="Nhập prompt chi tiết: Masterpiece photograph, cinematic lighting, realistic textures, seamless integration..."
-                      className="w-full p-3 rounded-2xl border border-white/10 bg-[#0c0710] text-xs font-mono text-slate-200 placeholder-slate-500 focus:border-pink-500 focus:outline-none leading-relaxed"
-                    />
-                    <p className="text-[10px] text-slate-400">
-                      Gợi ý: Hãy mô tả ánh sáng, góc chụp, chi tiết chất liệu tự nhiên để MachGen tạo ra tác phẩm tinh xảo nhất.
-                    </p>
-                  </div>
-
-                  {/* Row 6: Advanced Sliders & QR integration */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                        Màu QR Tối (Dark Color)
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={editingPreset.dark_color || '#1e140d'}
-                          onChange={(e) => setEditingPreset({ ...editingPreset, dark_color: e.target.value })}
-                          className="size-8 rounded-lg cursor-pointer bg-transparent border-0"
-                        />
-                        <input
-                          type="text"
-                          value={editingPreset.dark_color || '#1e140d'}
-                          onChange={(e) => setEditingPreset({ ...editingPreset, dark_color: e.target.value })}
-                          className="h-8 px-2 rounded-lg border border-white/10 bg-[#0c0710] text-xs font-mono text-slate-300 w-24"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                        Độ Dày Texture ({Math.round((editingPreset.texture_strength || 0.85) * 100)}%)
-                      </label>
-                      <input
-                        type="range"
-                        min="0.3"
-                        max="1.0"
-                        step="0.05"
-                        value={editingPreset.texture_strength || 0.85}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, texture_strength: Number(e.target.value) })}
-                        className="w-full accent-pink-500 cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                        Độ Tương Phản ({editingPreset.contrast_strength || 1.15}x)
-                      </label>
-                      <input
-                        type="range"
-                        min="0.8"
-                        max="1.8"
-                        step="0.05"
-                        value={editingPreset.contrast_strength || 1.15}
-                        onChange={(e) => setEditingPreset({ ...editingPreset, contrast_strength: Number(e.target.value) })}
-                        className="w-full accent-pink-500 cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 7: Enable Toggle */}
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                    <input
-                      type="checkbox"
-                      id="preset_enabled"
-                      checked={editingPreset.enabled !== false}
-                      onChange={(e) => setEditingPreset({ ...editingPreset, enabled: e.target.checked })}
-                      className="size-4 rounded accent-pink-500 cursor-pointer"
-                    />
-                    <label htmlFor="preset_enabled" className="text-xs font-bold text-slate-200 cursor-pointer">
-                      Kích hoạt phong cách này (Cho phép người dùng chọn trên trang Art QR Studio)
-                    </label>
-                  </div>
-
-                  {/* Modal Actions */}
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => setEditingPreset(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
-                    >
-                      Hủy Bỏ
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={presetSaving}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white shadow-lg shadow-pink-600/40 transition-all disabled:opacity-50 cursor-pointer"
-                    >
-                      {presetSaving ? (
-                        <>
-                          <RefreshCw className="size-3.5 animate-spin" />
-                          <span>Đang Lưu Cấu Hình...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="size-4" />
-                          <span>Lưu Cấu Hình (Cập Nhật Tức Thì)</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
