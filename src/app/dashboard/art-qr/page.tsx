@@ -55,9 +55,6 @@ export default function ArtQRStudioPage() {
   const [loginError, setLoginError] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  // Input mode: upload image or direct URL/text payload
-  const [inputMode, setInputMode] = useState<'upload' | 'direct'>('upload');
-  const [directPayload, setDirectPayload] = useState<string>('https://nornai.com/art-qr-studio');
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -162,38 +159,25 @@ export default function ArtQRStudioPage() {
     }
   };
 
-  // Trigger intermediate QR generation from direct link / text payload
-  const handleGenerateIntermediateDirect = async (overridePayload?: string) => {
-    const payload = (overridePayload !== undefined ? overridePayload : directPayload).trim();
-    if (!payload) {
-      setProcessError('Vui lòng nhập đường link hoặc nội dung văn bản / VietQR!');
-      return;
-    }
-
-    setProcessing(true);
-    setProcessError('');
-    setIntermediate(null);
-
-    try {
-      const data = await createIntermediateQR(payload);
-      if (data.dataUrl) {
-        setIntermediate(data);
-        setActivePreview('intermediate');
-      } else {
-        setProcessError(data.error || 'Không thể tạo mã QR trung gian tối thiểu');
+  // Listen for Clipboard Image Paste (Ctrl + V)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (e.clipboardData && e.clipboardData.items) {
+        for (let i = 0; i < e.clipboardData.items.length; i++) {
+          const item = e.clipboardData.items[i];
+          if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+              processQRFile(file);
+              break;
+            }
+          }
+        }
       }
-    } catch (err: unknown) {
-      setProcessError(err instanceof Error ? err.message : 'Lỗi kết nối máy chủ tạo mã QR');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Direct preset selection
-  const handleSelectPreset = (url: string) => {
-    setDirectPayload(url);
-    handleGenerateIntermediateDirect(url);
-  };
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [useOtsu, threshold, cropMode, validateQR]);
 
   // Copy text payload
   const handleCopyPayload = () => {
@@ -305,175 +289,84 @@ export default function ArtQRStudioPage() {
                   1
                 </span>
                 <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Nguồn Dữ Liệu QR (Source Input)
+                  Tải Lên Hình Ảnh Mã QR
                 </h2>
               </div>
 
-              {inputMode === 'upload' && (
-                <button
-                  type="button"
-                  onClick={handleLoadSample}
-                  disabled={processing}
-                  className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 transition-colors"
-                >
-                  <Sparkles className="size-3" />
-                  <span>Dùng ảnh mẫu</span>
-                </button>
+              <button
+                type="button"
+                onClick={handleLoadSample}
+                disabled={processing}
+                className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20"
+              >
+                <Sparkles className="size-3 text-cyan-400" />
+                <span>Thử ảnh VietQR mẫu (53×53)</span>
+              </button>
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/png,image/jpeg,image/webp,image/jpg,image/gif"
+              className="hidden"
+            />
+
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+                dragOver
+                  ? 'border-cyan-400 bg-cyan-500/10'
+                  : 'border-slate-800 hover:border-slate-700 bg-slate-900/40 hover:bg-slate-900/60'
+              }`}
+            >
+              {previewURL ? (
+                <div className="space-y-3">
+                  <div className="relative inline-block border border-slate-700/80 rounded-xl overflow-hidden bg-black/50 p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewURL}
+                      alt="Source QR Preview"
+                      className="size-36 object-contain mx-auto rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white truncate max-w-[280px] mx-auto">
+                      {selectedFile?.name || 'Ảnh mã QR đã tải lên'}
+                    </p>
+                    <p className="text-[11px] text-emerald-400 font-semibold mt-0.5">
+                      ✓ Đã tự động đọc và tạo mã QR trung gian 21×21
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Bấm vào đây để chọn ảnh khác, kéo thả file mới hoặc dán (Ctrl+V)
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="size-14 rounded-2xl bg-gradient-to-tr from-amber-500/15 to-cyan-500/15 border border-amber-500/25 flex items-center justify-center mx-auto text-amber-400 shadow-md">
+                    <UploadCloud className="size-7" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-200">
+                      Kéo thả ảnh mã QR hoặc <span className="text-amber-400">Bấm để tải lên</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Hỗ trợ PNG, JPG, WebP • Có thể bấm <kbd className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-amber-300">Ctrl + V</kbd> để dán ảnh trực tiếp
+                    </p>
+                    <p className="text-[10px] text-cyan-400/80 mt-1">
+                      ⚡ Tự động nén số ô module xuống tối thiểu (Version 1: 21×21) ngay khi tải ảnh
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Input Mode Selector Tabs */}
-            <div className="grid grid-cols-2 gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setInputMode('upload')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                  inputMode === 'upload'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <UploadCloud className="size-3.5" />
-                <span>Tải Ảnh QR / Thẻ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode('direct')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                  inputMode === 'direct'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <Link2 className="size-3.5" />
-                <span>Nhập Link / VietQR</span>
-              </button>
-            </div>
-
-            {inputMode === 'upload' ? (
-              <>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  className="hidden"
-                />
-
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragOver(true);
-                  }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                    dragOver
-                      ? 'border-cyan-400 bg-cyan-500/10'
-                      : 'border-slate-800 hover:border-slate-700 bg-slate-900/40 hover:bg-slate-900/60'
-                  }`}
-                >
-                  {previewURL ? (
-                    <div className="space-y-3">
-                      <div className="relative inline-block border border-slate-700/80 rounded-xl overflow-hidden bg-black/50 p-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={previewURL}
-                          alt="Source QR Preview"
-                          className="size-32 object-contain mx-auto rounded-lg"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-white truncate max-w-[260px] mx-auto">
-                          {selectedFile?.name || 'Ảnh đã chọn'}
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                          Bấm vào đây để chọn ảnh khác hoặc kéo thả file
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5">
-                      <div className="size-12 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center mx-auto text-slate-400">
-                        <UploadCloud className="size-6 text-amber-400/80" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-200">
-                          Kéo thả ảnh hoặc <span className="text-amber-400">Bấm để tải lên</span>
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Hỗ trợ PNG, JPG, WebP (Tự động tách nền & rút gọn module)
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                    <span>Đường dẫn URL / Chuỗi VietQR / Văn Bản:</span>
-                    <span className="text-[10px] text-cyan-400 font-normal">Tự động ép về Version 1 (21×21)</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={directPayload}
-                    onChange={(e) => setDirectPayload(e.target.value)}
-                    placeholder="Nhập URL (vd: https://nornai.com/shop) hoặc chuỗi thanh toán VietQR..."
-                    className="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40 font-mono transition-all resize-none"
-                  />
-                </div>
-
-                {/* Quick Presets */}
-                {/* Quick Presets */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="text-[10px] text-slate-400 font-medium">Mẫu nhanh (Bấm tạo ngay):</span>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectPreset('https://nornai.com/art-qr-studio')}
-                    className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
-                  >
-                    🌐 Web Link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectPreset('https://facebook.com/nornai.art')}
-                    className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
-                  >
-                    💬 Fanpage
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectPreset('00020101021238580010A00000072701260006970422011212345678905204000053037045802VN6304ABCD')}
-                    className="px-2 py-0.5 rounded-md text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
-                  >
-                    💳 VietQR (Dài 84 ký tự)
-                  </button>
-                </div>
-
-                {/* Direct Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleGenerateIntermediateDirect()}
-                  disabled={processing || !directPayload.trim()}
-                  className="w-full py-3 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {processing ? (
-                    <>
-                      <RefreshCw className="size-3.5 animate-spin" />
-                      <span>Đang tạo mã QR trung gian (21×21)...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="size-3.5" />
-                      <span>⚡ Tạo Mã QR Trung Gian Tối Thiểu (Version 1 / 2)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* 2. Mode Selector */}
