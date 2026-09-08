@@ -94,6 +94,7 @@ export default function WavyQRControlNet({
   const [qrMatrix, setQrMatrix] = useState<boolean[][]>([]);
   const [matrixSize, setMatrixSize] = useState<number>(29);
   const [calculatedCellSize, setCalculatedCellSize] = useState<number>(30.1);
+  const [adaptiveMatrixMode, setAdaptiveMatrixMode] = useState<boolean>(true);
 
   // Wave Parameters (12 Wave Styles)
   const [waveStyle, setWaveStyle] = useState<WaveStyle>('sine_stream');
@@ -119,7 +120,7 @@ export default function WavyQRControlNet({
   });
 
   // Active parameter tab
-  const [paramTab, setParamTab] = useState<'wave_styles' | 'wave_params' | 'matrix_zones' | 'color_style'>('wave_styles');
+  const [paramTab, setParamTab] = useState<'wave_styles' | 'wave_params' | 'density_matrix' | 'matrix_zones' | 'color_style'>('density_matrix');
 
   // Preview & output
   const [previewTab, setPreviewTab] = useState<'wavy' | 'split' | 'simulation'>('wavy');
@@ -231,11 +232,18 @@ export default function WavyQRControlNet({
         const totalMod = size + 2 * quietZone;
         const cSize = 1024 / totalMod;
         setCalculatedCellSize(cSize);
+
+        if (adaptiveMatrixMode) {
+          const safeMaxAmp = Math.floor(cSize * 0.38);
+          setAmplitude(Math.max(4, Math.min(safeMaxAmp, 14)));
+          const safeStroke = Math.max(3, Math.floor(cSize * 0.24));
+          setStrokeWidth(safeStroke);
+        }
       } catch (err) {
         console.warn('Error generating mathematical QR matrix:', err);
       }
     },
-    [ecLevel, quietZone]
+    [ecLevel, quietZone, adaptiveMatrixMode]
   );
 
   useEffect(() => {
@@ -813,6 +821,19 @@ export default function WavyQRControlNet({
             <div className="flex items-center gap-1 border-b border-slate-800 pb-2.5 overflow-x-auto">
               <button
                 type="button"
+                onClick={() => setParamTab('density_matrix')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  paramTab === 'density_matrix'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <ShieldCheck className="size-3.5 text-cyan-400" />
+                <span>Mật Độ & Sửa Lỗi (H/Q/M/L)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setParamTab('wave_styles')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   paramTab === 'wave_styles'
@@ -863,6 +884,133 @@ export default function WavyQRControlNet({
                 <span>Bảng Màu</span>
               </button>
             </div>
+
+            {/* TAB 0: MATRIX DENSITY & ERROR CORRECTION (L/M/Q/H) */}
+            {paramTab === 'density_matrix' && (
+              <div className="space-y-4">
+                {/* 4 Interactive EC Level Cards */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <ShieldCheck className="size-3.5 text-cyan-400" />
+                      <span>Cấp Độ Phục Hồi Lỗi Reed-Solomon</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30">
+                      Level {ecLevel} ({ecLevel === 'H' ? '30%' : ecLevel === 'Q' ? '25%' : ecLevel === 'M' ? '15%' : '7%'} Sửa Lỗi)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      {
+                        level: 'L' as ErrorCorrectionLevel,
+                        rate: '7%',
+                        label: 'Mật Độ Thưa Nhất (L)',
+                        desc: 'Ma trận thoáng, ô to, đường sóng uốn lượn rộng mở',
+                        badge: 'Ô To Nhất',
+                      },
+                      {
+                        level: 'M' as ErrorCorrectionLevel,
+                        rate: '15%',
+                        label: 'Mật Độ Tiêu Chuẩn (M)',
+                        desc: 'Cân bằng hoàn hảo giữa độ mịn và khả năng quét',
+                        badge: 'Cân Bằng',
+                      },
+                      {
+                        level: 'Q' as ErrorCorrectionLevel,
+                        rate: '25%',
+                        label: 'Mật Độ Cao (Q)',
+                        desc: 'Chống mất mát dữ liệu tốt khi họa tiết phức tạp',
+                        badge: 'Độ Quét Cao',
+                      },
+                      {
+                        level: 'H' as ErrorCorrectionLevel,
+                        rate: '30%',
+                        label: 'Mật Độ Dày Nhất (H)',
+                        desc: 'Khuyên dùng cho AI ArtQR: Biến dạng mạnh vẫn quét 100%',
+                        badge: 'Khuyên Dùng',
+                      },
+                    ].map((item) => {
+                      const isSelected = ecLevel === item.level;
+                      return (
+                        <button
+                          key={item.level}
+                          type="button"
+                          onClick={() => setEcLevel(item.level)}
+                          className={`p-2.5 rounded-xl border text-left transition-all relative ${
+                            isSelected
+                              ? 'border-cyan-500 bg-gradient-to-br from-cyan-500/20 to-teal-500/10 text-white shadow-md shadow-cyan-950/40'
+                              : 'border-slate-800/80 bg-slate-900/40 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-xs font-bold text-white flex items-center gap-1">
+                              <span className={`size-2 rounded-full ${isSelected ? 'bg-cyan-400 shadow-sm shadow-cyan-400' : 'bg-slate-600'}`} />
+                              <span>Cấp {item.level}</span>
+                            </span>
+                            <span className="text-[10px] font-mono text-cyan-300 font-bold px-1.5 py-0.2 rounded bg-slate-800/80">
+                              {item.rate}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 leading-tight">{item.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quiet Zone Padding & Adaptive Grid Mode */}
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-300">Độ Rộng Viền Lề An Toàn (Quiet Zone)</span>
+                      <span className="font-mono text-cyan-400 font-bold">{quietZone.toFixed(1)} modules</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1.0"
+                      max="4.0"
+                      step="0.5"
+                      value={quietZone}
+                      onChange={(e) => setQuietZone(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-slate-200 block">Tự Động Thích Ứng Nét Vẽ Theo Mật Độ</span>
+                      <span className="text-[10px] text-slate-400 block">Tự căn chỉnh biên độ sóng và độ dày nét theo kích thước từng ô</span>
+                    </div>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-cyan-300">
+                      <input
+                        type="checkbox"
+                        checked={adaptiveMatrixMode}
+                        onChange={(e) => setAdaptiveMatrixMode(e.target.checked)}
+                        className="rounded accent-cyan-500"
+                      />
+                      <span>TỰ ĐỘNG</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Real-time Technical Matrix HUD */}
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block">Lưới Ma Trận</span>
+                    <span className="text-xs font-mono text-cyan-300 font-bold">{matrixSize}×{matrixSize} ô</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block">Kích Thước Ô</span>
+                    <span className="text-xs font-mono text-emerald-300 font-bold">{calculatedCellSize.toFixed(1)}px</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-900/40 border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block">Chuẩn Sửa Lỗi</span>
+                    <span className="text-xs font-mono text-amber-300 font-bold">Level {ecLevel}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* TAB 1: 12 WAVE STYLES */}
             {paramTab === 'wave_styles' && (
