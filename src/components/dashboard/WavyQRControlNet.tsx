@@ -54,6 +54,7 @@ export interface WavyQRControlNetProps {
 export type EngineCategory = 'monster_organic' | 'wave_ribbons';
 
 export type MonsterStyle =
+  | 'vangogh_starry_swirls'
   | 'botanical_foliage'
   | 'tribal_tattoo'
   | 'sakura_petals'
@@ -78,6 +79,7 @@ export type WaveStyle =
   | 'ink_calligraphy';
 
 export type ColorPreset =
+  | 'vangogh_starry'
   | 'controlnet_bw'
   | 'controlnet_invert'
   | 'transparent_black'
@@ -89,7 +91,7 @@ export type ColorPreset =
   | 'midnight_indigo'
   | 'matrix_green';
 
-export type FinderStyle = 'rounded_rings' | 'organic_circles' | 'classic' | 'flowing';
+export type FinderStyle = 'glowing_sun_orb' | 'rounded_rings' | 'organic_circles' | 'classic' | 'flowing';
 export type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
 export type TimingProtectionMode = 'crisp_aligned' | 'subtle_wavy' | 'full_merged';
 
@@ -133,9 +135,10 @@ export default function WavyQRControlNet({
   const [enableClusterSynthesis, setEnableClusterSynthesis] = useState<boolean>(true);
   const [megaMotifScale, setMegaMotifScale] = useState<number>(105); // 80% - 130%
   const [textureRichness, setTextureRichness] = useState<number>(85); // 0% - 100%
+  const [enablePictureFrame, setEnablePictureFrame] = useState<boolean>(false); // Khung Tranh Gỗ Sơn Dầu
 
   // Monster Organic Engine Parameters
-  const [monsterStyle, setMonsterStyle] = useState<MonsterStyle>('botanical_foliage');
+  const [monsterStyle, setMonsterStyle] = useState<MonsterStyle>('vangogh_starry_swirls');
   const [foliageDensity, setFoliageDensity] = useState<number>(85); // 20% - 100%
   const [branchCurvature, setBranchCurvature] = useState<number>(14); // 0 - 30px
   const [enableSprouts, setEnableSprouts] = useState<boolean>(true); // Sprout leaves / tattoo hooks
@@ -148,10 +151,10 @@ export default function WavyQRControlNet({
   const [strokeWidth, setStrokeWidth] = useState<number>(7); // 3 - 16px
   const [phase, setPhase] = useState<number>(0); // 0 - 360
   const [edgeBlur, setEdgeBlur] = useState<number>(0); // 0 - 8px
-  const [colorPreset, setColorPreset] = useState<ColorPreset>('controlnet_bw');
+  const [colorPreset, setColorPreset] = useState<ColorPreset>('vangogh_starry');
 
   // Matrix Zone Specific Fine-Tuning
-  const [finderStyle, setFinderStyle] = useState<FinderStyle>('rounded_rings');
+  const [finderStyle, setFinderStyle] = useState<FinderStyle>('glowing_sun_orb');
   const [finderWeight, setFinderWeight] = useState<number>(1.0); // 0.8x - 1.8x
   const [timingMode, setTimingMode] = useState<TimingProtectionMode>('crisp_aligned');
   const [centerWaveDecay, setCenterWaveDecay] = useState<number>(100); // 50% to 150%
@@ -179,8 +182,15 @@ export default function WavyQRControlNet({
   // Canvas ref
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // 8 Curated ControlNet Monster Organic Styles
+  // 9 Curated ControlNet Monster Organic Styles
   const monsterStylesList = [
+    {
+      id: 'vangogh_starry_swirls',
+      title: '🌌 Sơn Dầu Van Gogh & Mây Xoáy',
+      desc: 'Cụm 2x2 thành Vòng Xoáy Mây Sơn Dầu • Nét nối thành Dải Vân Cuộn Lượn Vàng Chanh & Xanh Neon',
+      icon: Palette,
+      badge: 'Oil Impasto',
+    },
     {
       id: 'botanical_foliage',
       title: '🌿 Cành Cây & Hoa Lá',
@@ -317,6 +327,11 @@ export default function WavyQRControlNet({
 
   // ControlNet Monster Specialized Prompts
   const monsterPromptSuggestions = [
+    {
+      label: '🌌 Sơn Dầu Van Gogh & Vân Mây Xoáy (Starry Night Swirls)',
+      style: 'vangogh_starry_swirls',
+      prompt: 'masterpiece, thick impasto oil painting by Vincent van Gogh, swirling clouds and celestial glowing yellow and lime green curlicue waves flowing seamlessly on deep cobalt blue canvas, ornate carved golden picture frame, starry night impressionist fine art, 8k resolution',
+    },
     {
       label: '🌿 Rừng Cây & Hoa Lá (Botanical Tree & Giant Blooming Rose)',
       style: 'botanical_foliage',
@@ -474,6 +489,10 @@ export default function WavyQRControlNet({
     let isTransparent = false;
 
     switch (colorPreset) {
+      case 'vangogh_starry':
+        bgColor = '#093a7d';
+        strokeColor = '#facc15';
+        break;
       case 'controlnet_bw':
         bgColor = '#ffffff';
         strokeColor = '#000000';
@@ -569,7 +588,7 @@ export default function WavyQRControlNet({
     const processed2x2: boolean[][] = Array.from({ length: N }, () => Array(N).fill(false));
 
     // =========================================================================
-    // STEP 2: RENDER 2x2 MEGA-CLUSTERS (Đóa hoa khổng lồ / Đầu rồng / Huy hiệu)
+    // STEP 2: RENDER 2x2 MEGA-CLUSTERS (Đóa hoa khổng lồ / Đầu rồng / Vòng xoáy)
     // =========================================================================
     if (enableClusterSynthesis && engineCategory === 'monster_organic') {
       const motifR = cellSize * (megaMotifScale / 100);
@@ -612,8 +631,37 @@ export default function WavyQRControlNet({
 
             // 2. SYNTHESIZE LARGE MEGA-MOTIF SPANNING THE 2x2 BLOCK
 
+            // CLUSTER THEME 0: VAN GOGH OIL IMPASTO — STARRY NIGHT SWIRLS & GALAXY VORTEX
+            if (monsterStyle === 'vangogh_starry_swirls') {
+              for (let layer = 0; layer < 3; layer++) {
+                const sColor = layer === 0 ? '#84cc16' : layer === 1 ? '#facc15' : '#ffffff';
+                const sWidth = layer === 0 ? strokeWidth * 1.8 : layer === 1 ? strokeWidth * 1.1 : strokeWidth * 0.55;
+                const rMax = motifR * (1.1 - layer * 0.1);
+                ctx.beginPath();
+                ctx.strokeStyle = sColor;
+                ctx.lineWidth = sWidth;
+                for (let a = 0; a <= Math.PI * 3.2; a += 0.15) {
+                  const spiralR = (a / (Math.PI * 3.2)) * rMax;
+                  const px = center2x2X + spiralR * Math.cos(a + phaseRad + layer * 0.4);
+                  const py = center2x2Y + spiralR * Math.sin(a + phaseRad + layer * 0.4);
+                  if (a === 0) ctx.moveTo(px, py);
+                  else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+              }
+              // Center radiant golden core
+              ctx.fillStyle = '#facc15';
+              ctx.beginPath();
+              ctx.arc(center2x2X, center2x2Y, cellSize * 0.38, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#fef08a';
+              ctx.beginPath();
+              ctx.arc(center2x2X, center2x2Y, cellSize * 0.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
             // CLUSTER THEME 1: BOTANICAL — GIANT BLOOMING ROSE / LOTUS FLOWER
-            if (monsterStyle === 'botanical_foliage') {
+            else if (monsterStyle === 'botanical_foliage') {
               const petalLayers = 3;
               for (let layer = 0; layer < petalLayers; layer++) {
                 const count = 6 + layer * 2;
@@ -766,24 +814,40 @@ export default function WavyQRControlNet({
           const hasDown = r + 1 < N && qrMatrix[r + 1]?.[c] && !isFinderModule(c, r + 1);
           const hasUp = r - 1 >= 0 && qrMatrix[r - 1]?.[c] && !isFinderModule(c, r - 1);
 
-          const isHorizontalRun = (hasRight || hasLeft) && !hasDown && !hasUp;
-          const isVerticalRun = (hasDown || hasUp) && !hasRight && !hasLeft;
           const isIsolated = !hasRight && !hasLeft && !hasDown && !hasUp;
 
-          // 1. ISOLATED SINGLE MODULE (Nụ hoa đơn / Chiếc lá bay / Ngôi sao xăm)
+          // 1. ISOLATED SINGLE MODULE (Nụ hoa đơn / Chiếc lá bay / Chấm sao sáng)
           if (isIsolated && enableSprouts) {
-            if (monsterStyle === 'botanical_foliage') {
-              // Delicate sprouting leaf pair
+            if (monsterStyle === 'vangogh_starry_swirls') {
+              // Concentric glowing starry moonlet
+              ctx.fillStyle = 'rgba(132, 204, 22, 0.45)';
+              ctx.beginPath();
+              ctx.arc(cx, cy, fillRadius * 1.35, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = '#84cc16';
+              ctx.beginPath();
+              ctx.arc(cx, cy, fillRadius * 1.05, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = '#facc15';
+              ctx.beginPath();
+              ctx.arc(cx, cy, fillRadius * 0.8, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = '#ffffff';
+              ctx.beginPath();
+              ctx.arc(cx, cy, fillRadius * 0.4, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (monsterStyle === 'botanical_foliage') {
               ctx.beginPath();
               ctx.ellipse(cx, cy - cellSize * 0.45, cellSize * 0.4, cellSize * 0.2, 0, 0, Math.PI * 2);
               ctx.fill();
             } else if (monsterStyle === 'sakura_petals') {
-              // Single blossom
               ctx.beginPath();
               ctx.arc(cx, cy, fillRadius * 1.1, 0, Math.PI * 2);
               ctx.fill();
             } else if (monsterStyle === 'tribal_tattoo') {
-              // 4-point tribal star
               ctx.beginPath();
               ctx.moveTo(cx, cy - cellSize * 0.5);
               ctx.lineTo(cx + cellSize * 0.15, cy - cellSize * 0.15);
@@ -798,58 +862,148 @@ export default function WavyQRControlNet({
             }
           }
 
-          // 2. HORIZONTAL BRANCH RUN (Cành cây ngang / Thân rồng ngang / Dải phào chỉ)
-          if (hasRight) {
-            const next = getModuleCenter(c + 1, r);
-            const branchWobble = branchAmp * Math.sin((c + r) * 0.7 + phaseRad);
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.35;
-            ctx.moveTo(cx, cy);
-            ctx.bezierCurveTo(
-              cx + cellSize * 0.4,
-              cy + branchWobble,
-              next.x - cellSize * 0.4,
-              next.y - branchWobble,
-              next.x,
-              next.y
-            );
-            ctx.stroke();
-
-            // Sprout leaves along branch
-            if (enableSprouts && monsterStyle === 'botanical_foliage') {
+          // 2. HORIZONTAL & VERTICAL RUNS
+          if (monsterStyle === 'vangogh_starry_swirls') {
+            if (hasRight) {
+              const next = getModuleCenter(c + 1, r);
+              const curlAmp = branchAmp * 1.2 * Math.sin((c + r) * 0.8 + phaseRad);
               const midX = (cx + next.x) / 2;
-              const midY = (cy + next.y) / 2 + branchWobble * 0.5;
+              const midY = (cy + next.y) / 2 + curlAmp;
+
+              // Layer 1: Neon Lime Green Underlay
               ctx.beginPath();
-              ctx.ellipse(midX, midY - cellSize * 0.35, cellSize * 0.35 * detailScale, cellSize * 0.18, -0.4, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.strokeStyle = '#84cc16';
+              ctx.lineWidth = strokeWidth * 1.7;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
+              ctx.stroke();
+
+              // Layer 2: Golden Lemon Yellow Core
+              ctx.beginPath();
+              ctx.strokeStyle = '#facc15';
+              ctx.lineWidth = strokeWidth * 1.05;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
+              ctx.stroke();
+
+              // Layer 3: Creamy White Highlight Sheen
+              ctx.beginPath();
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = strokeWidth * 0.45;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
+              ctx.stroke();
+
+              // Sprout curly cloud hook
+              if (enableSprouts) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#84cc16';
+                ctx.lineWidth = strokeWidth * 1.2;
+                ctx.arc(midX, midY, cellSize * 0.38, 0, Math.PI * 1.5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = strokeWidth * 0.7;
+                ctx.arc(midX, midY, cellSize * 0.38, 0, Math.PI * 1.5);
+                ctx.stroke();
+              }
             }
-          }
 
-          // 3. VERTICAL TRUNK RUN (Thân cây dọc / Cột trụ / Dây leo rễ)
-          if (hasDown) {
-            const below = getModuleCenter(c, r + 1);
-            const branchWobble = branchAmp * Math.cos((c + r) * 0.7 + phaseRad);
-
-            ctx.beginPath();
-            ctx.lineWidth = strokeWidth * 1.35;
-            ctx.moveTo(cx, cy);
-            ctx.bezierCurveTo(
-              cx + branchWobble,
-              cy + cellSize * 0.4,
-              below.x - branchWobble,
-              below.y - cellSize * 0.4,
-              below.x,
-              below.y
-            );
-            ctx.stroke();
-
-            if (enableSprouts && monsterStyle === 'botanical_foliage') {
-              const midX = (cx + below.x) / 2 + branchWobble * 0.5;
+            if (hasDown) {
+              const below = getModuleCenter(c, r + 1);
+              const curlAmp = branchAmp * 1.2 * Math.cos((c + r) * 0.8 + phaseRad);
+              const midX = (cx + below.x) / 2 + curlAmp;
               const midY = (cy + below.y) / 2;
+
+              // Layer 1: Neon Lime Green
               ctx.beginPath();
-              ctx.ellipse(midX + cellSize * 0.35, midY, cellSize * 0.35 * detailScale, cellSize * 0.18, 0.4, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.strokeStyle = '#84cc16';
+              ctx.lineWidth = strokeWidth * 1.7;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
+              ctx.stroke();
+
+              // Layer 2: Golden Lemon Yellow Core
+              ctx.beginPath();
+              ctx.strokeStyle = '#facc15';
+              ctx.lineWidth = strokeWidth * 1.05;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
+              ctx.stroke();
+
+              // Layer 3: Creamy White Highlight Sheen
+              ctx.beginPath();
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = strokeWidth * 0.45;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
+              ctx.stroke();
+
+              if (enableSprouts) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#84cc16';
+                ctx.lineWidth = strokeWidth * 1.2;
+                ctx.arc(midX, midY, cellSize * 0.38, Math.PI * 0.5, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = strokeWidth * 0.7;
+                ctx.arc(midX, midY, cellSize * 0.38, Math.PI * 0.5, Math.PI * 2);
+                ctx.stroke();
+              }
+            }
+          } else {
+            // General Organic branch runs
+            if (hasRight) {
+              const next = getModuleCenter(c + 1, r);
+              const branchWobble = branchAmp * Math.sin((c + r) * 0.7 + phaseRad);
+
+              ctx.beginPath();
+              ctx.lineWidth = strokeWidth * 1.35;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(
+                cx + cellSize * 0.4,
+                cy + branchWobble,
+                next.x - cellSize * 0.4,
+                next.y - branchWobble,
+                next.x,
+                next.y
+              );
+              ctx.stroke();
+
+              if (enableSprouts && monsterStyle === 'botanical_foliage') {
+                const midX = (cx + next.x) / 2;
+                const midY = (cy + next.y) / 2 + branchWobble * 0.5;
+                ctx.beginPath();
+                ctx.ellipse(midX, midY - cellSize * 0.35, cellSize * 0.35 * detailScale, cellSize * 0.18, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+
+            if (hasDown) {
+              const below = getModuleCenter(c, r + 1);
+              const branchWobble = branchAmp * Math.cos((c + r) * 0.7 + phaseRad);
+
+              ctx.beginPath();
+              ctx.lineWidth = strokeWidth * 1.35;
+              ctx.moveTo(cx, cy);
+              ctx.bezierCurveTo(
+                cx + branchWobble,
+                cy + cellSize * 0.4,
+                below.x - branchWobble,
+                below.y - cellSize * 0.4,
+                below.x,
+                below.y
+              );
+              ctx.stroke();
+
+              if (enableSprouts && monsterStyle === 'botanical_foliage') {
+                const midX = (cx + below.x) / 2 + branchWobble * 0.5;
+                const midY = (cy + below.y) / 2;
+                ctx.beginPath();
+                ctx.ellipse(midX + cellSize * 0.35, midY, cellSize * 0.35 * detailScale, cellSize * 0.18, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+              }
             }
           }
         }
@@ -962,7 +1116,56 @@ export default function WavyQRControlNet({
       ctx.strokeStyle = strokeColor;
       ctx.fillStyle = strokeColor;
 
-      if (finderStyle === 'rounded_rings') {
+      if (finderStyle === 'glowing_sun_orb') {
+        const frameW = cellSize * 0.95 * finderWeight;
+        const boxSize = 7 * cellSize;
+
+        // Outer golden painted square
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(originX + frameW * 0.1, originY + frameW * 0.1, boxSize - frameW * 0.2, boxSize - frameW * 0.2, cellSize * 0.7);
+        ctx.stroke();
+
+        // Thick golden border
+        ctx.lineWidth = frameW;
+        ctx.strokeStyle = '#facc15';
+        const innerBoxSize = boxSize - frameW;
+        ctx.strokeRect(originX + frameW / 2, originY + frameW / 2, innerBoxSize, innerBoxSize);
+
+        // Cobalt blue canvas inside eye
+        ctx.fillStyle = colorPreset === 'vangogh_starry' ? '#093a7d' : bgColor;
+        ctx.fillRect(originX + frameW, originY + frameW, boxSize - 2 * frameW, boxSize - 2 * frameW);
+
+        // Radiant Golden Sun / Moon Orb
+        const sunR = 1.45 * cellSize * finderWeight;
+
+        // Sun outer halo
+        ctx.fillStyle = 'rgba(132, 204, 22, 0.45)';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, sunR * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main golden sun disk
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, sunR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bright inner sun center
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, sunR * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Subtle concentric sun brush ring
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, sunR * 0.8, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (finderStyle === 'rounded_rings') {
         ctx.lineWidth = cellSize * 0.95 * finderWeight;
         const halfSize = (outerSize - ctx.lineWidth) / 2;
         ctx.beginPath();
@@ -1008,6 +1211,97 @@ export default function WavyQRControlNet({
       drawFinderPattern(0, N - 7); // Bottom-Left
     }
 
+    // --- OPTIONAL GILDED CARVED WOODEN / OIL IMPASTO PICTURE FRAME ---
+    if (enablePictureFrame) {
+      const frameThickness = canvasSize * 0.055; // ~56px
+      ctx.save();
+
+      // Top border
+      const gradTop = ctx.createLinearGradient(0, 0, 0, frameThickness);
+      gradTop.addColorStop(0, '#78350f');
+      gradTop.addColorStop(0.3, '#d97706');
+      gradTop.addColorStop(0.7, '#f59e0b');
+      gradTop.addColorStop(1, '#9a3412');
+      ctx.fillStyle = gradTop;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(canvasSize, 0);
+      ctx.lineTo(canvasSize - frameThickness, frameThickness);
+      ctx.lineTo(frameThickness, frameThickness);
+      ctx.closePath();
+      ctx.fill();
+
+      // Bottom border
+      const gradBot = ctx.createLinearGradient(0, canvasSize - frameThickness, 0, canvasSize);
+      gradBot.addColorStop(0, '#9a3412');
+      gradBot.addColorStop(0.3, '#f59e0b');
+      gradBot.addColorStop(0.7, '#d97706');
+      gradBot.addColorStop(1, '#78350f');
+      ctx.fillStyle = gradBot;
+      ctx.beginPath();
+      ctx.moveTo(0, canvasSize);
+      ctx.lineTo(canvasSize, canvasSize);
+      ctx.lineTo(canvasSize - frameThickness, canvasSize - frameThickness);
+      ctx.lineTo(frameThickness, canvasSize - frameThickness);
+      ctx.closePath();
+      ctx.fill();
+
+      // Left border
+      const gradLeft = ctx.createLinearGradient(0, 0, frameThickness, 0);
+      gradLeft.addColorStop(0, '#78350f');
+      gradLeft.addColorStop(0.5, '#d97706');
+      gradLeft.addColorStop(1, '#9a3412');
+      ctx.fillStyle = gradLeft;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(frameThickness, frameThickness);
+      ctx.lineTo(frameThickness, canvasSize - frameThickness);
+      ctx.lineTo(0, canvasSize);
+      ctx.closePath();
+      ctx.fill();
+
+      // Right border
+      const gradRight = ctx.createLinearGradient(canvasSize - frameThickness, 0, canvasSize, 0);
+      gradRight.addColorStop(0, '#9a3412');
+      gradRight.addColorStop(0.5, '#d97706');
+      gradRight.addColorStop(1, '#78350f');
+      ctx.fillStyle = gradRight;
+      ctx.beginPath();
+      ctx.moveTo(canvasSize, 0);
+      ctx.lineTo(canvasSize, canvasSize);
+      ctx.lineTo(canvasSize - frameThickness, canvasSize - frameThickness);
+      ctx.lineTo(canvasSize - frameThickness, frameThickness);
+      ctx.closePath();
+      ctx.fill();
+
+      // Impasto wood grain striations
+      ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
+      ctx.lineWidth = 1.5;
+      for (let i = 8; i < canvasSize; i += 16) {
+        ctx.beginPath();
+        ctx.moveTo(i, 2);
+        ctx.lineTo(i + 8, frameThickness - 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(i, canvasSize - 2);
+        ctx.lineTo(i - 8, canvasSize - frameThickness + 2);
+        ctx.stroke();
+      }
+      for (let j = 8; j < canvasSize; j += 16) {
+        ctx.beginPath();
+        ctx.moveTo(2, j);
+        ctx.lineTo(frameThickness - 2, j + 8);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(canvasSize - 2, j);
+        ctx.lineTo(canvasSize - frameThickness + 2, j - 8);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // 3. RUN REAL-TIME SCANNER VERIFICATION
     const finalDataUrl = canvas.toDataURL('image/png');
     setOutputDataUrl(finalDataUrl);
@@ -1045,6 +1339,7 @@ export default function WavyQRControlNet({
     enableClusterSynthesis,
     megaMotifScale,
     textureRichness,
+    enablePictureFrame,
     foliageDensity,
     branchCurvature,
     enableSprouts,
@@ -1527,6 +1822,7 @@ export default function WavyQRControlNet({
                         onChange={(e) => setFinderStyle(e.target.value as FinderStyle)}
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200"
                       >
+                        <option value="glowing_sun_orb">☀️ Vầng Dương & Trăng Tròn Sơn Dầu</option>
                         <option value="rounded_rings">Vòng tròn đồng tâm</option>
                         <option value="organic_circles">Sóng hữu cơ tròn</option>
                         <option value="classic">Vuông truyền thống</option>
@@ -1553,8 +1849,29 @@ export default function WavyQRControlNet({
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                      <Crown className="size-3.5 text-amber-400" />
+                      <span>2. Khung Tranh Gỗ Dát Vàng Cổ Điển</span>
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-amber-300">
+                      <input
+                        type="checkbox"
+                        checked={enablePictureFrame}
+                        onChange={(e) => setEnablePictureFrame(e.target.checked)}
+                        className="rounded accent-amber-500"
+                      />
+                      <span>BẬT Khung</span>
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Vẽ viền khung tranh gỗ sơn dầu dát vàng bao quanh toàn bộ bức tranh mã QR.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-300 font-semibold">2. Tỷ Trọng Sóng Tâm Ma Trận</span>
+                    <span className="text-slate-300 font-semibold">3. Tỷ Trọng Sóng Tâm Ma Trận</span>
                     <span className="font-mono text-emerald-400 font-bold">{centerWaveDecay}%</span>
                   </div>
                   <input
@@ -1626,9 +1943,10 @@ export default function WavyQRControlNet({
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                  <label className="text-xs text-slate-300 font-semibold block">Bảng màu ControlNet (10 phối màu)</label>
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <label className="text-xs text-slate-300 font-semibold block">Bảng màu ControlNet (11 phối màu)</label>
+                  <div className="grid grid-cols-4 gap-1.5">
                     {[
+                      { id: 'vangogh_starry', label: '🌌 Van Gogh Cobalt', bg: 'bg-blue-600/30 text-yellow-300 border border-yellow-500/50' },
                       { id: 'controlnet_bw', label: 'B/W Chuẩn', bg: 'bg-white text-black' },
                       { id: 'controlnet_invert', label: 'Đảo âm', bg: 'bg-black text-white border border-slate-700' },
                       { id: 'transparent_black', label: 'Trong suốt', bg: 'bg-slate-800 text-cyan-300' },
