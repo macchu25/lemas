@@ -322,6 +322,7 @@ export default function AdminPage() {
           name: machgenKeyName.trim() || 'MachGen Engine',
           provider: machgenProvider.trim() || 'MachGen Studio',
           base_url: machgenBaseURL.trim(),
+          model: machgenModel.trim() || 'gpt-image-2',
           test_first: false,
         }),
       });
