@@ -151,7 +151,7 @@ export default function WavyQRControlNet({
   const [strokeWidth, setStrokeWidth] = useState<number>(7); // 3 - 16px
   const [phase, setPhase] = useState<number>(0); // 0 - 360
   const [edgeBlur, setEdgeBlur] = useState<number>(0); // 0 - 8px
-  const [colorPreset, setColorPreset] = useState<ColorPreset>('vangogh_starry');
+  const [colorPreset, setColorPreset] = useState<ColorPreset>('controlnet_bw');
 
   // Matrix Zone Specific Fine-Tuning
   const [finderStyle, setFinderStyle] = useState<FinderStyle>('glowing_sun_orb');
@@ -633,30 +633,25 @@ export default function WavyQRControlNet({
 
             // CLUSTER THEME 0: VAN GOGH OIL IMPASTO — STARRY NIGHT SWIRLS & GALAXY VORTEX
             if (monsterStyle === 'vangogh_starry_swirls') {
-              for (let layer = 0; layer < 3; layer++) {
-                const sColor = layer === 0 ? '#84cc16' : layer === 1 ? '#facc15' : '#ffffff';
-                const sWidth = layer === 0 ? strokeWidth * 1.8 : layer === 1 ? strokeWidth * 1.1 : strokeWidth * 0.55;
-                const rMax = motifR * (1.1 - layer * 0.1);
+              for (let layer = 0; layer < 2; layer++) {
+                const sWidth = layer === 0 ? strokeWidth * 1.5 : strokeWidth * 0.9;
+                const rMax = motifR * (1.05 - layer * 0.2);
                 ctx.beginPath();
-                ctx.strokeStyle = sColor;
+                ctx.strokeStyle = strokeColor;
                 ctx.lineWidth = sWidth;
                 for (let a = 0; a <= Math.PI * 3.2; a += 0.15) {
                   const spiralR = (a / (Math.PI * 3.2)) * rMax;
-                  const px = center2x2X + spiralR * Math.cos(a + phaseRad + layer * 0.4);
-                  const py = center2x2Y + spiralR * Math.sin(a + phaseRad + layer * 0.4);
+                  const px = center2x2X + spiralR * Math.cos(a + phaseRad + layer * Math.PI);
+                  const py = center2x2Y + spiralR * Math.sin(a + phaseRad + layer * Math.PI);
                   if (a === 0) ctx.moveTo(px, py);
                   else ctx.lineTo(px, py);
                 }
                 ctx.stroke();
               }
-              // Center radiant golden core
-              ctx.fillStyle = '#facc15';
+              // Center solid core disk
+              ctx.fillStyle = strokeColor;
               ctx.beginPath();
               ctx.arc(center2x2X, center2x2Y, cellSize * 0.38, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#fef08a';
-              ctx.beginPath();
-              ctx.arc(center2x2X, center2x2Y, cellSize * 0.2, 0, Math.PI * 2);
               ctx.fill();
             }
 
@@ -819,26 +814,17 @@ export default function WavyQRControlNet({
           // 1. ISOLATED SINGLE MODULE (Nụ hoa đơn / Chiếc lá bay / Chấm sao sáng)
           if (isIsolated && enableSprouts) {
             if (monsterStyle === 'vangogh_starry_swirls') {
-              // Concentric glowing starry moonlet
-              ctx.fillStyle = 'rgba(132, 204, 22, 0.45)';
+              // High contrast concentric starry moonlet in strokeColor
+              ctx.fillStyle = strokeColor;
               ctx.beginPath();
-              ctx.arc(cx, cy, fillRadius * 1.35, 0, Math.PI * 2);
+              ctx.arc(cx, cy, fillRadius * 1.15, 0, Math.PI * 2);
               ctx.fill();
 
-              ctx.fillStyle = '#84cc16';
+              ctx.strokeStyle = strokeColor;
+              ctx.lineWidth = Math.max(1.8, strokeWidth * 0.4);
               ctx.beginPath();
-              ctx.arc(cx, cy, fillRadius * 1.05, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#facc15';
-              ctx.beginPath();
-              ctx.arc(cx, cy, fillRadius * 0.8, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#ffffff';
-              ctx.beginPath();
-              ctx.arc(cx, cy, fillRadius * 0.4, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.arc(cx, cy, fillRadius * 1.55, 0, Math.PI * 2);
+              ctx.stroke();
             } else if (monsterStyle === 'botanical_foliage') {
               ctx.beginPath();
               ctx.ellipse(cx, cy - cellSize * 0.45, cellSize * 0.4, cellSize * 0.2, 0, 0, Math.PI * 2);
@@ -870,26 +856,10 @@ export default function WavyQRControlNet({
               const midX = (cx + next.x) / 2;
               const midY = (cy + next.y) / 2 + curlAmp;
 
-              // Layer 1: Neon Lime Green Underlay
+              // Smooth ribbon S-curve connecting horizontal modules
               ctx.beginPath();
-              ctx.strokeStyle = '#84cc16';
-              ctx.lineWidth = strokeWidth * 1.7;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
-              ctx.stroke();
-
-              // Layer 2: Golden Lemon Yellow Core
-              ctx.beginPath();
-              ctx.strokeStyle = '#facc15';
-              ctx.lineWidth = strokeWidth * 1.05;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
-              ctx.stroke();
-
-              // Layer 3: Creamy White Highlight Sheen
-              ctx.beginPath();
-              ctx.strokeStyle = '#ffffff';
-              ctx.lineWidth = strokeWidth * 0.45;
+              ctx.strokeStyle = strokeColor;
+              ctx.lineWidth = strokeWidth * 1.4;
               ctx.moveTo(cx, cy);
               ctx.bezierCurveTo(cx + cellSize * 0.35, cy + curlAmp * 1.4, next.x - cellSize * 0.35, next.y - curlAmp * 1.4, next.x, next.y);
               ctx.stroke();
@@ -897,13 +867,8 @@ export default function WavyQRControlNet({
               // Sprout curly cloud hook
               if (enableSprouts) {
                 ctx.beginPath();
-                ctx.strokeStyle = '#84cc16';
-                ctx.lineWidth = strokeWidth * 1.2;
-                ctx.arc(midX, midY, cellSize * 0.38, 0, Math.PI * 1.5);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = strokeWidth * 0.7;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = strokeWidth * 0.9;
                 ctx.arc(midX, midY, cellSize * 0.38, 0, Math.PI * 1.5);
                 ctx.stroke();
               }
@@ -915,39 +880,18 @@ export default function WavyQRControlNet({
               const midX = (cx + below.x) / 2 + curlAmp;
               const midY = (cy + below.y) / 2;
 
-              // Layer 1: Neon Lime Green
+              // Smooth vertical ribbon S-curve
               ctx.beginPath();
-              ctx.strokeStyle = '#84cc16';
-              ctx.lineWidth = strokeWidth * 1.7;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
-              ctx.stroke();
-
-              // Layer 2: Golden Lemon Yellow Core
-              ctx.beginPath();
-              ctx.strokeStyle = '#facc15';
-              ctx.lineWidth = strokeWidth * 1.05;
-              ctx.moveTo(cx, cy);
-              ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
-              ctx.stroke();
-
-              // Layer 3: Creamy White Highlight Sheen
-              ctx.beginPath();
-              ctx.strokeStyle = '#ffffff';
-              ctx.lineWidth = strokeWidth * 0.45;
+              ctx.strokeStyle = strokeColor;
+              ctx.lineWidth = strokeWidth * 1.4;
               ctx.moveTo(cx, cy);
               ctx.bezierCurveTo(cx + curlAmp * 1.4, cy + cellSize * 0.35, below.x - curlAmp * 1.4, below.y - cellSize * 0.35, below.x, below.y);
               ctx.stroke();
 
               if (enableSprouts) {
                 ctx.beginPath();
-                ctx.strokeStyle = '#84cc16';
-                ctx.lineWidth = strokeWidth * 1.2;
-                ctx.arc(midX, midY, cellSize * 0.38, Math.PI * 0.5, Math.PI * 2);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = strokeWidth * 0.7;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = strokeWidth * 0.9;
                 ctx.arc(midX, midY, cellSize * 0.38, Math.PI * 0.5, Math.PI * 2);
                 ctx.stroke();
               }
@@ -1120,50 +1064,28 @@ export default function WavyQRControlNet({
         const frameW = cellSize * 0.95 * finderWeight;
         const boxSize = 7 * cellSize;
 
-        // Outer golden painted square
-        ctx.fillStyle = '#facc15';
-        ctx.strokeStyle = '#eab308';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.roundRect(originX + frameW * 0.1, originY + frameW * 0.1, boxSize - frameW * 0.2, boxSize - frameW * 0.2, cellSize * 0.7);
-        ctx.stroke();
-
-        // Thick golden border
+        // Outer square box frame in strokeColor
+        ctx.strokeStyle = strokeColor;
         ctx.lineWidth = frameW;
-        ctx.strokeStyle = '#facc15';
         const innerBoxSize = boxSize - frameW;
         ctx.strokeRect(originX + frameW / 2, originY + frameW / 2, innerBoxSize, innerBoxSize);
 
-        // Cobalt blue canvas inside eye
-        ctx.fillStyle = colorPreset === 'vangogh_starry' ? '#093a7d' : bgColor;
+        // Clear cavity inside in bgColor
+        ctx.fillStyle = bgColor;
         ctx.fillRect(originX + frameW, originY + frameW, boxSize - 2 * frameW, boxSize - 2 * frameW);
 
-        // Radiant Golden Sun / Moon Orb
+        // Radiant Sun / Moon Orb (Solid center circle in strokeColor)
         const sunR = 1.45 * cellSize * finderWeight;
-
-        // Sun outer halo
-        ctx.fillStyle = 'rgba(132, 204, 22, 0.45)';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, sunR * 1.15, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Main golden sun disk
-        ctx.fillStyle = '#facc15';
+        ctx.fillStyle = strokeColor;
         ctx.beginPath();
         ctx.arc(centerX, centerY, sunR, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bright inner sun center
-        ctx.fillStyle = '#fef08a';
+        // Subtle negative space ring
+        ctx.strokeStyle = bgColor;
+        ctx.lineWidth = Math.max(1.5, strokeWidth * 0.35);
         ctx.beginPath();
-        ctx.arc(centerX, centerY, sunR * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Subtle concentric sun brush ring
-        ctx.strokeStyle = '#eab308';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, sunR * 0.8, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, sunR * 0.72, 0, Math.PI * 2);
         ctx.stroke();
       } else if (finderStyle === 'rounded_rings') {
         ctx.lineWidth = cellSize * 0.95 * finderWeight;
@@ -1211,94 +1133,26 @@ export default function WavyQRControlNet({
       drawFinderPattern(0, N - 7); // Bottom-Left
     }
 
-    // --- OPTIONAL GILDED CARVED WOODEN / OIL IMPASTO PICTURE FRAME ---
+    // --- OPTIONAL PICTURE FRAME ---
     if (enablePictureFrame) {
-      const frameThickness = canvasSize * 0.055; // ~56px
+      const frameThickness = canvasSize * 0.045; // ~46px
       ctx.save();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = frameThickness * 0.35;
+      ctx.strokeRect(
+        frameThickness * 0.4,
+        frameThickness * 0.4,
+        canvasSize - frameThickness * 0.8,
+        canvasSize - frameThickness * 0.8
+      );
 
-      // Top border
-      const gradTop = ctx.createLinearGradient(0, 0, 0, frameThickness);
-      gradTop.addColorStop(0, '#78350f');
-      gradTop.addColorStop(0.3, '#d97706');
-      gradTop.addColorStop(0.7, '#f59e0b');
-      gradTop.addColorStop(1, '#9a3412');
-      ctx.fillStyle = gradTop;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(canvasSize, 0);
-      ctx.lineTo(canvasSize - frameThickness, frameThickness);
-      ctx.lineTo(frameThickness, frameThickness);
-      ctx.closePath();
-      ctx.fill();
-
-      // Bottom border
-      const gradBot = ctx.createLinearGradient(0, canvasSize - frameThickness, 0, canvasSize);
-      gradBot.addColorStop(0, '#9a3412');
-      gradBot.addColorStop(0.3, '#f59e0b');
-      gradBot.addColorStop(0.7, '#d97706');
-      gradBot.addColorStop(1, '#78350f');
-      ctx.fillStyle = gradBot;
-      ctx.beginPath();
-      ctx.moveTo(0, canvasSize);
-      ctx.lineTo(canvasSize, canvasSize);
-      ctx.lineTo(canvasSize - frameThickness, canvasSize - frameThickness);
-      ctx.lineTo(frameThickness, canvasSize - frameThickness);
-      ctx.closePath();
-      ctx.fill();
-
-      // Left border
-      const gradLeft = ctx.createLinearGradient(0, 0, frameThickness, 0);
-      gradLeft.addColorStop(0, '#78350f');
-      gradLeft.addColorStop(0.5, '#d97706');
-      gradLeft.addColorStop(1, '#9a3412');
-      ctx.fillStyle = gradLeft;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(frameThickness, frameThickness);
-      ctx.lineTo(frameThickness, canvasSize - frameThickness);
-      ctx.lineTo(0, canvasSize);
-      ctx.closePath();
-      ctx.fill();
-
-      // Right border
-      const gradRight = ctx.createLinearGradient(canvasSize - frameThickness, 0, canvasSize, 0);
-      gradRight.addColorStop(0, '#9a3412');
-      gradRight.addColorStop(0.5, '#d97706');
-      gradRight.addColorStop(1, '#78350f');
-      ctx.fillStyle = gradRight;
-      ctx.beginPath();
-      ctx.moveTo(canvasSize, 0);
-      ctx.lineTo(canvasSize, canvasSize);
-      ctx.lineTo(canvasSize - frameThickness, canvasSize - frameThickness);
-      ctx.lineTo(canvasSize - frameThickness, frameThickness);
-      ctx.closePath();
-      ctx.fill();
-
-      // Impasto wood grain striations
-      ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
-      ctx.lineWidth = 1.5;
-      for (let i = 8; i < canvasSize; i += 16) {
-        ctx.beginPath();
-        ctx.moveTo(i, 2);
-        ctx.lineTo(i + 8, frameThickness - 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(i, canvasSize - 2);
-        ctx.lineTo(i - 8, canvasSize - frameThickness + 2);
-        ctx.stroke();
-      }
-      for (let j = 8; j < canvasSize; j += 16) {
-        ctx.beginPath();
-        ctx.moveTo(2, j);
-        ctx.lineTo(frameThickness - 2, j + 8);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(canvasSize - 2, j);
-        ctx.lineTo(canvasSize - frameThickness + 2, j - 8);
-        ctx.stroke();
-      }
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        frameThickness * 0.85,
+        frameThickness * 0.85,
+        canvasSize - frameThickness * 1.7,
+        canvasSize - frameThickness * 1.7
+      );
       ctx.restore();
     }
 
