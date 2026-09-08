@@ -13,11 +13,20 @@ export interface ArtQRPreset {
   name: string;
   description: string;
   preview_url: string;
-  colors: string[];
+  reference_image_url?: string;
+  price_credits?: number;
+  price_vnd?: number;
+  material?: string;
+  dark_color?: string;
+  texture_strength?: number;
+  contrast_strength?: number;
+  quiet_zone_modules?: number;
+  colors?: string[];
   prompt: string;
-  negative_prompt: string;
-  conditioning_scale: number;
-  guidance_scale: number;
+  negative_prompt?: string;
+  conditioning_scale?: number;
+  guidance_scale?: number;
+  enabled?: boolean;
   placement?: Placement;
 }
 
@@ -203,4 +212,72 @@ export async function generateArtQRSync(
   }
   return data as ArtQRResult;
 }
+
+// Admin: Save or update an Art QR preset
+export async function saveArtQRPreset(preset: Partial<ArtQRPreset>): Promise<any> {
+  const token = getStoredToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/api/art-qr/admin/presets`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(preset),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+// Admin: Delete an Art QR preset
+export async function deleteArtQRPreset(id: string): Promise<any> {
+  const token = getStoredToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/api/art-qr/admin/presets/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
+// Admin: Upload reference scene image
+export async function uploadSceneImage(file: File): Promise<{ url: string; filename: string }> {
+  const token = getStoredToken();
+  const formData = new FormData();
+  formData.append('scene_image', file);
+
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}/api/art-qr/admin/upload-scene`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 
