@@ -541,4 +541,93 @@ export async function getSampleQR(
   return await res.json();
 }
 
+export interface ChatMessageItem {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at?: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  user_id: string;
+  title: string;
+  model: string;
+  messages: ChatMessageItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getConversations(): Promise<ChatConversation[]> {
+  const token = getStoredToken();
+  if (!token) return [];
+  try {
+    const res = await fetch(`${API_BASE}/api/user/conversations`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.conversations || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getConversation(id: string): Promise<ChatConversation | null> {
+  const token = getStoredToken();
+  if (!token || !id) return null;
+  try {
+    const res = await fetch(`${API_BASE}/api/user/conversations/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.conversation || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveConversation(conv: {
+  id?: string;
+  title?: string;
+  model: string;
+  messages: ChatMessageItem[];
+}): Promise<ChatConversation | null> {
+  const token = getStoredToken();
+  if (!token) return null;
+  try {
+    const res = await fetch(`${API_BASE}/api/user/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(conv),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.conversation || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteConversation(id: string): Promise<boolean> {
+  const token = getStoredToken();
+  if (!token || !id) return false;
+  try {
+    const res = await fetch(`${API_BASE}/api/user/conversations/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+
 

@@ -22,7 +22,15 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
-import { testChatCompletion, getModels } from '@/lib/api';
+import {
+  testChatCompletion,
+  getModels,
+  getConversations,
+  getConversation,
+  saveConversation,
+  deleteConversation,
+  ChatConversation,
+} from '@/lib/api';
 import { speakGoogleVoice, stopSpeaking } from '@/lib/voice';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -50,6 +58,12 @@ export default function ChatPlayground() {
   const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatSending, setChatSending] = useState(false);
+
+  // Conversations History State
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [searchConvQuery, setSearchConvQuery] = useState('');
+  const [loadingConversations, setLoadingConversations] = useState(false);
 
   // Custom Model Management State
   const [customModels, setCustomModels] = useState<ChatModelOption[]>([]);
@@ -85,6 +99,100 @@ export default function ChatPlayground() {
       }
     }).catch(() => {});
   }, []);
+
+  // Load User Saved Conversations from DB
+  const loadConversationsList = async () => {
+    try {
+      setLoadingConversations(true);
+      const data = await getConversations();
+      setConversations(data || []);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConversationsList();
+  }, []);
+
+  const handleNewChat = () => {
+    stopSpeaking();
+    setIsSpeakingIndex(null);
+    setActiveConvId(null);
+    setChatMessages([]);
+  };
+
+  const handleSelectConversation = async (convId: string) => {
+    stopSpeaking();
+    setIsSpeakingIndex(null);
+    try {
+      const conv = await getConversation(convId);
+      if (conv) {
+        setActiveConvId(conv.id);
+        if (conv.model) {
+          setChatModel(conv.model);
+        }
+        setChatMessages(
+          (conv.messages || []).map((m) => ({
+            role: m.role,
+            content: m.content,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to load conversation details:', err);
+    }
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
+    e.stopPropagation();
+    if (!confirm(lang === 'vi' ? 'Bạn có chắc muốn xóa cuộc trò chuyện này?' : 'Are you sure you want to delete this conversation?')) {
+      return;
+    }
+    try {
+      await deleteConversation(convId);
+      setConversations((prev) => prev.filter((c) => c.id !== convId));
+      if (activeConvId === convId) {
+        handleNewChat();
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  };
+
+  const persistConversation = async (
+    messagesToSave: Array<{ role: 'user' | 'assistant'; content: string }>,
+    modelToUse: string
+  ) => {
+    try {
+      const saved = await saveConversation({
+        id: activeConvId || undefined,
+        model: modelToUse,
+        messages: messagesToSave.map((m, idx) => ({
+          id: `msg-${Date.now()}-${idx}`,
+          role: m.role,
+          content: m.content,
+          timestamp: new Date().toISOString(),
+        })),
+      });
+      if (saved && saved.id) {
+        setActiveConvId(saved.id);
+        setConversations((prev) => {
+          const idx = prev.findIndex((c) => c.id === saved.id);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = saved;
+            return updated;
+          }
+          return [saved, ...prev];
+        });
+      }
+    } catch (err) {
+      console.error('Failed to persist conversation:', err);
+    }
+  };
 
   const handleApplyCustomModel = () => {
     const trimmed = customInputText.trim();
@@ -245,6 +353,9 @@ export default function ChatPlayground() {
       const updated = [...newHistory, { role: 'assistant' as const, content: assistantText }];
       setChatMessages(updated);
 
+      // Persist Conversation to Server
+      persistConversation(updated, chatModel);
+
       // Auto Speak Response using Chị Google Voice
       if (autoSpeak) {
         const lastIdx = updated.length - 1;
@@ -270,47 +381,98 @@ export default function ChatPlayground() {
     <div className="h-full w-full flex rounded-2xl border border-white/[0.08] overflow-hidden bg-[#0a0c12] shadow-2xl relative">
       {/* Chat Sub-Sidebar */}
       <div className="w-64 border-r border-white/[0.08] bg-[#0c0e16] p-3.5 flex flex-col justify-between hidden md:flex shrink-0">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs font-bold text-white px-1">
-            <span>{t.conversations}</span>
+        <div className="space-y-3 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between text-xs font-bold text-white px-1 shrink-0">
+            <span className="flex items-center gap-1.5">
+              <span>{t.conversations || 'Đoạn chat'}</span>
+              <span className="text-[10px] text-slate-500 font-mono">({conversations.length})</span>
+            </span>
             <button
-              onClick={() => {
-                stopSpeaking();
-                setIsSpeakingIndex(null);
-                setChatMessages([]);
-              }}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] cursor-pointer"
-              title={t.newChat}
+              onClick={handleNewChat}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] cursor-pointer transition-colors"
+              title={t.newChat || 'Cuộc trò chuyện mới'}
             >
               <Plus className="size-4" />
             </button>
           </div>
 
-          <div className="relative">
+          <div className="relative shrink-0">
             <input
               type="text"
-              placeholder={t.searchChat}
-              className="w-full h-8 pl-3 pr-3 rounded-lg border border-white/[0.08] bg-white/[0.03] text-xs text-white placeholder-slate-500 focus:outline-none"
+              value={searchConvQuery}
+              onChange={(e) => setSearchConvQuery(e.target.value)}
+              placeholder={t.searchChat || 'Tìm kiếm...'}
+              className="w-full h-8 pl-3 pr-3 rounded-lg border border-white/[0.08] bg-white/[0.03] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40"
             />
           </div>
 
-          <div className="space-y-1 pt-1">
+          <div className="shrink-0 pt-1">
             <button
-              onClick={() => {
-                stopSpeaking();
-                setIsSpeakingIndex(null);
-                setChatMessages([]);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-left cursor-pointer"
+              onClick={handleNewChat}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-left cursor-pointer transition-all ${
+                !activeConvId
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/[0.04] border border-transparent'
+              }`}
             >
-              <span className="size-2 rounded-full bg-emerald-400" />
-              <span className="truncate">Cuộc trò chuyện mới</span>
+              <span className={`size-2 rounded-full ${!activeConvId ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              <span className="truncate">{t.newChat || 'Cuộc trò chuyện mới'}</span>
             </button>
+          </div>
+
+          {/* Conversations History List */}
+          <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar min-h-0">
+            {loadingConversations ? (
+              <div className="text-center py-6 text-[11px] text-slate-500 font-mono animate-pulse">
+                Đang tải lịch sử...
+              </div>
+            ) : conversations.filter((c) => (c.title || '').toLowerCase().includes(searchConvQuery.toLowerCase())).length === 0 ? (
+              <div className="text-center py-6 text-[11px] text-slate-500">
+                {searchConvQuery ? 'Không tìm thấy kết quả' : 'Chưa có hội thoại nào'}
+              </div>
+            ) : (
+              conversations
+                .filter((c) => (c.title || '').toLowerCase().includes(searchConvQuery.toLowerCase()))
+                .map((conv) => {
+                  const isActive = activeConvId === conv.id;
+                  return (
+                    <div
+                      key={conv.id}
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`group flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-all border ${
+                        isActive
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-sm'
+                          : 'border-transparent hover:bg-white/[0.04] text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex flex-col min-w-0 flex-1 pr-2">
+                        <span className="truncate font-medium text-[11.5px]">{conv.title || 'Cuộc trò chuyện'}</span>
+                        <span className="text-[9.5px] text-slate-500 truncate">
+                          {new Date(conv.updated_at).toLocaleDateString('vi-VN', {
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteConversation(e, conv.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 text-slate-500 transition-opacity rounded"
+                        title="Xóa đoạn chat"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
 
         {/* Voice Feature Status Card in Sidebar */}
-        <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 space-y-2">
+        <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 space-y-2 mt-3 shrink-0">
           <div className="flex items-center justify-between text-xs font-bold text-emerald-300">
             <div className="flex items-center gap-1.5">
               <Volume2 className="size-3.5 text-cyan-400" />
@@ -470,6 +632,9 @@ export default function ChatPlayground() {
                           { role: 'assistant' as const, content: assistantText },
                         ];
                         setChatMessages(updated);
+
+                        // Persist Conversation
+                        persistConversation(updated, chatModel);
 
                         if (autoSpeak) {
                           const lastIdx = updated.length - 1;
