@@ -33,7 +33,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
   const amountVND = Math.round(currentUSD * 25400);
   const userCode = user?.id ? user.id.replace('user-', '').slice(-6).toUpperCase() : 'TOPUP88';
   const transferMemo = `LEMAS ${userCode}`;
-  const qrImageUrl = `https://qr.sepay.vn/img?acc=0868888999&bank=MBBank&amount=${amountVND}&des=${encodeURIComponent(transferMemo)}`;
+  const qrImageUrl = `https://qr.sepay.vn/img?acc=0905304143&bank=MBBank&amount=${amountVND}&des=${encodeURIComponent(transferMemo)}`;
 
   const onConfirm = async () => {
     setIsVerifyingPayment(true);
@@ -161,7 +161,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
               alt="SePay VietQR Code"
               className="size-56 object-contain rounded-lg"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = `https://img.vietqr.io/image/MB-0868888999-compact2.png?amount=${amountVND}&addInfo=${encodeURIComponent(transferMemo)}&accountName=LEMAS%20AI%20GATEWAY`;
+                (e.target as HTMLImageElement).src = `https://img.vietqr.io/image/MB-0905304143-compact2.png?amount=${amountVND}&addInfo=${encodeURIComponent(transferMemo)}&accountName=MAC%20NHU%20HUU`;
               }}
             />
           </div>
@@ -190,11 +190,11 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-slate-500">{t.accountNumber}</span>
-                <div className="text-sm font-mono font-bold text-emerald-300">0868888999</div>
+                <div className="text-sm font-mono font-bold text-emerald-300">0905304143</div>
               </div>
               <button
                 type="button"
-                onClick={() => handleCopy('stk', '0868888999')}
+                onClick={() => handleCopy('stk', '0905304143')}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs font-semibold text-white hover:border-emerald-400 transition-colors"
               >
                 {copiedKeyId === 'stk' ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
@@ -206,7 +206,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-slate-500">{t.accountHolder}</span>
-                <div className="text-xs font-bold text-white">LEMAS AI GATEWAY</div>
+                <div className="text-xs font-bold text-white">MẠC NHƯ HỮU</div>
               </div>
             </div>
 
