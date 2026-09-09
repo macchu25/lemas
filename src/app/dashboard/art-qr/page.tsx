@@ -28,6 +28,10 @@ import {
   Lock,
   Upload,
   Waves,
+  History,
+  Trash2,
+  ExternalLink,
+  Eye,
 } from 'lucide-react';
 import {
   processQRTransparency,
@@ -41,15 +45,28 @@ import {
   ArtQRPreset,
   ArtQRResult,
   getPresetAssetUrl,
+  getUserArtQRHistory,
+  deleteUserArtQRHistory,
+  UserArtQRHistoryItem,
 } from '@/lib/artqr_api';
+import { useDashboard } from '@/components/dashboard/DashboardContext';
 import WavyQRControlNet from '@/components/dashboard/WavyQRControlNet';
 
 export default function ArtQRStudioPage() {
+  const { user, refreshData, setTopupModalOpen } = useDashboard();
+  const isPaidPlan = user?.plan === 'pro' || user?.plan === 'vip' || user?.plan === 'extra' || user?.plan === 'pro-plus' || user?.plan === 'max' || user?.plan === 'ultra' || user?.plan === 'power';
+
   // Prevent hydration mismatch
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // View mode: 'catalog' (Trang chọn phong cách) | 'generator' (Trang tạo mã) | 'wavy_controlnet' (Nét uốn lượn ControlNet) | 'transparency_tool' (Bóc tách nền)
-  const [viewMode, setViewMode] = useState<'catalog' | 'generator' | 'wavy_controlnet' | 'transparency_tool'>('catalog');
+  // View mode: 'catalog' | 'generator' | 'wavy_controlnet' | 'transparency_tool' | 'history'
+  const [viewMode, setViewMode] = useState<'catalog' | 'generator' | 'wavy_controlnet' | 'transparency_tool' | 'history'>('catalog');
+
+  // History state (Bộ sưu tập riêng của từng user)
+  const [history, setHistory] = useState<UserArtQRHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<UserArtQRHistoryItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -88,6 +105,31 @@ export default function ArtQRStudioPage() {
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
   const [copiedImage, setCopiedImage] = useState<boolean>(false);
 
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const items = await getUserArtQRHistory();
+      setHistory(items);
+    } catch {
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleDeleteHistory = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm('Bạn có chắc muốn xóa tác phẩm Art QR này khỏi bộ sưu tập?')) return;
+    setDeletingId(id);
+    const ok = await deleteUserArtQRHistory(id);
+    if (ok) {
+      setHistory((prev) => prev.filter((item) => item.id !== id));
+      if (selectedHistoryItem?.id === id) {
+        setSelectedHistoryItem(null);
+      }
+    }
+    setDeletingId(null);
+  };
+
   useEffect(() => {
     setMounted(true);
     // Fetch presets from API
@@ -96,6 +138,9 @@ export default function ArtQRStudioPage() {
         setPresets(res);
       }
     });
+
+    // Load user Art QR creation history
+    loadHistory();
 
     // Check query params if preset was requested directly
     try {
@@ -266,6 +311,8 @@ export default function ArtQRStudioPage() {
             retry_count: job.attempts ?? 0,
             processing_ms: job.processing_ms ?? 0,
           });
+          refreshData();
+          loadHistory();
         } else if (job.status === 'failed') {
           done = true;
           setArtQRError(job.error || 'Tạo Art QR thất bại. Vui lòng thử lại.');
@@ -380,56 +427,93 @@ export default function ArtQRStudioPage() {
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-semibold shrink-0 flex-wrap gap-1">
-            <button
-              type="button"
-              onClick={() => setViewMode('catalog')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'catalog'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Palette className="size-3.5" />
-              <span>Kho Phong Cách</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('generator')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'generator'
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Sparkles className="size-3.5" />
-              <span>Phòng Tạo Mã</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('wavy_controlnet')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'wavy_controlnet'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                  : 'text-cyan-400 hover:text-white'
-              }`}
-            >
-              <Waves className="size-3.5" />
-              <span>Uốn Lượn ControlNet</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('transparency_tool')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'transparency_tool'
-                  ? 'bg-slate-800 text-white font-bold shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="size-3.5 text-slate-300" />
-              <span>Tách Nền QR</span>
-            </button>
+          {/* Navigation Tabs & Wallet Balance */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 text-xs font-semibold shrink-0 flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('catalog')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  viewMode === 'catalog'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Palette className="size-3.5" />
+                <span>Kho Phong Cách</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('generator')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  viewMode === 'generator'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="size-3.5" />
+                <span>Phòng Tạo Mã</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('wavy_controlnet')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  viewMode === 'wavy_controlnet'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                    : 'text-cyan-400 hover:text-white'
+                }`}
+              >
+                <Waves className="size-3.5" />
+                <span>Uốn Lượn ControlNet</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('transparency_tool')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  viewMode === 'transparency_tool'
+                    ? 'bg-slate-800 text-white font-bold shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Layers className="size-3.5 text-slate-300" />
+                <span>Tách Nền QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('history');
+                  loadHistory();
+                }}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  viewMode === 'history'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
+                    : 'text-emerald-400 hover:text-white'
+                }`}
+              >
+                <History className="size-3.5" />
+                <span>Bộ Sưu Tập ({history.length})</span>
+              </button>
+            </div>
+
+            {/* Live Balance & Quota Notice */}
+            <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800/90 rounded-xl px-3 py-1.5 text-xs">
+              <Coins className="size-3.5 text-amber-400" />
+              {isPaidPlan ? (
+                <span className="text-emerald-400 font-bold">Gói {user?.plan?.toUpperCase()} • Không giới hạn</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-300">Ví: <strong className="text-amber-400">${(user?.balance || 0).toFixed(2)}</strong></span>
+                  <span className="text-[10px] text-slate-500 hidden sm:inline">($0.05/lượt)</span>
+                  <button
+                    type="button"
+                    onClick={() => setTopupModalOpen(true)}
+                    className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[10px] font-bold transition-all"
+                  >
+                    Nạp
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1181,6 +1265,246 @@ export default function ArtQRStudioPage() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
+        )}
+
+        {/* VIEW 5: BỘ SƯU TẬP ART QR ĐÃ TẠO RIÊNG CỦA USER */}
+        {viewMode === 'history' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c1017]/60 border border-slate-800/60 rounded-2xl p-4">
+              <div className="space-y-0.5">
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>Bộ Sưu Tập Art QR Của Bạn</span>
+                  <span className="text-xs font-normal text-slate-400">
+                    ({history.length} tác phẩm đã lưu)
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Tất cả mã QR nghệ thuật được tạo từ tài khoản của bạn được lưu trữ an toàn và bảo mật riêng tư tại đây.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={loadHistory}
+                  disabled={historyLoading}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 flex items-center gap-1.5 transition-all"
+                >
+                  <RefreshCw className={`size-3.5 ${historyLoading ? 'animate-spin text-amber-400' : ''}`} />
+                  <span>Làm mới</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('generator')}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-300 hover:from-amber-300 hover:to-amber-200 flex items-center gap-1.5 shrink-0 transition-all shadow-md"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Tạo QR mới</span>
+                </button>
+              </div>
+            </div>
+
+            {historyLoading && history.length === 0 ? (
+              <div className="rounded-2xl border border-slate-800 bg-[#0c1017]/80 p-12 text-center">
+                <RefreshCw className="size-6 animate-spin text-amber-400 mx-auto mb-3" />
+                <p className="text-xs text-slate-400">Đang tải bộ sưu tập Art QR của bạn...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-800 bg-[#0c1017]/40 p-12 text-center space-y-4">
+                <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                  <QrCode className="size-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">Chưa có tác phẩm Art QR nào</h3>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Hãy vào phòng tạo ảnh để sáng tạo những tác phẩm QR nghệ thuật độc bản chuẩn quét 100%.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('generator')}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 hover:scale-[1.02] transition-all"
+                >
+                  Bắt đầu tạo Art QR ngay
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {history.map((item) => {
+                  return (
+                    <div
+                      key={item.id}
+                      className="group relative rounded-2xl border border-slate-800 bg-[#0c1017]/90 hover:border-amber-500/50 hover:bg-[#121620] overflow-hidden transition-all duration-300 flex flex-col shadow-lg"
+                    >
+                      {/* Thumbnail with overlay buttons */}
+                      <div
+                        onClick={() => setSelectedHistoryItem(item)}
+                        className="relative w-full aspect-square bg-black/70 overflow-hidden cursor-pointer flex items-center justify-center border-b border-slate-800/80"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image_url}
+                          alt="Art QR"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {/* Scannable verified badge */}
+                        <div className="absolute top-2.5 left-2.5">
+                          {item.scannable !== false ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/90 text-slate-950 flex items-center gap-1 shadow-md">
+                              <CheckCircle2 className="size-3" />
+                              <span>Chuẩn quét 100%</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800/90 text-slate-300 border border-slate-700">
+                              Art Preview
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quick View Hover Icon */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <span className="px-3 py-1.5 rounded-xl bg-black/80 backdrop-blur-md border border-white/20 text-white text-xs font-semibold flex items-center gap-1.5">
+                            <Eye className="size-3.5 text-amber-400" />
+                            <span>Xem chi tiết</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Info */}
+                      <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <span className="font-bold text-amber-300 truncate">
+                              {item.preset_name || item.preset_id}
+                            </span>
+                            <span className="text-[10px] text-slate-500 shrink-0">
+                              {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                            </span>
+                          </div>
+                          {item.original_payload && (
+                            <p className="text-[11px] text-slate-400 truncate font-mono bg-slate-950/60 px-2 py-1 rounded-md border border-slate-900">
+                              {item.original_payload}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-800/60">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadOutput(item.image_url, `art_qr_${item.preset_id}_${item.id.slice(-6)}.png`)}
+                            className="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center justify-center gap-1 transition-all"
+                          >
+                            <Download className="size-3 text-amber-400" />
+                            <span>Tải ảnh</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingId === item.id}
+                            onClick={(e) => handleDeleteHistory(e, item.id)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all"
+                            title="Xóa tác phẩm"
+                          >
+                            <Trash2 className={`size-3.5 ${deletingId === item.id ? 'animate-spin' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FULL RESOLUTION PREVIEW MODAL */}
+        {selectedHistoryItem && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="relative max-w-2xl w-full bg-[#0c1017] border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="size-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                    <QrCode className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">
+                      {selectedHistoryItem.preset_name || selectedHistoryItem.preset_id}
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Tạo lúc: {new Date(selectedHistoryItem.created_at).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedHistoryItem(null)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                >
+                  <span className="text-sm font-bold px-1.5">✕</span>
+                </button>
+              </div>
+
+              {/* High-res Image Preview */}
+              <div className="w-full aspect-square max-h-[420px] rounded-2xl bg-black/80 border border-slate-800 flex items-center justify-center overflow-hidden p-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedHistoryItem.image_url}
+                  alt="Art QR High-Res"
+                  className="max-h-full max-w-full object-contain rounded-xl shadow-2xl"
+                />
+              </div>
+
+              {/* Payload details & Verification Status */}
+              <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">Nội dung giải mã (Payload):</span>
+                  {selectedHistoryItem.scannable !== false ? (
+                    <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                      <CheckCheck className="size-3" /> Chuẩn quét 100%
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400">Chưa kiểm định</span>
+                  )}
+                </div>
+                <div className="p-2 rounded-lg bg-black/60 border border-white/5 font-mono text-[11px] text-amber-300 break-all select-all flex items-center justify-between gap-2">
+                  <span className="truncate">{selectedHistoryItem.original_payload || selectedHistoryItem.decoded_payload || 'Không có payload'}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedHistoryItem.original_payload) {
+                        navigator.clipboard.writeText(selectedHistoryItem.original_payload);
+                      }
+                    }}
+                    className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white shrink-0"
+                    title="Sao chép nội dung"
+                  >
+                    <Copy className="size-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadOutput(selectedHistoryItem.image_url, `art_qr_${selectedHistoryItem.preset_id}_${selectedHistoryItem.id.slice(-6)}.png`)}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 hover:scale-[1.01] transition-all"
+                >
+                  <Download className="size-4" />
+                  <span>Tải Ảnh Gốc 4K</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyImage(selectedHistoryItem.image_url)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center gap-2 border border-slate-700 transition-all"
+                >
+                  <Copy className="size-3.5 text-slate-300" />
+                  <span>Sao chép ảnh</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

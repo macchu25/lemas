@@ -324,4 +324,53 @@ export function getPresetAssetUrl(url?: string): string {
   return url;
 }
 
+export interface UserArtQRHistoryItem {
+  id: string;
+  user_id: string;
+  preset_id: string;
+  preset_name?: string;
+  custom_prompt?: string;
+  image_url: string;
+  original_payload?: string;
+  decoded_payload?: string;
+  scannable?: boolean;
+  cost_usd?: number;
+  created_at: string;
+}
+
+export async function getUserArtQRHistory(): Promise<UserArtQRHistoryItem[]> {
+  const token = getStoredToken();
+  if (!token) return [];
+  try {
+    const res = await fetch(`${API_BASE}/api/user/art-qr/history`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteUserArtQRHistory(id: string): Promise<boolean> {
+  const token = getStoredToken();
+  if (!token || !id) return false;
+  try {
+    const res = await fetch(`${API_BASE}/api/user/art-qr/history/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+
 
