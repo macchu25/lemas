@@ -439,10 +439,11 @@ export default function AdminPage() {
   }, []);
 
   const getAdminHeaders = () => {
-    const token = typeof window !== 'undefined' ? sessionStorage.getItem('lemas_admin_token') || '' : '';
+    const rawToken = typeof window !== 'undefined' ? sessionStorage.getItem('lemas_admin_token') || '' : '';
+    const cleanToken = rawToken.replace(/[^\x00-\xFF]/g, '').trim();
     return {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${cleanToken}`,
     };
   };
 

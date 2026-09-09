@@ -162,21 +162,29 @@ export async function submitContact(name: string, email: string, subject: string
   }
 }
 
+export function sanitizeHeader(val?: string | null): string {
+  if (!val) return '';
+  return val.replace(/[^\x00-\xFF]/g, '').trim();
+}
+
 // Auth & Dashboard helpers
 export function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return (
+  const raw =
     localStorage.getItem('lemas_auth_token') ||
     localStorage.getItem('xkiro_auth_token') ||
-    sessionStorage.getItem('lemas_admin_token')
-  );
+    sessionStorage.getItem('lemas_admin_token');
+  if (!raw) return null;
+  const clean = sanitizeHeader(raw);
+  return clean || null;
 }
 
 export function setStoredToken(token: string) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('lemas_auth_token', token);
-    localStorage.setItem('xkiro_auth_token', token);
-    document.cookie = `lemas_auth_token=${token}; path=/; max-age=2592000; SameSite=Lax`;
+    const cleanToken = sanitizeHeader(token);
+    localStorage.setItem('lemas_auth_token', cleanToken);
+    localStorage.setItem('xkiro_auth_token', cleanToken);
+    document.cookie = `lemas_auth_token=${cleanToken}; path=/; max-age=2592000; SameSite=Lax`;
   }
 }
 
