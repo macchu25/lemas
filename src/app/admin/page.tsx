@@ -147,6 +147,51 @@ export default function AdminPage() {
   const [adjusting, setAdjusting] = useState(false);
   const [checkingRotator, setCheckingRotator] = useState(false);
 
+  // Database Diagnostics & Ping State
+  const [dbPingResult, setDbPingResult] = useState<{
+    status: string;
+    latency_ms: number;
+    db_type: string;
+    is_mongodb: boolean;
+    users_count: number;
+    keys_count: number;
+    models_count: number;
+    giftcodes_count: number;
+    usage_logs_count?: number;
+    timestamp: string;
+    error?: string;
+  } | null>(null);
+  const [dbPinging, setDbPinging] = useState(false);
+  const [showDbPingModal, setShowDbPingModal] = useState(false);
+
+  const handlePingDB = async () => {
+    setDbPinging(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/db/ping`, {
+        headers: getAdminHeaders(),
+      });
+      const data = await res.json();
+      setDbPingResult(data);
+      setShowDbPingModal(true);
+    } catch (err: any) {
+      setDbPingResult({
+        status: 'error',
+        latency_ms: 0,
+        db_type: 'Không xác định',
+        is_mongodb: false,
+        users_count: 0,
+        keys_count: 0,
+        models_count: 0,
+        giftcodes_count: 0,
+        timestamp: new Date().toLocaleTimeString(),
+        error: err?.message || 'Lỗi kết nối tới máy chủ',
+      });
+      setShowDbPingModal(true);
+    } finally {
+      setDbPinging(false);
+    }
+  };
+
   // Dedicated xKiro Chat Gateway State (Trang 1)
   const [xkiroKey, setXkiroKey] = useState('');
   const [xkiroKeyName, setXkiroKeyName] = useState('');
@@ -867,7 +912,7 @@ export default function AdminPage() {
           </div>
 
           {/* Quick Metrics Bar in Sidebar */}
-          <div className="p-3.5 rounded-2xl bg-[#0b0f1e] border border-white/5 space-y-2">
+          <div className="p-3.5 rounded-2xl bg-[#0b0f1e] border border-white/5 space-y-2.5">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-400 flex items-center gap-1.5">
                 <Users className="size-3.5 text-cyan-400" />
@@ -892,6 +937,25 @@ export default function AdminPage() {
               <span className="font-bold text-purple-300 font-mono text-[10px]">
                 {(overview?.total_tokens_used || 0).toLocaleString()}
               </span>
+            </div>
+
+            {/* Live Database Status & Ping Button */}
+            <div className="pt-2 border-t border-white/[0.06]">
+              <button
+                type="button"
+                onClick={handlePingDB}
+                disabled={dbPinging}
+                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-500/30 hover:border-emerald-500/60 hover:bg-emerald-500/25 text-emerald-300 transition-all flex items-center justify-between group cursor-pointer"
+                title="Kiểm tra kết nối và độ trễ tới cơ sở dữ liệu"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Activity className={`size-3.5 text-emerald-400 ${dbPinging ? 'animate-spin' : 'animate-pulse'}`} />
+                  <span className="text-xs font-bold text-white">Ping Database</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {dbPinging ? 'Pinging...' : dbPingResult ? `${dbPingResult.latency_ms}ms` : 'Kiểm tra'}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -3152,6 +3216,139 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Database Diagnostics & Ping Modal */}
+      {showDbPingModal && dbPingResult && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg rounded-3xl border border-emerald-500/30 bg-[#090c16] shadow-2xl p-6 space-y-5">
+            <button
+              type="button"
+              onClick={() => setShowDbPingModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="size-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 pb-3 border-b border-white/[0.08]">
+              <div className={`size-11 rounded-2xl flex items-center justify-center shadow-lg ${
+                dbPingResult.status === 'connected'
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-emerald-500/10'
+                  : 'bg-rose-500/15 border border-rose-500/30 text-rose-400 shadow-rose-500/10'
+              }`}>
+                <Server className="size-5.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  Kết Nối Cơ Sở Dữ Liệu
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                    dbPingResult.status === 'connected'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    {dbPingResult.status === 'connected' ? 'Connected' : 'Error'}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Đo lường thời gian thực độ trễ & trạng thái lưu trữ
+                </p>
+              </div>
+            </div>
+
+            {/* Diagnostic Details Grid */}
+            <div className="space-y-3">
+              {/* Latency & Type Card */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Độ trễ Ping (Roundtrip)
+                  </span>
+                  <div className="text-xl font-black text-emerald-400 font-mono flex items-center gap-2">
+                    <span className="size-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span>{dbPingResult.latency_ms} ms</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Loại Database
+                  </span>
+                  <div className="text-xs font-bold text-slate-200 mt-1 truncate" title={dbPingResult.db_type}>
+                    {dbPingResult.is_mongodb ? 'MongoDB Atlas' : 'In-Memory RAM'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cluster URI */}
+              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/[0.06] space-y-1">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Nguồn kết nối (Target Host)
+                </span>
+                <p className="text-xs font-mono text-slate-300 truncate">
+                  {dbPingResult.db_type}
+                </p>
+              </div>
+
+              {/* Collections Stats */}
+              <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Thống kê bản ghi đã nạp
+                </span>
+                <div className="grid grid-cols-4 gap-2 text-center pt-1">
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="text-base font-black text-cyan-300 font-mono">{dbPingResult.users_count}</div>
+                    <div className="text-[9px] text-slate-400">Users</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="text-base font-black text-indigo-300 font-mono">{dbPingResult.keys_count}</div>
+                    <div className="text-[9px] text-slate-400">API Keys</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="text-base font-black text-emerald-300 font-mono">{dbPingResult.models_count}</div>
+                    <div className="text-[9px] text-slate-400">Models</div>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="text-base font-black text-purple-300 font-mono">{dbPingResult.giftcodes_count}</div>
+                    <div className="text-[9px] text-slate-400">Giftcodes</div>
+                  </div>
+                </div>
+              </div>
+
+              {dbPingResult.error && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-rose-400" />
+                  <span>{dbPingResult.error}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center justify-between gap-3">
+              <span className="text-[10px] font-mono text-slate-500">
+                Kiểm tra lúc: {dbPingResult.timestamp}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePingDB}
+                  disabled={dbPinging}
+                  className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`size-3.5 ${dbPinging ? 'animate-spin' : ''}`} />
+                  <span>Ping Lại</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDbPingModal(false)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
