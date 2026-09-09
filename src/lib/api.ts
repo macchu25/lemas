@@ -264,15 +264,17 @@ export async function revokeApiKey(id: string): Promise<boolean> {
 
 // Test completions endpoint directly
 export async function testChatCompletion(apiKey: string, model: string, userMessage: string) {
-  const token = sanitizeHeader(apiKey || getStoredToken() || '');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  try {
-    const res = await fetch(`${API_BASE}/v1/chat/completions`, {
+  const storedToken = sanitizeHeader(getStoredToken() || '');
+  const primaryToken = sanitizeHeader(apiKey || storedToken);
+
+  const makeRequest = async (tok: string) => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (tok) {
+      headers['Authorization'] = `Bearer ${tok}`;
+    }
+    return await fetch(`${API_BASE}/v1/chat/completions`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -280,6 +282,15 @@ export async function testChatCompletion(apiKey: string, model: string, userMess
         messages: [{ role: 'user', content: userMessage }],
       }),
     });
+  };
+
+  try {
+    let res = await makeRequest(primaryToken);
+    // If specific apiKey failed with 401 and we have a valid logged-in user session, fallback to user token
+    if (res.status === 401 && storedToken && primaryToken !== storedToken) {
+      res = await makeRequest(storedToken);
+    }
+
     const text = await res.text();
     try {
       return JSON.parse(text);
