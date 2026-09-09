@@ -164,7 +164,7 @@ export async function submitContact(name: string, email: string, subject: string
 
 export function sanitizeHeader(val?: string | null): string {
   if (!val) return '';
-  return val.replace(/[^\x00-\xFF]/g, '').trim();
+  return String(val).replace(/[^\x20-\x7E]/g, '').trim();
 }
 
 // Auth & Dashboard helpers
@@ -264,14 +264,17 @@ export async function revokeApiKey(id: string): Promise<boolean> {
 
 // Test completions endpoint directly
 export async function testChatCompletion(apiKey: string, model: string, userMessage: string) {
-  const token = apiKey || getStoredToken() || '';
+  const token = sanitizeHeader(apiKey || getStoredToken() || '');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   try {
     const res = await fetch(`${API_BASE}/v1/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: userMessage }],

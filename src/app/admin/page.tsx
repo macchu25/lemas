@@ -485,7 +485,7 @@ export default function AdminPage() {
 
   const getAdminHeaders = () => {
     const rawToken = typeof window !== 'undefined' ? sessionStorage.getItem('lemas_admin_token') || '' : '';
-    const cleanToken = rawToken.replace(/[^\x00-\xFF]/g, '').trim();
+    const cleanToken = rawToken.replace(/[^\x20-\x7E]/g, '').trim();
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${cleanToken}`,
