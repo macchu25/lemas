@@ -129,10 +129,10 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
     <div className="p-3.5 sm:p-7 rounded-3xl border border-white/[0.08] bg-[#0e111a] space-y-6 w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
-        <div className="space-y-1">
-          <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-            <Zap className="size-5 text-emerald-400" />
-            <span>{title || 'Cổng Thanh Toán & Nâng Cấp Gói SePay'}</span>
+        <div className="space-y-1 min-w-0">
+          <h2 className="text-base sm:text-xl font-black text-white flex items-center gap-2">
+            <Zap className="size-5 text-emerald-400 shrink-0" />
+            <span className="truncate">{title || 'Cổng Thanh Toán & Nâng Cấp Gói SePay'}</span>
           </h2>
           <p className="text-xs text-slate-400">
             {subtitle || 'Thanh toán tự động qua VietQR 24/7. Kích hoạt gói và số dư sau 2-5 giây.'}
@@ -140,30 +140,30 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
         </div>
 
         {/* Mode Switcher Tabs */}
-        <div className="inline-flex p-1 rounded-xl bg-[#090b12] border border-white/[0.08] shrink-0">
+        <div className="grid grid-cols-2 sm:flex p-1 rounded-xl bg-[#090b12] border border-white/[0.08] shrink-0 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setPaymentMode('plan')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               paymentMode === 'plan'
                 ? 'bg-emerald-500 text-black shadow-md shadow-emerald-950/40'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Crown className="size-3.5" />
-            <span>Gói Đăng Ký (Tháng)</span>
+            <span className="truncate">Gói Đăng Ký</span>
           </button>
           <button
             type="button"
             onClick={() => setPaymentMode('topup')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               paymentMode === 'topup'
                 ? 'bg-emerald-500 text-black shadow-md shadow-emerald-950/40'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Coins className="size-3.5" />
-            <span>Nạp Tiền Lẻ ($)</span>
+            <span className="truncate">Nạp Tiền Lẻ ($)</span>
           </button>
         </div>
       </div>
@@ -318,11 +318,11 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
           </div>
 
           {/* QR Image Frame */}
-          <div className="p-3 bg-white rounded-2xl shadow-2xl border border-white/20 relative group">
+          <div className="p-2.5 sm:p-3 bg-white rounded-2xl shadow-2xl border border-white/20 relative group max-w-full flex items-center justify-center">
             <img
               src={qrImageUrl}
               alt="SePay VietQR Code"
-              className="size-52 sm:size-56 object-contain rounded-lg"
+              className="size-44 xs:size-48 sm:size-56 max-w-full object-contain rounded-lg"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `https://img.vietqr.io/image/MB-0905304143-compact2.png?amount=${amountVND}&addInfo=${encodeURIComponent(
                   transferMemo
@@ -341,7 +341,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
         <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
           <div className="space-y-2.5">
             {/* Bank Name */}
-            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between">
+            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span className="text-[10px] text-slate-500">Ngân hàng thụ hưởng</span>
                 <div className="text-xs font-bold text-white">MB Bank (Ngân hàng TMCP Quân Đội)</div>
@@ -352,7 +352,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             </div>
 
             {/* Account Number */}
-            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between">
+            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span className="text-[10px] text-slate-500">Số tài khoản</span>
                 <div className="text-sm font-mono font-bold text-emerald-300">0905304143</div>
@@ -360,7 +360,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
               <button
                 type="button"
                 onClick={() => handleCopy('stk', '0905304143')}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs font-semibold text-white hover:border-emerald-400 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs font-semibold text-white hover:border-emerald-400 transition-colors cursor-pointer"
               >
                 {copiedKeyId === 'stk' ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
                 <span>{copiedKeyId === 'stk' ? 'Đã chép' : 'Sao chép'}</span>
@@ -368,7 +368,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             </div>
 
             {/* Account Holder */}
-            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between">
+            <div className="p-3 rounded-xl border border-white/[0.08] bg-[#121520] flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span className="text-[10px] text-slate-500">Chủ tài khoản</span>
                 <div className="text-xs font-bold text-white">MẠC NHƯ HỮU</div>
@@ -376,7 +376,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             </div>
 
             {/* Amount to Pay */}
-            <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between">
+            <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span className="text-[10px] text-emerald-300">
                   Số tiền cần thanh toán ({paymentMode === 'plan' ? SUBSCRIPTION_PLANS[selectedPlan].name : 'Nạp lẻ'})
@@ -389,7 +389,7 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
               <button
                 type="button"
                 onClick={() => handleCopy('amount', amountVND.toString())}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/30 transition-colors cursor-pointer"
               >
                 {copiedKeyId === 'amount' ? <Check className="size-3.5 text-emerald-400" /> : <Copy className="size-3.5" />}
                 <span>{copiedKeyId === 'amount' ? 'Đã chép' : 'Sao chép'}</span>
@@ -397,15 +397,15 @@ export default function SepayPaymentBox({ onSuccess, title, subtitle }: SepayPay
             </div>
 
             {/* Transfer Memo (Mandatory) */}
-            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between">
-              <div>
+            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between flex-wrap gap-2">
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] text-amber-300">Nội dung chuyển khoản (Bắt buộc giữ nguyên)</span>
-                <div className="text-sm font-mono font-extrabold text-amber-400">{transferMemo}</div>
+                <div className="text-sm font-mono font-extrabold text-amber-400 break-all select-all">{transferMemo}</div>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopy('memo', transferMemo)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors shrink-0 cursor-pointer"
               >
                 {copiedKeyId === 'memo' ? <Check className="size-3.5 text-amber-400" /> : <Copy className="size-3.5" />}
                 <span>{copiedKeyId === 'memo' ? 'Đã chép' : 'Sao chép'}</span>

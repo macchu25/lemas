@@ -20,6 +20,8 @@ import {
   SlidersHorizontal,
   X,
   Trash2,
+  MessageSquare,
+  History,
 } from 'lucide-react';
 import { useDashboard } from './DashboardContext';
 import {
@@ -64,6 +66,7 @@ export default function ChatPlayground() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [searchConvQuery, setSearchConvQuery] = useState('');
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Custom Model Management State
   const [customModels, setCustomModels] = useState<ChatModelOption[]>([]);
@@ -122,11 +125,13 @@ export default function ChatPlayground() {
     setIsSpeakingIndex(null);
     setActiveConvId(null);
     setChatMessages([]);
+    setMobileSidebarOpen(false);
   };
 
   const handleSelectConversation = async (convId: string) => {
     stopSpeaking();
     setIsSpeakingIndex(null);
+    setMobileSidebarOpen(false);
     try {
       const conv = await getConversation(convId);
       if (conv) {
@@ -159,6 +164,47 @@ export default function ChatPlayground() {
       }
     } catch (err) {
       console.error('Failed to delete conversation:', err);
+    }
+  };
+
+  const handleSendSuggestedPrompt = async (promptText: string) => {
+    const newHistory = [{ role: 'user' as const, content: promptText }];
+    setChatMessages(newHistory);
+    setChatSending(true);
+    const activeKey = keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
+    try {
+      const res = await testChatCompletion(activeKey, chatModel, promptText);
+      let assistantText = 'Đã nhận yêu cầu.';
+      if (res && res.choices && res.choices[0] && res.choices[0].message) {
+        assistantText = res.choices[0].message.content;
+      } else if (res && res.error) {
+        assistantText = typeof res.error === 'object' ? (res.error.message || JSON.stringify(res.error)) : String(res.error);
+      }
+      const updated = [
+        ...newHistory,
+        { role: 'assistant' as const, content: assistantText },
+      ];
+      setChatMessages(updated);
+
+      // Persist Conversation
+      persistConversation(updated, chatModel);
+
+      if (autoSpeak) {
+        const lastIdx = updated.length - 1;
+        setIsSpeakingIndex(lastIdx);
+        speakGoogleVoice(
+          assistantText,
+          lang,
+          () => setIsSpeakingIndex(lastIdx),
+          () => setIsSpeakingIndex(null)
+        );
+      }
+
+      await refreshData();
+    } catch {
+      setChatMessages([...newHistory, { role: 'assistant', content: 'Đã nhận yêu cầu.' }]);
+    } finally {
+      setChatSending(false);
     }
   };
 
@@ -379,7 +425,121 @@ export default function ChatPlayground() {
 
   return (
     <div className="h-full w-full flex rounded-2xl border border-white/[0.08] overflow-hidden bg-[#0a0c12] shadow-2xl relative">
-      {/* Chat Sub-Sidebar */}
+      {/* Mobile Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 md:hidden animate-fade-in"
+        />
+      )}
+
+      {/* Mobile Sub-Sidebar Drawer (Visible on mobile when toggled) */}
+      <aside
+        className={`fixed md:hidden inset-y-0 left-0 w-72 max-w-[85vw] bg-[#0c0e16] border-r border-white/10 p-4 flex flex-col justify-between z-50 shadow-2xl transition-transform duration-300 ease-in-out ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="space-y-3 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between text-xs font-bold text-white px-1 shrink-0">
+            <span className="flex items-center gap-1.5 text-sm">
+              <MessageSquare className="size-4 text-emerald-400" />
+              <span>{t.conversations || 'Đoạn chat'}</span>
+              <span className="text-[10px] text-slate-500 font-mono">({conversations.length})</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleNewChat}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-white bg-white/[0.06] cursor-pointer"
+                title={t.newChat || 'Cuộc trò chuyện mới'}
+              >
+                <Plus className="size-4 text-emerald-400" />
+              </button>
+              <button
+                onClick={() => setMobileSidebarOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-white/[0.04] cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="relative shrink-0">
+            <input
+              type="text"
+              value={searchConvQuery}
+              onChange={(e) => setSearchConvQuery(e.target.value)}
+              placeholder={t.searchChat || 'Tìm kiếm...'}
+              className="w-full h-9 pl-3 pr-3 rounded-xl border border-white/[0.08] bg-white/[0.03] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40"
+            />
+          </div>
+
+          <div className="shrink-0 pt-1">
+            <button
+              onClick={handleNewChat}
+              className={`w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-medium text-left cursor-pointer transition-all ${
+                !activeConvId
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/[0.04] border border-transparent'
+              }`}
+            >
+              <span className={`size-2 rounded-full ${!activeConvId ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              <span className="truncate">{t.newChat || 'Cuộc trò chuyện mới'}</span>
+            </button>
+          </div>
+
+          {/* Conversations History List on Mobile */}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar min-h-0">
+            {loadingConversations ? (
+              <div className="text-center py-6 text-[11px] text-slate-500 font-mono animate-pulse">
+                Đang tải lịch sử...
+              </div>
+            ) : conversations.filter((c) => (c.title || '').toLowerCase().includes(searchConvQuery.toLowerCase())).length === 0 ? (
+              <div className="text-center py-6 text-[11px] text-slate-500">
+                {searchConvQuery ? 'Không tìm thấy kết quả' : 'Chưa có hội thoại nào'}
+              </div>
+            ) : (
+              conversations
+                .filter((c) => (c.title || '').toLowerCase().includes(searchConvQuery.toLowerCase()))
+                .map((conv) => {
+                  const isActive = activeConvId === conv.id;
+                  return (
+                    <div
+                      key={conv.id}
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs cursor-pointer transition-all border ${
+                        isActive
+                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-sm'
+                          : 'border-transparent hover:bg-white/[0.04] text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex flex-col min-w-0 flex-1 pr-2">
+                        <span className="truncate font-medium text-xs">{conv.title || 'Cuộc trò chuyện'}</span>
+                        <span className="text-[10px] text-slate-500 truncate mt-0.5">
+                          {new Date(conv.updated_at).toLocaleDateString('vi-VN', {
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteConversation(e, conv.id)}
+                        className="p-1.5 hover:text-rose-400 text-slate-500 transition-colors rounded"
+                        title="Xóa đoạn chat"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Desktop Chat Sub-Sidebar */}
       <div className="w-64 border-r border-white/[0.08] bg-[#0c0e16] p-3.5 flex flex-col justify-between hidden md:flex shrink-0">
         <div className="space-y-3 flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between text-xs font-bold text-white px-1 shrink-0">
@@ -487,19 +647,35 @@ export default function ChatPlayground() {
       </div>
 
       {/* Main Chat Center */}
-      <div className="flex-1 flex flex-col justify-between overflow-hidden bg-[#090b10]">
+      <div className="flex-1 flex flex-col justify-between overflow-hidden bg-[#090b10] min-w-0">
         {/* Chat Header */}
-        <div className="h-14 border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between bg-[#0b0e16]/80 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs text-slate-400 font-medium">Model:</span>
+        <div className="h-14 border-b border-white/[0.08] px-3 sm:px-6 flex items-center justify-between bg-[#0b0e16]/80 backdrop-blur-md shrink-0 gap-2">
+          {/* Left Controls: Mobile Conversation Toggle & Model Select */}
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Mobile History Drawer Button */}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 hover:text-white text-xs font-semibold shrink-0 cursor-pointer"
+              title="Mở lịch sử đoạn chat"
+            >
+              <History className="size-3.5 text-emerald-400" />
+              <span className="hidden xs:inline">Đoạn chat</span>
+              {conversations.length > 0 && (
+                <span className="size-4 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[9px] flex items-center justify-center font-bold">
+                  {conversations.length}
+                </span>
+              )}
+            </button>
+
             {showCustomInput ? (
-              <div className="flex items-center gap-1.5 bg-[#121520] border border-cyan-500/40 rounded-xl px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1 bg-[#121520] border border-cyan-500/40 rounded-xl px-2 py-1 text-xs max-w-[200px] sm:max-w-none">
                 <input
                   type="text"
                   value={customInputText}
                   onChange={(e) => setCustomInputText(e.target.value)}
-                  placeholder="Nhập Model ID..."
-                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-36 sm:w-48 font-mono"
+                  placeholder="Model ID..."
+                  className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none w-24 sm:w-44 font-mono"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleApplyCustomModel();
@@ -509,7 +685,7 @@ export default function ChatPlayground() {
                 <button
                   type="button"
                   onClick={handleApplyCustomModel}
-                  className="px-2 py-0.5 rounded bg-cyan-500 text-black font-bold text-[10px] cursor-pointer"
+                  className="px-1.5 py-0.5 rounded bg-cyan-500 text-black font-bold text-[10px] cursor-pointer"
                 >
                   Dùng
                 </button>
@@ -522,7 +698,7 @@ export default function ChatPlayground() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 min-w-0">
                 <select
                   value={chatModel}
                   onChange={(e) => {
@@ -532,7 +708,7 @@ export default function ChatPlayground() {
                       setChatModel(e.target.value);
                     }
                   }}
-                  className="bg-[#121520] border border-white/[0.08] rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40 cursor-pointer max-w-[200px] sm:max-w-[260px] truncate"
+                  className="bg-[#121520] border border-white/[0.08] rounded-xl px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-cyan-500/40 cursor-pointer max-w-[130px] xs:max-w-[180px] sm:max-w-[260px] truncate"
                 >
                   {availableModels.map((m) => (
                     <option key={m.id} value={m.id} className="bg-[#121520] text-white">
@@ -546,7 +722,7 @@ export default function ChatPlayground() {
                 <button
                   type="button"
                   onClick={() => setShowCustomInput(true)}
-                  className="p-1.5 rounded-lg border border-white/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg border border-white/10 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer shrink-0 hidden xs:inline-flex"
                   title="Nhập mã model tùy ý"
                 >
                   <SlidersHorizontal className="size-3.5" />
@@ -556,13 +732,13 @@ export default function ChatPlayground() {
           </div>
 
           {/* Right Controls: Auto-Speak Toggle */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
               onClick={() => {
                 if (autoSpeak) stopSpeaking();
                 setAutoSpeak(!autoSpeak);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                 autoSpeak
                   ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300 shadow-md shadow-emerald-950/30'
                   : 'border-white/[0.08] bg-white/[0.03] text-slate-400 hover:text-white'
@@ -593,67 +769,44 @@ export default function ChatPlayground() {
         {/* Central Chat Message View */}
         <div className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto">
           {chatMessages.length === 0 ? (
-            /* Empty State with 6 Prompt Suggestion Cards */
-            <div className="h-full flex flex-col justify-center items-center w-full text-center space-y-6 py-4">
-              <div className="inline-flex size-14 items-center justify-center rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 text-emerald-400 shadow-lg shadow-emerald-950/40">
-                <Sparkles className="size-7" />
+            /* Empty State with Prompt Suggestion Cards */
+            <div className="h-full flex flex-col justify-center items-center w-full text-center space-y-4 sm:space-y-6 py-2 sm:py-4">
+              <div className="inline-flex size-12 sm:size-14 items-center justify-center rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 text-emerald-400 shadow-lg shadow-emerald-950/40">
+                <Sparkles className="size-6 sm:size-7" />
               </div>
 
-              <div className="space-y-1.5">
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              <div className="space-y-1">
+                <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
                   {t.chatGreetingTitle}
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
                   {t.chatGreetingSub}
                 </p>
               </div>
 
-              {/* 6 Suggestion Grid Cards (Hidden on mobile) */}
+              {/* Mobile Swipeable Suggestion Chips (Visible on Mobile) */}
+              <div className="flex sm:hidden flex-col gap-2 w-full pt-1 px-1">
+                <span className="text-[11px] font-bold text-slate-400 text-left">💡 Gợi ý câu hỏi bắt đầu:</span>
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar w-full">
+                  {t.prompts.map((promptText, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendSuggestedPrompt(promptText)}
+                      className="px-3.5 py-2.5 rounded-xl border border-white/10 bg-[#0e111a] hover:border-cyan-500/40 text-xs text-slate-300 hover:text-white whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                    >
+                      <span>{promptText}</span>
+                      <ChevronRight className="size-3 text-cyan-400 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6 Suggestion Grid Cards (Visible on Tablet & Desktop) */}
               <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full text-left pt-2">
                 {t.prompts.map((promptText, idx) => (
                   <button
                     key={idx}
-                    onClick={async () => {
-                      const newHistory = [{ role: 'user' as const, content: promptText }];
-                      setChatMessages(newHistory);
-                      setChatSending(true);
-                      const activeKey =
-                        keys.find((k) => k.status === 'active')?.key || keys[0]?.key || '';
-                      try {
-                        const res = await testChatCompletion(activeKey, chatModel, promptText);
-                        let assistantText = 'Đã nhận yêu cầu.';
-                        if (res && res.choices && res.choices[0] && res.choices[0].message) {
-                          assistantText = res.choices[0].message.content;
-                        } else if (res && res.error) {
-                          assistantText = typeof res.error === 'object' ? (res.error.message || JSON.stringify(res.error)) : String(res.error);
-                        }
-                        const updated = [
-                          ...newHistory,
-                          { role: 'assistant' as const, content: assistantText },
-                        ];
-                        setChatMessages(updated);
-
-                        // Persist Conversation
-                        persistConversation(updated, chatModel);
-
-                        if (autoSpeak) {
-                          const lastIdx = updated.length - 1;
-                          setIsSpeakingIndex(lastIdx);
-                          speakGoogleVoice(
-                            assistantText,
-                            lang,
-                            () => setIsSpeakingIndex(lastIdx),
-                            () => setIsSpeakingIndex(null)
-                          );
-                        }
-
-                        await refreshData();
-                      } catch {
-                        setChatMessages([...newHistory, { role: 'assistant', content: 'Đã nhận yêu cầu.' }]);
-                      } finally {
-                        setChatSending(false);
-                      }
-                    }}
+                    onClick={() => handleSendSuggestedPrompt(promptText)}
                     className="p-4 rounded-2xl border border-white/[0.08] bg-[#0e111a] hover:border-cyan-500/30 hover:bg-[#111624] transition-all text-xs sm:text-sm text-slate-300 leading-relaxed group flex items-center justify-between cursor-pointer"
                   >
                     <span>{promptText}</span>

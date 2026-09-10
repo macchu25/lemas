@@ -115,19 +115,19 @@ export default function KeyManager() {
             key={k.id}
             className="p-4 rounded-2xl border border-white/[0.08] bg-[#0e111a] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white">{k.name}</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400">
+                <span className="font-bold text-sm text-white truncate">{k.name}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 shrink-0">
                   {k.status}
                 </span>
               </div>
-              <div className="font-mono text-xs text-cyan-300">
+              <div className="font-mono text-xs text-cyan-300 break-all select-all">
                 {visibleKeys[k.id] ? k.key : k.key.slice(0, 10) + '••••••••' + k.key.slice(-4)}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
               <button
                 type="button"
                 onClick={() =>
@@ -136,7 +136,7 @@ export default function KeyManager() {
                     [k.id]: !visibleKeys[k.id],
                   })
                 }
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
                 title={t.toggleKeyVisibility}
               >
                 {visibleKeys[k.id] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -144,7 +144,7 @@ export default function KeyManager() {
               <button
                 type="button"
                 onClick={() => handleCopy(k.id, k.key)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs text-white hover:border-emerald-400 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/[0.08] text-xs text-white hover:border-emerald-400 transition-colors cursor-pointer"
               >
                 {copiedKeyId === k.id ? (
                   <Check className="size-3.5 text-emerald-400" />
@@ -156,7 +156,7 @@ export default function KeyManager() {
               <button
                 type="button"
                 onClick={() => handleRevokeKey(k.id)}
-                className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                 title="Revoke key"
               >
                 <Trash2 className="size-4" />

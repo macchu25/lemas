@@ -959,8 +959,40 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Sidebar Menu Pages (Trang 1 -> 6) */}
-          <nav className="space-y-1.5">
+          {/* Mobile Navigation Horizontal Rail (Visible only on Mobile) */}
+          <div className="flex lg:hidden overflow-x-auto gap-2 py-1 no-scrollbar w-full border-t border-white/10 pt-3">
+            {[
+              { id: 'xkiro', label: '1. xKiro', icon: Bot, count: xkiroKeys.length },
+              { id: 'machgen', label: '2. MachGen', icon: Cpu, count: machgenKeys.length },
+              { id: 'artqr', label: '3. Art QR', icon: Sparkles, count: artqrPresets.length },
+              { id: 'users', label: '4. Users', icon: Users, count: users.length },
+              { id: 'giftcodes', label: '5. Giftcodes', icon: Gift, count: giftcodes.length },
+              { id: 'rotator', label: '6. Giám Sát', icon: Activity, count: 'Ping' },
+            ].map((tab) => {
+              const isActive = adminTab === tab.id;
+              const IconComp = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setAdminTab(tab.id as any);
+                    if (tab.id === 'artqr') loadArtQRPresets();
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 border transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border-emerald-500/50 text-emerald-300 shadow-md'
+                      : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <IconComp className="size-3.5 text-emerald-400" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Desktop Sidebar Menu Pages (Trang 1 -> 6) */}
+          <nav className="space-y-1.5 hidden lg:block">
             <p className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
               Menu Các Trang Quản Trị
             </p>
