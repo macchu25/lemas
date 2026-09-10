@@ -22,6 +22,7 @@ import {
   Layers,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
   ExternalLink,
   Lock,
   LogOut,
@@ -92,6 +93,144 @@ interface AdminOverview {
   upstream_stats?: any;
 }
 
+interface AdminPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  itemName?: string;
+  pageSizeOptions?: number[];
+}
+
+function AdminPagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  itemName = 'mục',
+  pageSizeOptions = [10, 25, 50, 100],
+}: AdminPaginationProps) {
+  if (totalItems <= 0) return null;
+
+  const startIdx = Math.min((currentPage - 1) * pageSize + 1, totalItems);
+  const endIdx = Math.min(currentPage * pageSize, totalItems);
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10 text-xs text-slate-400">
+      <div className="flex flex-wrap items-center gap-3">
+        <span>
+          Hiển thị <span className="font-semibold text-white font-mono">{startIdx}-{endIdx}</span> trên{' '}
+          <span className="font-semibold text-white font-mono">{totalItems}</span> {itemName}
+        </span>
+
+        {onPageSizeChange && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <span className="text-[11px] text-slate-500">Mỗi trang:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                onPageSizeChange(Number(e.target.value));
+                onPageChange(1);
+              }}
+              className="px-2 py-1 rounded-lg bg-[#141829] border border-white/10 text-slate-200 text-xs focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt} / trang
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage <= 1}
+          className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          title="Trang đầu"
+        >
+          &laquo;
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+          className="p-1 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          title="Trang trước"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+
+        <div className="flex items-center gap-1 mx-1">
+          {getPageNumbers().map((p, idx) => {
+            if (typeof p === 'string') {
+              return (
+                <span key={`dots-${idx}`} className="px-1 text-slate-600 font-mono">
+                  ...
+                </span>
+              );
+            }
+            const isActive = p === currentPage;
+            return (
+              <button
+                key={p}
+                onClick={() => onPageChange(p)}
+                className={`min-w-[28px] h-7 px-2 rounded-lg font-mono text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                    : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {p}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+          className="p-1 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          title="Trang tiếp"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage >= totalPages}
+          className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+          title="Trang cuối"
+        >
+          &raquo;
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   // Admin Authentication State
   const [isAdminAuth, setIsAdminAuth] = useState(false);
@@ -105,6 +244,16 @@ export default function AdminPage() {
   const [giftcodes, setGiftcodes] = useState<AdminGiftcode[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination States
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+  const [giftcodePage, setGiftcodePage] = useState(1);
+  const [giftcodePageSize, setGiftcodePageSize] = useState(10);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [searchQuery]);
 
   // New Giftcode Form State
   const [newGiftCode, setNewGiftCode] = useState('');
@@ -790,6 +939,22 @@ export default function AdminPage() {
       u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.id?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Pagination calculations for Users
+  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
+  const safeUserPage = Math.min(userPage, totalUserPages);
+  const paginatedUsers = filteredUsers.slice(
+    (safeUserPage - 1) * userPageSize,
+    safeUserPage * userPageSize
+  );
+
+  // Pagination calculations for Giftcodes
+  const totalGiftcodePages = Math.max(1, Math.ceil(giftcodes.length / giftcodePageSize));
+  const safeGiftcodePage = Math.min(giftcodePage, totalGiftcodePages);
+  const paginatedGiftcodes = giftcodes.slice(
+    (safeGiftcodePage - 1) * giftcodePageSize,
+    safeGiftcodePage * giftcodePageSize
   );
 
   const allUpstreamKeys = overview?.upstream_stats?.keys || [];
@@ -2888,14 +3053,14 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-xs text-slate-500">
                       Không tìm thấy người dùng phù hợp.
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u) => (
+                  paginatedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
                       {/* User */}
                       <td className="py-4">
@@ -2998,6 +3163,18 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Users Pagination */}
+          <AdminPagination
+            currentPage={safeUserPage}
+            totalPages={totalUserPages}
+            totalItems={filteredUsers.length}
+            pageSize={userPageSize}
+            onPageChange={setUserPage}
+            onPageSizeChange={setUserPageSize}
+            itemName="người dùng"
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
         </div>
       )}
 
@@ -3090,14 +3267,14 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {giftcodes.length === 0 ? (
+                {paginatedGiftcodes.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
                       Chưa có mã Giftcode nào được tạo. Hãy tạo mã đầu tiên bên trên.
                     </td>
                   </tr>
                 ) : (
-                  giftcodes.map((g) => {
+                  paginatedGiftcodes.map((g) => {
                     const isExhausted = g.status === 'exhausted' || (g.max_uses > 0 && g.used_count >= g.max_uses);
                     return (
                       <tr key={g.id} className="hover:bg-white/[0.02] transition-colors">
@@ -3143,6 +3320,18 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Giftcodes Pagination */}
+          <AdminPagination
+            currentPage={safeGiftcodePage}
+            totalPages={totalGiftcodePages}
+            totalItems={giftcodes.length}
+            pageSize={giftcodePageSize}
+            onPageChange={setGiftcodePage}
+            onPageSizeChange={setGiftcodePageSize}
+            itemName="mã Giftcode"
+            pageSizeOptions={[10, 25, 50]}
+          />
         </div>
       )}
       </main>
