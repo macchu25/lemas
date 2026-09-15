@@ -32,6 +32,9 @@ import {
   Trash2,
   ExternalLink,
   Eye,
+  BrainCircuit,
+  ImagePlus,
+  SlidersHorizontal,
 } from 'lucide-react';
 import {
   processQRTransparency,
@@ -42,6 +45,8 @@ import {
 import {
   getArtQRPresets,
   submitArtQRGeneration,
+  analyzeStyle,
+  StyleAnalysis,
   ArtQRPreset,
   ArtQRResult,
   getPresetAssetUrl,
@@ -78,6 +83,16 @@ export default function ArtQRStudioPage() {
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string>('/presets/doraemon_bread_scene.jpg');
   const refInputRef = useRef<HTMLInputElement>(null);
+
+  // Custom Reference Upload & AI Vision Prompt Analysis (Kho phong cách)
+  const [catalogCustomRefFile, setCatalogCustomRefFile] = useState<File | null>(null);
+  const [catalogCustomRefPreview, setCatalogCustomRefPreview] = useState<string>('');
+  const [isAnalyzingRef, setIsAnalyzingRef] = useState<boolean>(false);
+  const [refAnalysisResult, setRefAnalysisResult] = useState<StyleAnalysis | null>(null);
+  const [customAnalyzedPrompt, setCustomAnalyzedPrompt] = useState<string>('');
+  const [customRefDragOver, setCustomRefDragOver] = useState<boolean>(false);
+  const [customRefError, setCustomRefError] = useState<string>('');
+  const catalogCustomRefInputRef = useRef<HTMLInputElement>(null);
 
   // Presets list
   const [presets, setPresets] = useState<ArtQRPreset[]>([]);
@@ -157,6 +172,7 @@ export default function ArtQRStudioPage() {
   const handleSelectPresetAndProceed = (preset: ArtQRPreset) => {
     setSelectedPresetId(preset.id);
     setReferenceFile(null);
+    setCustomPrompt('');
     if (preset.reference_image_url) {
       setReferencePreview(getPresetAssetUrl(preset.reference_image_url));
     } else if (preset.preview_url) {
@@ -166,10 +182,57 @@ export default function ArtQRStudioPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleCustomRefUpload = (file: File) => {
+  // Upload and analyze custom reference image with Vision AI
+  const handleCatalogCustomRefSelected = async (file: File) => {
+    setCatalogCustomRefFile(file);
+    const preview = URL.createObjectURL(file);
+    setCatalogCustomRefPreview(preview);
+    setIsAnalyzingRef(true);
+    setCustomRefError('');
+    setRefAnalysisResult(null);
+    setCustomAnalyzedPrompt('');
+
+    try {
+      const res = await analyzeStyle(file);
+      if (res) {
+        setRefAnalysisResult(res);
+        setCustomAnalyzedPrompt(res.prompt || res.generated_prompt || '');
+      }
+    } catch (err: unknown) {
+      console.warn('Style analysis warning:', err);
+      setCustomRefError('Không thể phân tích trực tiếp bằng AI Vision, bạn vẫn có thể tự nhập mô tả phong cách và tạo Art QR bình thường.');
+      setCustomAnalyzedPrompt('Tác phẩm nghệ thuật hòa trộn chất liệu tự nhiên, bảo toàn tuyệt đối ma trận ô vuông module QR');
+    } finally {
+      setIsAnalyzingRef(false);
+    }
+  };
+
+  const handleUseCustomAnalyzedRefAndProceed = () => {
+    if (!catalogCustomRefFile) return;
+    setReferenceFile(catalogCustomRefFile);
+    setReferencePreview(catalogCustomRefPreview);
+    setCustomPrompt(customAnalyzedPrompt);
+    setSelectedPresetId('custom');
+    setViewMode('generator');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCustomRefUpload = async (file: File) => {
     setReferenceFile(file);
     const objUrl = URL.createObjectURL(file);
     setReferencePreview(objUrl);
+    setSelectedPresetId('custom');
+    
+    // Auto-trigger vision analysis if prompt is empty
+    if (!customPrompt) {
+      try {
+        const res = await analyzeStyle(file);
+        if (res) {
+          setRefAnalysisResult(res);
+          setCustomPrompt(res.prompt || res.generated_prompt || '');
+        }
+      } catch (_) {}
+    }
   };
 
   // Process uploaded QR file - AUTOMATICALLY runs existing QR background removal immediately
@@ -525,11 +588,11 @@ export default function ArtQRStudioPage() {
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
                   <span>Kho Phong Cách & Chất Liệu Tự Nhiên</span>
                   <span className="text-xs font-normal text-slate-400">
-                    ({presets.length} phong cách độc quyền)
+                    ({presets.length} phong cách độc quyền + Tự thêm ảnh tham chiếu)
                   </span>
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Bấm vào phong cách bất kỳ dưới đây để chuyển sang phòng tạo ảnh với thông số chuẩn đã thiết lập sẵn.
+                  Tải ảnh phôi tham chiếu của riêng bạn để AI phân tích tạo Prompt, hoặc chọn một phong cách có sẵn bên dưới.
                 </p>
               </div>
 
@@ -543,8 +606,210 @@ export default function ArtQRStudioPage() {
               </button>
             </div>
 
+            {/* FEATURE: TỰ THÊM ẢNH THAM CHIẾU & PHÂN TÍCH PROMPT BẰNG AI (VISION PROMPT GENERATOR) */}
+            <div className="relative rounded-3xl border-2 border-amber-500/40 bg-gradient-to-br from-[#121624] via-[#0e121e] to-[#0a0d16] p-5 sm:p-6 shadow-2xl overflow-hidden ring-1 ring-amber-500/20">
+              <div className="absolute top-0 right-0 -mt-8 -mr-8 size-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={catalogCustomRefInputRef}
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleCatalogCustomRefSelected(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <div className="relative z-10 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="size-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 text-slate-950 font-black flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+                      <BrainCircuit className="size-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base font-black text-white">
+                          Tự Thêm Ảnh Tham Chiếu & Phân Tích AI Vision
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 border border-amber-500/40">
+                          ✨ AI Auto-Prompt & Geometry Lock
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Tải ảnh bất kỳ (tranh nghệ thuật, ảnh sản phẩm, phong cảnh...) — AI sẽ tự động phân tích chi tiết bối cảnh, ánh sáng, chất liệu để sinh Prompt tối ưu, đồng thời <strong className="text-amber-300 font-semibold">khóa cứng ma trận ô vuông module QR</strong> không bao giờ bị xê dịch.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upload Zone & Result Preview */}
+                {!catalogCustomRefPreview ? (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setCustomRefDragOver(true);
+                    }}
+                    onDragLeave={() => setCustomRefDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setCustomRefDragOver(false);
+                      if (e.dataTransfer.files?.[0]) {
+                        handleCatalogCustomRefSelected(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    onClick={() => catalogCustomRefInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-7 text-center cursor-pointer transition-all duration-300 ${
+                      customRefDragOver
+                        ? 'border-amber-400 bg-amber-500/15 scale-[1.01]'
+                        : 'border-amber-500/30 hover:border-amber-400/70 bg-[#141829]/60 hover:bg-[#181e33]/80'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="size-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 shadow-md">
+                        <ImagePlus className="size-7" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-white">
+                          Kéo thả ảnh tham chiếu vào đây hoặc <span className="text-amber-400 underline decoration-amber-400/50">Bấm để tải ảnh lên</span>
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Hỗ trợ PNG, JPG, WebP • Tự động kích hoạt AI Vision phân tích phong cách & chất liệu
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 p-4 rounded-2xl bg-[#14192b]/90 border border-amber-500/30">
+                    {/* Left: Image Preview */}
+                    <div className="md:col-span-4 space-y-3">
+                      <div className="relative rounded-2xl overflow-hidden bg-black/80 border border-white/10 aspect-square max-h-56 mx-auto">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={catalogCustomRefPreview}
+                          alt="Custom Reference"
+                          className="size-full object-cover"
+                        />
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/80 text-amber-300 border border-white/10">
+                          Ảnh Phôi Tham Chiếu
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => catalogCustomRefInputRef.current?.click()}
+                        className="w-full py-1.5 px-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Upload className="size-3.5" />
+                        <span>Đổi ảnh tham chiếu khác</span>
+                      </button>
+                    </div>
+
+                    {/* Right: AI Analysis Results & Prompt */}
+                    <div className="md:col-span-8 space-y-3.5 flex flex-col justify-between">
+                      {isAnalyzingRef ? (
+                        <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-3 my-auto">
+                          <RefreshCw className="size-6 animate-spin text-amber-400 mx-auto" />
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold text-white">
+                              AI Vision đang phân tích ảnh tham chiếu...
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              Đang nhận diện bối cảnh, chất liệu, hướng chiếu sáng và trích xuất prompt chuẩn ControlNet QR
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* Extracted Style Tags */}
+                          {refAnalysisResult && (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {refAnalysisResult.style && (
+                                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-bold">
+                                    Phong cách: {refAnalysisResult.style}
+                                  </span>
+                                )}
+                                {refAnalysisResult.texture && (
+                                  <span className="px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold">
+                                    Vân chất liệu: {refAnalysisResult.texture}
+                                  </span>
+                                )}
+                                {refAnalysisResult.lighting && (
+                                  <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[11px] font-semibold">
+                                    Ánh sáng: {refAnalysisResult.lighting}
+                                  </span>
+                                )}
+                              </div>
+
+                              {refAnalysisResult.palette && refAnalysisResult.palette.length > 0 && (
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                  <span>Bảng màu:</span>
+                                  <div className="flex items-center gap-1.5">
+                                    {refAnalysisResult.palette.map((color, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="size-4 rounded-full border border-white/20 shadow-sm"
+                                        style={{ backgroundColor: color }}
+                                        title={color}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Editable AI Generated Prompt */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <label className="font-bold text-white flex items-center gap-1.5">
+                                <Sparkles className="size-3.5 text-amber-400" />
+                                <span>Prompt do AI Vision tạo tự động (Bạn có thể tinh chỉnh):</span>
+                              </label>
+                            </div>
+                            <textarea
+                              rows={3}
+                              value={customAnalyzedPrompt}
+                              onChange={(e) => setCustomAnalyzedPrompt(e.target.value)}
+                              placeholder="Mô tả phong cách hòa trộn nghệ thuật..."
+                              className="w-full p-3 rounded-xl border border-white/10 bg-[#0c1017] text-xs text-slate-200 placeholder-slate-500 focus:border-amber-400 focus:outline-none transition-colors"
+                            />
+                          </div>
+
+                          {/* Crucial Security Guarantee Alert */}
+                          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-300 flex items-start gap-2">
+                            <ShieldCheck className="size-4 shrink-0 text-emerald-400 mt-0.5" />
+                            <span>
+                              <strong>Bảo Toàn Module Tuyệt Đối:</strong> Dù AI phân tích phong cách nào, hệ thống cam kết giữ nguyên 100% vị trí, tọa độ các ô vuông module và 3 mắt định vị QR, đảm bảo quét chính xác 100%.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action CTA Button */}
+                      <button
+                        type="button"
+                        disabled={isAnalyzingRef}
+                        onClick={handleUseCustomAnalyzedRefAndProceed}
+                        className="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        <Sparkles className="size-4 text-slate-950" />
+                        <span>Dùng Ảnh Phôi Này & Vào Phòng Tạo QR →</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Presets List: Mỗi phong cách là 1 dòng riêng biệt (Full-width Banner Row) */}
             <div className="flex flex-col space-y-4">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1 pt-2">
+                Hoặc Chọn Các Phong Cách Có Sẵn Từ Hệ Thống:
+              </div>
               {presets.map((preset) => {
                 const isSelected = selectedPresetId === preset.id || selectedPresetId === preset.slug;
                 const price = preset.price_credits !== undefined ? preset.price_credits : 5;
@@ -904,6 +1169,32 @@ export default function ArtQRStudioPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Prompt for Custom Reference or Preset */}
+                  {(referenceFile || customPrompt || selectedPresetId === 'custom') && (
+                    <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <label className="font-bold text-white flex items-center gap-1.5">
+                          <Sparkles className="size-3.5 text-amber-400" />
+                          <span>Prompt Hòa Trộn (AI Vision / Tùy Chỉnh):</span>
+                        </label>
+                        <span className="text-[10px] text-amber-300/80 font-mono">
+                          {customPrompt.length > 0 ? `${customPrompt.length} ký tự` : 'Tự động trích xuất'}
+                        </span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        placeholder="Nhập mô tả hoặc để trống để AI Vision tự động phân tích..."
+                        className="w-full p-2.5 rounded-xl border border-white/10 bg-[#0c1017] text-xs text-slate-200 placeholder-slate-500 focus:border-amber-400 focus:outline-none transition-colors"
+                      />
+                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold pt-0.5">
+                        <ShieldCheck className="size-3.5 text-emerald-400 shrink-0" />
+                        <span>Khóa cứng 100% tọa độ các ô vuông module & 3 mắt định vị QR</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Error Message */}
