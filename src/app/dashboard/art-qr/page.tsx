@@ -724,6 +724,87 @@ export default function ArtQRStudioPage() {
                         )}
                       </div>
 
+                      {/* Quick Placement Adjustment Buttons */}
+                      {refAnalysisResult && !isAnalyzingRef && (
+                        <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                          <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              <Sparkles className="size-3 text-amber-400" />
+                              <span>Vị trí gắn QR:</span>
+                            </span>
+                            <span className="text-[10px] text-amber-400 font-mono font-bold">
+                              X:{Math.round((refAnalysisResult.optimal_placement?.x || 0.25) * 100)}% Y:{Math.round((refAnalysisResult.optimal_placement?.y || 0.25) * 100)}% Size:{Math.round((refAnalysisResult.optimal_placement?.size || 0.50) * 100)}%
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1 text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefAnalysisResult({
+                                  ...refAnalysisResult,
+                                  optimal_placement: { x: 0.35, y: 0.15, size: 0.60 },
+                                });
+                              }}
+                              className={`py-1 px-1 rounded-lg border font-semibold transition-all ${
+                                (refAnalysisResult.optimal_placement?.x || 0) >= 0.30
+                                  ? 'bg-amber-500/30 border-amber-400 text-amber-300 shadow-sm'
+                                  : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              Bên phải (Tường)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefAnalysisResult({
+                                  ...refAnalysisResult,
+                                  optimal_placement: { x: 0.05, y: 0.15, size: 0.60 },
+                                });
+                              }}
+                              className={`py-1 px-1 rounded-lg border font-semibold transition-all ${
+                                (refAnalysisResult.optimal_placement?.x || 0) <= 0.10
+                                  ? 'bg-amber-500/30 border-amber-400 text-amber-300 shadow-sm'
+                                  : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              Bên trái
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefAnalysisResult({
+                                  ...refAnalysisResult,
+                                  optimal_placement: { x: 0.20, y: 0.20, size: 0.60 },
+                                });
+                              }}
+                              className={`py-1 px-1 rounded-lg border font-semibold transition-all ${
+                                (refAnalysisResult.optimal_placement?.x || 0) > 0.10 && (refAnalysisResult.optimal_placement?.x || 0) < 0.30 && (refAnalysisResult.optimal_placement?.size || 0.5) < 0.8
+                                  ? 'bg-amber-500/30 border-amber-400 text-amber-300 shadow-sm'
+                                  : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              Chính giữa
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefAnalysisResult({
+                                  ...refAnalysisResult,
+                                  optimal_placement: { x: 0.05, y: 0.05, size: 0.90 },
+                                });
+                              }}
+                              className={`py-1 px-1 rounded-lg border font-semibold transition-all ${
+                                (refAnalysisResult.optimal_placement?.size || 0.5) >= 0.85
+                                  ? 'bg-amber-500/30 border-amber-400 text-amber-300 shadow-sm'
+                                  : 'bg-slate-800/80 border-white/5 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              Toàn bề mặt (~90%)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => catalogCustomRefInputRef.current?.click()}
