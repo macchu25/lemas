@@ -727,6 +727,11 @@ export default function ArtQRStudioPage() {
                           {refAnalysisResult && (
                             <div className="space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
+                                {refAnalysisResult.target_surface && (
+                                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
+                                    Vị trí đặt QR: {refAnalysisResult.target_surface}
+                                  </span>
+                                )}
                                 {refAnalysisResult.style && (
                                   <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-bold">
                                     Phong cách: {refAnalysisResult.style}

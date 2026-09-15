@@ -79,6 +79,12 @@ export interface StyleAnalysis {
   palette: string[];
   lighting: string;
   texture: string;
+  scene_description?: string;
+  target_surface?: string;
+  optimal_placement?: Placement;
+  dark_module_style?: string[];
+  light_module_style?: string;
+  surface_state?: string;
   prompt?: string;
   generated_prompt?: string;
   patch_prompt?: string;
