@@ -222,16 +222,21 @@ export default function ArtQRStudioPage() {
     const objUrl = URL.createObjectURL(file);
     setReferencePreview(objUrl);
     setSelectedPresetId('custom');
+    setIsAnalyzingRef(true);
+    setCustomRefError('');
     
-    // Auto-trigger vision analysis if prompt is empty
-    if (!customPrompt) {
-      try {
-        const res = await analyzeStyle(file);
-        if (res) {
-          setRefAnalysisResult(res);
-          setCustomPrompt(res.prompt || res.generated_prompt || '');
-        }
-      } catch (_) {}
+    try {
+      const res = await analyzeStyle(file);
+      if (res) {
+        setRefAnalysisResult(res);
+        const p = res.prompt || res.generated_prompt || '';
+        setCustomPrompt(p);
+        setCustomAnalyzedPrompt(p);
+      }
+    } catch (err: unknown) {
+      console.warn('Vision analysis error:', err);
+    } finally {
+      setIsAnalyzingRef(false);
     }
   };
 
@@ -284,8 +289,7 @@ export default function ArtQRStudioPage() {
   const handleReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setReferenceFile(file);
-      setReferencePreview(URL.createObjectURL(file));
+      handleCustomRefUpload(file);
     }
   };
 
@@ -328,15 +332,21 @@ export default function ArtQRStudioPage() {
     }
 
     try {
+      const finalPresetId = referenceFile ? 'custom' : selectedPresetId;
+      const finalPlacement = (refAnalysisResult?.optimal_placement && refAnalysisResult.optimal_placement.size > 0)
+        ? refAnalysisResult.optimal_placement
+        : (selectedPreset?.placement || {
+            x: 0.41,
+            y: 0.28,
+            size: 0.30,
+          });
+
       // Step 1: Submit job (fast, returns jobId immediately)
       const submission = await submitArtQRGeneration(uploadFile, {
-        presetId: selectedPresetId,
+        presetId: finalPresetId,
         referenceFile: referenceFile,
-        placement: {
-          x: 0.41,
-          y: 0.28,
-          size: 0.30,
-        },
+        customPrompt: customPrompt || customAnalyzedPrompt || undefined,
+        placement: finalPlacement,
       });
 
       const jobId = submission.jobId;
@@ -1177,21 +1187,62 @@ export default function ArtQRStudioPage() {
 
                   {/* Prompt for Custom Reference or Preset */}
                   {(referenceFile || customPrompt || selectedPresetId === 'custom') && (
-                    <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-2">
+                    <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <label className="font-bold text-white flex items-center gap-1.5">
                           <Sparkles className="size-3.5 text-amber-400" />
                           <span>Prompt Hòa Trộn (AI Vision / Tùy Chỉnh):</span>
                         </label>
-                        <span className="text-[10px] text-amber-300/80 font-mono">
-                          {customPrompt.length > 0 ? `${customPrompt.length} ký tự` : 'Tự động trích xuất'}
-                        </span>
+                        {isAnalyzingRef ? (
+                          <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                            <RefreshCw className="size-3 animate-spin" />
+                            <span>Đang phân tích ảnh...</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-300/80 font-mono">
+                            {customPrompt.length > 0 ? `${customPrompt.length} ký tự` : 'Tự động trích xuất'}
+                          </span>
+                        )}
                       </div>
+
+                      {/* Vision Analysis Badges if available */}
+                      {refAnalysisResult && (
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-[11px]">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {refAnalysisResult.target_surface && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold">
+                                🎯 Vị trí: {refAnalysisResult.target_surface}
+                              </span>
+                            )}
+                            {refAnalysisResult.style && (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">
+                                🎨 {refAnalysisResult.style}
+                              </span>
+                            )}
+                            {refAnalysisResult.texture && (
+                              <span className="px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-semibold">
+                                🧶 Vân: {refAnalysisResult.texture}
+                              </span>
+                            )}
+                            {refAnalysisResult.lighting && (
+                              <span className="px-2 py-0.5 rounded-md bg-purple-500/15 border border-purple-500/30 text-purple-300 font-semibold">
+                                💡 Ánh sáng: {refAnalysisResult.lighting}
+                              </span>
+                            )}
+                          </div>
+                          {refAnalysisResult.scene_description && (
+                            <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">
+                              <strong className="text-slate-300">Bối cảnh nhận diện:</strong> {refAnalysisResult.scene_description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <textarea
-                        rows={2}
+                        rows={3}
                         value={customPrompt}
                         onChange={(e) => setCustomPrompt(e.target.value)}
-                        placeholder="Nhập mô tả hoặc để trống để AI Vision tự động phân tích..."
+                        placeholder="Mô tả phong cách hoặc để AI Vision tự động trích xuất từ ảnh bạn vừa tải..."
                         className="w-full p-2.5 rounded-xl border border-white/10 bg-[#0c1017] text-xs text-slate-200 placeholder-slate-500 focus:border-amber-400 focus:outline-none transition-colors"
                       />
                       <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold pt-0.5">
