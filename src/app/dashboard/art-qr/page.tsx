@@ -642,14 +642,14 @@ export default function ArtQRStudioPage() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-base font-black text-white">
-                          Tự Thêm Ảnh Tham Chiếu & Phân Tích AI Vision
+                          Tự Thêm Ảnh Tham Chiếu & Phân Tích MachGen GPT-Image-2
                         </h3>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500/30 to-rose-500/30 text-amber-300 border border-amber-500/40">
-                          ✨ AI Auto-Prompt & Geometry Lock
+                          ✨ MachGen GPT-Image-2 & Geometry Lock
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 mt-0.5">
-                        Tải ảnh bất kỳ (tranh nghệ thuật, ảnh sản phẩm, phong cảnh...) — AI sẽ tự động phân tích chi tiết bối cảnh, ánh sáng, chất liệu để sinh Prompt tối ưu, đồng thời <strong className="text-amber-300 font-semibold">khóa cứng ma trận ô vuông module QR</strong> không bao giờ bị xê dịch.
+                        Tải ảnh bất kỳ (tranh nghệ thuật, ảnh sản phẩm, phong cảnh...) — MachGen GPT-Image-2 sẽ tự động phân tích chi tiết bối cảnh, ánh sáng, chất liệu để sinh Prompt tối ưu, đồng thời <strong className="text-amber-300 font-semibold">khóa cứng ma trận ô vuông module QR</strong> không bao giờ bị xê dịch.
                       </p>
                     </div>
                   </div>
@@ -686,7 +686,7 @@ export default function ArtQRStudioPage() {
                           Kéo thả ảnh tham chiếu vào đây hoặc <span className="text-amber-400 underline decoration-amber-400/50">Bấm để tải ảnh lên</span>
                         </p>
                         <p className="text-xs text-slate-400">
-                          Hỗ trợ PNG, JPG, WebP • Tự động kích hoạt AI Vision phân tích phong cách & chất liệu
+                          Hỗ trợ PNG, JPG, WebP • Tự động phân tích bóc tách bề mặt & phong cách bằng MachGen GPT-Image-2
                         </p>
                       </div>
                     </div>
@@ -822,7 +822,7 @@ export default function ArtQRStudioPage() {
                           <RefreshCw className="size-8 animate-spin text-amber-400 mx-auto" />
                           <div className="space-y-1">
                             <p className="text-sm font-bold text-white">
-                              AI Vision đang phân tích chi tiết ảnh tham chiếu...
+                              MachGen GPT-Image-2 đang phân tích chi tiết ảnh tham chiếu...
                             </p>
                             <p className="text-xs text-slate-400">
                               Đang bóc tách vật thể, xác định vị trí gắn QR tối ưu (~90% bề mặt) và tạo prompt khóa cứng ma trận
@@ -831,12 +831,12 @@ export default function ArtQRStudioPage() {
                         </div>
                       ) : (
                         <div className="space-y-3.5">
-                          {/* Step 1: Breakdown from Vision Analysis */}
+                          {/* Step 1: Breakdown from MachGen Analysis */}
                           <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <Sparkles className="size-3.5 text-amber-400" />
-                                <span>Bước 1: Kết Quả Phân Tích Từ Ảnh Đầu Vào</span>
+                                <span>Bước 1: Kết Quả Bóc Tách Bằng MachGen GPT-Image-2</span>
                               </span>
                               {refAnalysisResult?.style && (
                                 <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
